@@ -1,0 +1,49 @@
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+
+from app.api.router import api_router
+from app.config import get_settings
+
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler."""
+    logger.info("Starting application...")
+    logger.info(f"Debug mode: {settings.debug}")
+
+    yield
+
+    logger.info("Shutting down application...")
+
+
+app = FastAPI(
+    title="ComfyUI Gallery API",
+    description="API for managing AI-generated images from ComfyUI",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# CORS middleware
+origins = [origin.strip() for origin in settings.cors_origins.split(",")]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API router
+app.include_router(api_router)
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint."""
+    return {"message": "ComfyUI Gallery API", "version": "0.1.0"}
