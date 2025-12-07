@@ -1,0 +1,43 @@
+# ComfyUI Gallery - Backend Dependencies
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0
+alembic>=1.13.0
+
+# Validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Authentication
+bcrypt>=4.1.0
+python-jose[cryptography]>=3.3.0
+
+# Image Processing
+Pillow>=10.2.0
+
+# File Watching
+watchdog>=4.0.0
+
+# UUID v7
+uuid-utils>=0.6.0
+
+# Async File Operations
+aiofiles>=23.2.0
+
+# HTTP Client (for potential external calls)
+httpx>=0.26.0
+
+# Logging
+loguru>=0.7.0
+
+# Development
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+black>=24.1.0
+ruff>=0.1.0
