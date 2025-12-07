@@ -7,17 +7,32 @@ from loguru import logger
 
 from app.api.router import api_router
 from app.config import get_settings
+from app.workers import ImageWatcher
 
 settings = get_settings()
+
+# Global watcher instance
+_watcher: ImageWatcher | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
+    global _watcher
+
     logger.info("Starting application...")
     logger.info(f"Debug mode: {settings.debug}")
 
+    # Start the image watcher
+    _watcher = ImageWatcher()
+    _watcher.process_existing()  # Process any files already in import folder
+    _watcher.start()
+
     yield
+
+    # Stop the watcher
+    if _watcher:
+        _watcher.stop()
 
     logger.info("Shutting down application...")
 
