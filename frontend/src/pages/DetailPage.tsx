@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import type { ImageUpdate } from '@/types/image'
 import StarRating from '@/components/common/StarRating'
+import TagEditor from '@/components/detail/TagEditor'
+import MemoEditor from '@/components/detail/MemoEditor'
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -228,31 +230,16 @@ export default function DetailPage() {
           )}
 
           {/* User Tags */}
-          {image.user_tags.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium text-white mb-2">Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {image.user_tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-blue-600/20 text-blue-400 text-sm rounded"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagEditor
+            tags={image.user_tags}
+            onChange={(tags) => updateMutation.mutate({ user_tags: tags })}
+          />
 
           {/* User Memo */}
-          {image.user_memo && (
-            <div>
-              <h3 className="text-lg font-medium text-white mb-2">Memo</h3>
-              <p className="text-sm text-gray-300 bg-gray-800 p-3 rounded-lg whitespace-pre-wrap">
-                {image.user_memo}
-              </p>
-            </div>
-          )}
+          <MemoEditor
+            memo={image.user_memo}
+            onChange={(memo) => updateMutation.mutate({ user_memo: memo ?? undefined })}
+          />
 
           {/* Timestamps */}
           <div className="text-sm text-gray-500 pt-4 border-t border-gray-700">

@@ -1,25 +1,72 @@
 import { Link } from 'react-router-dom'
-import { Star, Heart } from 'lucide-react'
+import { Star, Heart, Check } from 'lucide-react'
+import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
+import { useSelectionStore } from '@/stores/selectionStore'
 
 interface ImageCardProps {
   image: ImageListItem
 }
 
 export default function ImageCard({ image }: ImageCardProps) {
+  const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
+  const isSelected = selectedIds.has(image.id)
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSelectionMode) {
+      e.preventDefault()
+      toggleSelection(image.id)
+    }
+  }
+
+  const handleLongPress = (e: React.MouseEvent) => {
+    // Enable selection mode on right-click or ctrl+click
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      if (!isSelectionMode) {
+        setSelectionMode(true)
+      }
+      toggleSelection(image.id)
+    }
+  }
+
   return (
     <Link
-      to={`/image/${image.id}`}
-      className="group relative bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
+      to={isSelectionMode ? '#' : `/image/${image.id}`}
+      onClick={handleClick}
+      onMouseDown={handleLongPress}
+      className={clsx(
+        'group relative bg-gray-800 rounded-lg overflow-hidden transition-all',
+        isSelected
+          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+          : 'hover:ring-2 hover:ring-blue-500/50'
+      )}
     >
       <div className="aspect-square">
         <img
           src={`/storage/${image.thumbnail_path}`}
           alt={image.model_name || 'Generated image'}
-          className="w-full h-full object-cover"
+          className={clsx(
+            'w-full h-full object-cover transition-opacity',
+            isSelected && 'opacity-75'
+          )}
           loading="lazy"
         />
       </div>
+
+      {/* Selection checkbox */}
+      {(isSelectionMode || isSelected) && (
+        <div
+          className={clsx(
+            'absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-colors',
+            isSelected
+              ? 'bg-blue-500 text-white'
+              : 'bg-black/50 text-white/50 group-hover:bg-black/70'
+          )}
+        >
+          {isSelected && <Check size={14} />}
+        </div>
+      )}
 
       {/* Overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
