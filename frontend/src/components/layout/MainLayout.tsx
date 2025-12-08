@@ -18,7 +18,7 @@ export default function MainLayout() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-8">
               <Link to="/" className="text-xl font-bold">
-                ComfyUI Gallery
+                Prompt Box
               </Link>
               <nav className="flex items-center gap-4">
                 <Link

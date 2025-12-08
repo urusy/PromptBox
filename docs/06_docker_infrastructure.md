@@ -3,7 +3,7 @@
 ## ディレクトリ構成
 
 ```
-comfyui-gallery/
+prompt-box/
 ├── docker-compose.yml
 ├── .env.example
 ├── .env                      # 環境変数（gitignore）

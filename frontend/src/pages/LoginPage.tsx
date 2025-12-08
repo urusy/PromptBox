@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-gray-800 rounded-lg shadow-lg">
         <div>
           <h2 className="text-center text-3xl font-bold text-white">
-            ComfyUI Gallery
+            Prompt Box
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Sign in to your account

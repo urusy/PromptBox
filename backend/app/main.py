@@ -38,8 +38,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="ComfyUI Gallery API",
-    description="API for managing AI-generated images from ComfyUI",
+    title="Prompt Box API",
+    description="API for managing AI-generated images",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -61,4 +61,4 @@ app.include_router(api_router)
 @app.get("/")
 async def root() -> dict[str, str]:
     """Root endpoint."""
-    return {"message": "ComfyUI Gallery API", "version": "0.1.0"}
+    return {"message": "Prompt Box API", "version": "0.1.0"}

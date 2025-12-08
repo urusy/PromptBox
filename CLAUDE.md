@@ -2,7 +2,7 @@
 
 ## プロジェクト概要
 
-ComfyUIで生成した画像を管理するウェブアプリケーション。
+ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリケーション（Prompt Box）。
 自動取り込み、メタデータ抽出、検索、評価、タグ付けなどの機能を提供する。
 
 ## ドキュメント
@@ -105,7 +105,7 @@ const ImageCard = (props: any) => {
 ## ディレクトリ構成
 
 ```
-comfyui-gallery/
+prompt-box/
 ├── docker-compose.yml
 ├── .env.example
 ├── CLAUDE.md                 # このファイル
