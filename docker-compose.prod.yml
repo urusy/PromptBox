@@ -1,0 +1,78 @@
+services:
+  # ===========================================
+  # Frontend (Nginx + React) - Pull from Docker Hub
+  # ===========================================
+  frontend:
+    image: urusy7/promptbox-frontend:latest
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    volumes:
+      - ./storage:/app/storage:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ===========================================
+  # Backend (FastAPI) - Pull from Docker Hub
+  # ===========================================
+  backend:
+    image: urusy7/promptbox-backend:latest
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./import:/app/import
+      - ./storage:/app/storage
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      - SECRET_KEY=${SECRET_KEY}
+      - IMPORT_PATH=/app/import
+      - STORAGE_PATH=/app/storage
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
+      - DEBUG=${DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ===========================================
+  # Database (PostgreSQL)
+  # ===========================================
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+      -c work_mem=16MB
+      -c maintenance_work_mem=64MB
+      -c max_connections=20
+      -c logging_collector=on
+      -c log_statement=none
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
