@@ -8,6 +8,14 @@ interface StarRatingProps {
   readonly?: boolean
 }
 
+const RATING_LABELS: Record<number, string> = {
+  1: '削除候補',
+  2: 'とりあえず残しておく',
+  3: '普通',
+  4: '良い',
+  5: '最高(壁紙候補)',
+}
+
 export default function StarRating({
   rating,
   onChange,
@@ -28,6 +36,7 @@ export default function StarRating({
           type="button"
           onClick={() => handleClick(star)}
           disabled={readonly}
+          title={RATING_LABELS[star]}
           className={clsx(
             'p-0.5 transition-colors',
             !readonly && 'hover:scale-110 cursor-pointer',
@@ -47,3 +56,5 @@ export default function StarRating({
     </div>
   )
 }
+
+export { RATING_LABELS }
