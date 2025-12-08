@@ -154,6 +154,48 @@ export default function DetailPage() {
             <InfoRow label="Denoising" value={(image.model_params?.denoising_strength as number | undefined)?.toString()} />
           </div>
 
+          {/* XYZ Grid Info */}
+          {Boolean(image.model_params?.is_xyz_grid) && (
+            <div>
+              <h3 className="text-lg font-medium text-white mb-2">XYZ Grid</h3>
+              <div className="bg-gray-800 p-3 rounded-lg space-y-2">
+                {Boolean(image.model_params?.xyz_x_type) && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-400 font-medium min-w-16">X Axis:</span>
+                    <div>
+                      <span className="text-blue-400">{String(image.model_params?.xyz_x_type)}</span>
+                      {Boolean(image.model_params?.xyz_x_values) && (
+                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_x_values)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {Boolean(image.model_params?.xyz_y_type) && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-400 font-medium min-w-16">Y Axis:</span>
+                    <div>
+                      <span className="text-green-400">{String(image.model_params?.xyz_y_type)}</span>
+                      {Boolean(image.model_params?.xyz_y_values) && (
+                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_y_values)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {Boolean(image.model_params?.xyz_z_type) && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-400 font-medium min-w-16">Z Axis:</span>
+                    <div>
+                      <span className="text-yellow-400">{String(image.model_params?.xyz_z_type)}</span>
+                      {Boolean(image.model_params?.xyz_z_values) && (
+                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_z_values)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Positive Prompt */}
           {image.positive_prompt && (
             <div>
