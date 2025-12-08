@@ -5,6 +5,7 @@ import LoginPage from '@/pages/LoginPage'
 import GalleryPage from '@/pages/GalleryPage'
 import DetailPage from '@/pages/DetailPage'
 import TrashPage from '@/pages/TrashPage'
+import DuplicatesPage from '@/pages/DuplicatesPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -31,6 +32,7 @@ function App() {
         <Route index element={<GalleryPage />} />
         <Route path="image/:id" element={<DetailPage />} />
         <Route path="trash" element={<TrashPage />} />
+        <Route path="duplicates" element={<DuplicatesPage />} />
       </Route>
     </Routes>
   )
