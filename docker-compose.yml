@@ -35,7 +35,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - IMPORT_PATH=/app/import
       - STORAGE_PATH=/app/storage
-      - CORS_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
     depends_on:
       db:
         condition: service_healthy
