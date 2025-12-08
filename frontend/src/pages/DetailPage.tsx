@@ -147,6 +147,11 @@ export default function DetailPage() {
             <InfoRow label="Steps" value={image.steps?.toString()} />
             <InfoRow label="CFG Scale" value={image.cfg_scale?.toString()} />
             <InfoRow label="Seed" value={image.seed?.toString()} />
+            {/* Hires/Upscale Info */}
+            <InfoRow label="Hires Upscaler" value={image.model_params?.hires_upscaler as string | undefined} />
+            <InfoRow label="Hires Scale" value={(image.model_params?.hires_upscale as number | undefined)?.toString()} />
+            <InfoRow label="Hires Steps" value={(image.model_params?.hires_steps as number | undefined)?.toString()} />
+            <InfoRow label="Denoising" value={(image.model_params?.denoising_strength as number | undefined)?.toString()} />
           </div>
 
           {/* Positive Prompt */}
