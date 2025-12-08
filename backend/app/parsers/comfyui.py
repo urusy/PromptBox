@@ -21,6 +21,8 @@ class ComfyUIParser(MetadataParser):
     PROMPT_NODES = {"CLIPTextEncode", "CLIPTextEncodeSDXL"}
     LORA_NODES = {"LoraLoader", "LoraLoaderModelOnly"}
     CONTROLNET_NODES = {"ControlNetLoader", "ControlNetApply", "ControlNetApplyAdvanced"}
+    UPSCALE_MODEL_NODES = {"UpscaleModelLoader"}
+    UPSCALE_NODES = {"ImageUpscaleWithModel", "LatentUpscale", "LatentUpscaleBy", "ImageScaleBy"}
 
     def can_parse(self, png_info: dict[str, Any]) -> bool:
         """Check if the PNG info contains ComfyUI metadata."""
@@ -65,6 +67,7 @@ class ComfyUIParser(MetadataParser):
         self._extract_prompts(prompt_data, metadata)
         self._extract_loras(prompt_data, metadata)
         self._extract_controlnets(prompt_data, metadata)
+        self._extract_upscale_info(prompt_data, metadata)
         self._extract_workflow_extras(workflow_data, metadata)
 
         # Detect model type
@@ -269,6 +272,65 @@ class ComfyUIParser(MetadataParser):
                 guidance_end=float(inputs.get("end_percent", 1.0)),
             )
             metadata.controlnets.append(cn_info)
+
+    def _extract_upscale_info(
+        self, prompt_data: dict[str, Any], metadata: ParsedMetadata
+    ) -> None:
+        """Extract upscale/hires information."""
+        upscale_models: dict[str, str] = {}
+
+        # First pass: collect upscale model names
+        for node_id, node in prompt_data.items():
+            if not isinstance(node, dict):
+                continue
+
+            if node.get("class_type") in self.UPSCALE_MODEL_NODES:
+                inputs = node.get("inputs", {})
+                model_name = inputs.get("model_name")
+                if model_name:
+                    upscale_models[node_id] = model_name
+
+        # Second pass: detect upscale usage
+        for node in prompt_data.values():
+            if not isinstance(node, dict):
+                continue
+
+            class_type = node.get("class_type", "")
+            inputs = node.get("inputs", {})
+
+            if class_type == "ImageUpscaleWithModel":
+                # Find the model reference
+                upscale_model_ref = inputs.get("upscale_model")
+                model_name = "unknown"
+                if isinstance(upscale_model_ref, list) and len(upscale_model_ref) >= 1:
+                    loader_id = str(upscale_model_ref[0])
+                    model_name = upscale_models.get(loader_id, "unknown")
+
+                metadata.model_params["hires_upscaler"] = model_name
+                metadata.model_params["upscale_method"] = "model"
+
+            elif class_type == "LatentUpscale":
+                method = inputs.get("upscale_method", "nearest-exact")
+                width = inputs.get("width")
+                height = inputs.get("height")
+                metadata.model_params["hires_upscaler"] = f"Latent ({method})"
+                metadata.model_params["upscale_method"] = "latent"
+                if width and height:
+                    metadata.model_params["upscale_size"] = f"{width}x{height}"
+
+            elif class_type == "LatentUpscaleBy":
+                method = inputs.get("upscale_method", "nearest-exact")
+                scale = inputs.get("scale_by", 1.0)
+                metadata.model_params["hires_upscaler"] = f"Latent ({method})"
+                metadata.model_params["hires_upscale"] = float(scale) if isinstance(scale, (int, float)) else 1.0
+                metadata.model_params["upscale_method"] = "latent"
+
+            elif class_type == "ImageScaleBy":
+                method = inputs.get("upscale_method", "nearest-exact")
+                scale = inputs.get("scale_by", 1.0)
+                metadata.model_params["hires_upscaler"] = f"Image ({method})"
+                metadata.model_params["hires_upscale"] = float(scale) if isinstance(scale, (int, float)) else 1.0
+                metadata.model_params["upscale_method"] = "image"
 
     def _extract_workflow_extras(
         self, workflow_data: dict[str, Any], metadata: ParsedMetadata

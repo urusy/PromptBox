@@ -156,6 +156,24 @@ class A1111Parser(MetadataParser):
                 model_params["model_hash"] = value
             elif key == "Size":
                 model_params["size"] = value
+            # Hires upscaler parameters
+            elif key == "Hires upscale":
+                try:
+                    model_params["hires_upscale"] = float(value)
+                except ValueError:
+                    pass
+            elif key == "Hires upscaler":
+                model_params["hires_upscaler"] = value
+            elif key == "Hires steps":
+                try:
+                    model_params["hires_steps"] = int(value)
+                except ValueError:
+                    pass
+            elif key == "Denoising strength":
+                try:
+                    model_params["denoising_strength"] = float(value)
+                except ValueError:
+                    pass
 
         if model_params:
             metadata.model_params = model_params
