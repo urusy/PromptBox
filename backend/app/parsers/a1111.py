@@ -175,7 +175,7 @@ class A1111Parser(MetadataParser):
                 except ValueError:
                     pass
             # XYZ grid parameters
-            elif key == "X/Y/Z plot":
+            elif key == "Script" and value == "X/Y/Z plot":
                 model_params["is_xyz_grid"] = True
             elif key == "X Type":
                 model_params["xyz_x_type"] = value

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Response, status
 
+from app.config import get_settings
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.common import MessageResponse
 from app.services.auth_service import AuthService
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def login(request: LoginRequest, response: Response) -> LoginResponse:
     """Login with username and password."""
     auth_service = AuthService()
+    settings = get_settings()
 
     if not auth_service.verify_password(request.username, request.password):
         raise HTTPException(
@@ -21,12 +23,13 @@ async def login(request: LoginRequest, response: Response) -> LoginResponse:
 
     session_token = auth_service.create_session(request.username)
 
+    # In debug mode, allow HTTP cookies for local development
     response.set_cookie(
         key="session",
         value=session_token,
         httponly=True,
-        secure=True,
-        samesite="strict",
+        secure=not settings.debug,
+        samesite="lax" if settings.debug else "strict",
         max_age=60 * 60 * 24 * 7,  # 1 week
     )
 

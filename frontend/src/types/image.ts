@@ -94,6 +94,7 @@ export interface ImageSearchParams {
   needs_improvement?: boolean
   tags?: string[]
   lora_name?: string
+  is_xyz_grid?: boolean | null  // true = grid only, false = non-grid only, null/undefined = all
   include_deleted?: boolean
   page?: number
   per_page?: number
