@@ -12,8 +12,24 @@
 
 ## 完了済み
 
+### 最近の更新
 - [x] 画面下部の選択メニューのモバイル対応（見切れ修正）
 - [x] レーティングの日本語ツールチップ追加
 - [x] 検索条件追加: Upscale、最小Width/Height、レーティング同等/以上
 - [x] 検索条件をURLクエリパラメータに保存
 - [x] デプロイメントガイド作成 (docs/07_deployment.md)
+- [x] NAS本番用docker-compose.prod.yml追加
+
+### 過去の実装
+- [x] UI改善とメタデータパース修正
+- [x] ローカルネットワークアクセス対応（モバイル向け）
+- [x] アプリ名変更: ComfyUI Gallery → Prompt Box
+- [x] XYZ Grid画像対応 (A1111/Forge)
+- [x] 重複画像管理ページ追加
+- [x] Hires Upscaler検出・表示
+- [x] 画像インポート・ストレージ問題修正
+- [x] Dockerビルド問題修正
+- [x] Phase 4: 拡張機能（評価・タグ・一括操作・エクスポート・ゴミ箱）
+- [x] Phase 3: UI強化（一覧・詳細・検索）
+- [x] Phase 2: メタデータパーサー・画像ウォッチャー
+- [x] Phase 1: 基盤構築（Docker・FastAPI・DB・認証）
