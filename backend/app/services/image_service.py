@@ -38,7 +38,9 @@ class ImageService:
         if params.sampler_name:
             query = query.where(Image.sampler_name == params.sampler_name)
 
-        if params.min_rating is not None:
+        if params.exact_rating is not None:
+            query = query.where(Image.rating == params.exact_rating)
+        elif params.min_rating is not None:
             query = query.where(Image.rating >= params.min_rating)
 
         if params.is_favorite is not None:
@@ -69,6 +71,26 @@ class ImageService:
                     (Image.model_params.op("->>")("is_xyz_grid").is_(None)) |
                     (Image.model_params.op("->>")("is_xyz_grid") != "true")
                 )
+
+        # Filter by upscaled (hires_upscaler exists in model_params)
+        if params.is_upscaled is not None:
+            if params.is_upscaled:
+                # Upscaled images only
+                query = query.where(
+                    Image.model_params.op("->>")("hires_upscaler").is_not(None)
+                )
+            else:
+                # Non-upscaled images only
+                query = query.where(
+                    Image.model_params.op("->>")("hires_upscaler").is_(None)
+                )
+
+        # Filter by minimum dimensions
+        if params.min_width is not None:
+            query = query.where(Image.width >= params.min_width)
+
+        if params.min_height is not None:
+            query = query.where(Image.height >= params.min_height)
 
         # Full-text search in prompts
         if params.q:

@@ -19,6 +19,15 @@ const GRID_FILTER_OPTIONS = [
   { value: 'grid', label: 'Grid Only' },
   { value: 'non-grid', label: 'Non-Grid Only' },
 ]
+const UPSCALE_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'upscaled', label: 'Upscaled Only' },
+  { value: 'non-upscaled', label: 'Non-Upscaled Only' },
+]
+const RATING_MATCH_OPTIONS = [
+  { value: 'min', label: '以上' },
+  { value: 'exact', label: '同等' },
+]
 
 export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -53,8 +62,12 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.model_type ||
     localParams.model_name ||
     localParams.min_rating ||
+    localParams.exact_rating !== undefined ||
     localParams.is_favorite ||
-    localParams.is_xyz_grid !== undefined
+    localParams.is_xyz_grid !== undefined ||
+    localParams.is_upscaled !== undefined ||
+    localParams.min_width ||
+    localParams.min_height
   )
 
   return (
@@ -148,19 +161,47 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Min Rating</label>
-            <select
-              value={localParams.min_rating ?? ''}
-              onChange={(e) => updateParam('min_rating', e.target.value ? parseInt(e.target.value) : undefined)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Any</option>
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <option key={rating} value={rating}>
-                  {rating}+ Stars
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm text-gray-400 mb-1">Rating</label>
+            <div className="flex gap-2">
+              <select
+                value={localParams.exact_rating ?? localParams.min_rating ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : undefined
+                  const isExactMode = localParams.exact_rating !== undefined
+                  if (isExactMode) {
+                    setLocalParams({ ...localParams, exact_rating: val, min_rating: undefined })
+                  } else {
+                    setLocalParams({ ...localParams, min_rating: val, exact_rating: undefined })
+                  }
+                }}
+                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Any</option>
+                {[0, 1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    ★{rating}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={localParams.exact_rating !== undefined ? 'exact' : 'min'}
+                onChange={(e) => {
+                  const currentVal = localParams.exact_rating ?? localParams.min_rating
+                  if (e.target.value === 'exact') {
+                    setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
+                  } else {
+                    setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
+                  }
+                }}
+                className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {RATING_MATCH_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
@@ -179,6 +220,54 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Upscale</label>
+            <select
+              value={localParams.is_upscaled === true ? 'upscaled' : localParams.is_upscaled === false ? 'non-upscaled' : ''}
+              onChange={(e) => {
+                const val = e.target.value
+                updateParam('is_upscaled', val === 'upscaled' ? true : val === 'non-upscaled' ? false : undefined)
+              }}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {UPSCALE_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">
+              Min Width: {localParams.min_width ? `${localParams.min_width}px` : 'Any'}
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="4000"
+              step="100"
+              value={localParams.min_width || 0}
+              onChange={(e) => updateParam('min_width', parseInt(e.target.value) || undefined)}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">
+              Min Height: {localParams.min_height ? `${localParams.min_height}px` : 'Any'}
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="4000"
+              step="100"
+              value={localParams.min_height || 0}
+              onChange={(e) => updateParam('min_height', parseInt(e.target.value) || undefined)}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            />
           </div>
 
           <div>
