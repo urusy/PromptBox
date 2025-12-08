@@ -1,5 +1,4 @@
 import asyncio
-import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -7,18 +6,37 @@ from uuid import UUID
 
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from uuid_utils import uuid7
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 from watchdog.observers import Observer
 
 from app.config import get_settings
-from app.database import AsyncSessionLocal
 from app.models.image import Image
 from app.parsers import MetadataParserFactory, read_png_info
 from app.utils.file_utils import ensure_directory, get_storage_path, get_thumbnail_path
 from app.utils.hash_utils import calculate_file_hash
 from app.utils.image_utils import create_thumbnail, get_image_dimensions
+
+
+def create_watcher_session() -> async_sessionmaker[AsyncSession]:
+    """Create a new engine and session factory for the watcher thread.
+
+    This is needed because watchdog runs in a separate thread with its own
+    event loop, and the main app's engine is bound to the FastAPI event loop.
+    """
+    settings = get_settings()
+    engine = create_async_engine(
+        settings.database_url,
+        echo=False,
+        pool_size=2,
+        max_overflow=3,
+    )
+    return async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
 
 class ImageImportHandler(FileSystemEventHandler):
@@ -67,7 +85,9 @@ class ImageImportHandler(FileSystemEventHandler):
             logger.warning(f"File no longer exists: {file_path}")
             return
 
-        async with AsyncSessionLocal() as db:
+        # Create a new session factory for this event loop
+        SessionLocal = create_watcher_session()
+        async with SessionLocal() as db:
             try:
                 await self._import_image(db, file_path)
                 await db.commit()
@@ -112,13 +132,24 @@ class ImageImportHandler(FileSystemEventHandler):
 
         if existing:
             logger.info(f"Duplicate detected: {file_path} (hash: {file_hash[:16]}...)")
-            # Delete the duplicate file
-            file_path.unlink()
+            # Move the duplicate file to duplicated folder
+            duplicated_dir = Path(self.settings.import_path) / "duplicated"
+            ensure_directory(duplicated_dir)
+            duplicated_path = duplicated_dir / file_path.name
+            # Handle filename collision in duplicated folder
+            if duplicated_path.exists():
+                stem = file_path.stem
+                suffix = file_path.suffix
+                counter = 1
+                while duplicated_path.exists():
+                    duplicated_path = duplicated_dir / f"{stem}_{counter}{suffix}"
+                    counter += 1
+            shutil.move(str(file_path), str(duplicated_path))
+            logger.info(f"Moved duplicate to: {duplicated_path}")
             return existing.id
 
-        # Generate UUID v7
+        # Generate UUID v7 for database ID
         image_id = uuid7()
-        id_str = str(image_id).replace("-", "")
 
         # Get image dimensions
         width, height = get_image_dimensions(file_path)
@@ -133,15 +164,15 @@ class ImageImportHandler(FileSystemEventHandler):
 
         metadata = self.parser_factory.parse(png_info)
 
-        # Generate paths
+        # Generate paths using file hash (content-addressable storage)
         storage_rel_path = get_storage_path(
             self.settings.storage_path,
-            id_str,
+            file_hash,
             file_path.name,
         )
         thumbnail_rel_path = get_thumbnail_path(
             self.settings.storage_path,
-            id_str,
+            file_hash,
         )
 
         storage_abs_path = Path(self.settings.storage_path) / storage_rel_path
