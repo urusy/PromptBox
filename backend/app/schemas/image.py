@@ -125,12 +125,16 @@ class ImageSearchParams(BaseModel):
     model_type: str | None = None
     model_name: str | None = None
     sampler_name: str | None = None
-    min_rating: int | None = Field(None, ge=0, le=5)
+    min_rating: int | None = Field(None, ge=0, le=5)  # Rating >= value
+    exact_rating: int | None = Field(None, ge=0, le=5)  # Rating == value
     is_favorite: bool | None = None
     needs_improvement: bool | None = None
     tags: list[str] | None = None
     lora_name: str | None = None
     is_xyz_grid: bool | None = None  # Filter by XYZ grid images
+    is_upscaled: bool | None = None  # Filter by upscaled images (hires_upscaler exists)
+    min_width: int | None = Field(None, ge=1)
+    min_height: int | None = Field(None, ge=1)
     include_deleted: bool = False
     page: int = Field(1, ge=1)
     per_page: int = Field(24, ge=1, le=100)
