@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CheckSquare } from 'lucide-react'
+import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid } from 'lucide-react'
 import { imagesApi } from '@/api/images'
 import type { ImageSearchParams } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
 import SearchForm from '@/components/gallery/SearchForm'
-import ImageGrid from '@/components/gallery/ImageGrid'
+import ImageGrid, { type GridSize } from '@/components/gallery/ImageGrid'
 import Pagination from '@/components/common/Pagination'
 import SelectionToolbar from '@/components/gallery/SelectionToolbar'
 
@@ -16,6 +16,7 @@ export default function GalleryPage() {
     sort_by: 'created_at',
     sort_order: 'desc',
   })
+  const [gridSize, setGridSize] = useState<GridSize>('medium')
 
   const { isSelectionMode, setSelectionMode, clearSelection } = useSelectionStore()
 
@@ -74,20 +75,59 @@ export default function GalleryPage() {
             <p className="text-sm text-gray-400">
               {data.total} {data.total === 1 ? 'image' : 'images'} found
             </p>
-            <button
-              onClick={toggleSelectionMode}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                isSelectionMode
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white'
-              }`}
-            >
-              <CheckSquare size={16} />
-              {isSelectionMode ? 'Cancel' : 'Select'}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Grid Size Toggle */}
+              <div className="flex items-center bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setGridSize('small')}
+                  className={`p-1.5 rounded transition-colors ${
+                    gridSize === 'small'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Small thumbnails"
+                >
+                  <Grid3X3 size={16} />
+                </button>
+                <button
+                  onClick={() => setGridSize('medium')}
+                  className={`p-1.5 rounded transition-colors ${
+                    gridSize === 'medium'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Medium thumbnails"
+                >
+                  <Grid2X2 size={16} />
+                </button>
+                <button
+                  onClick={() => setGridSize('large')}
+                  className={`p-1.5 rounded transition-colors ${
+                    gridSize === 'large'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Large thumbnails"
+                >
+                  <LayoutGrid size={16} />
+                </button>
+              </div>
+              {/* Selection Mode Toggle */}
+              <button
+                onClick={toggleSelectionMode}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  isSelectionMode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                <CheckSquare size={16} />
+                {isSelectionMode ? 'Cancel' : 'Select'}
+              </button>
+            </div>
           </div>
 
-          <ImageGrid images={data.items} />
+          <ImageGrid images={data.items} size={gridSize} />
 
           <Pagination
             page={params.page || 1}

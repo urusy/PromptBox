@@ -1,7 +1,6 @@
 import asyncio
 import shutil
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
 from loguru import logger
@@ -13,7 +12,7 @@ from watchdog.observers import Observer
 
 from app.config import get_settings
 from app.models.image import Image
-from app.parsers import MetadataParserFactory, read_png_info
+from app.parsers import MetadataParserFactory, read_image_info
 from app.utils.file_utils import ensure_directory, get_storage_path, get_thumbnail_path
 from app.utils.hash_utils import calculate_file_hash
 from app.utils.image_utils import create_thumbnail, get_image_dimensions
@@ -157,12 +156,9 @@ class ImageImportHandler(FileSystemEventHandler):
         # Get file size
         file_size = file_path.stat().st_size
 
-        # Parse metadata
-        png_info: dict[str, Any] = {}
-        if file_path.suffix.lower() == ".png":
-            png_info = read_png_info(file_path)
-
-        metadata = self.parser_factory.parse(png_info)
+        # Parse metadata (supports PNG and JPEG)
+        image_info = read_image_info(file_path)
+        metadata = self.parser_factory.parse(image_info)
 
         # Generate paths using file hash (content-addressable storage)
         storage_rel_path = get_storage_path(

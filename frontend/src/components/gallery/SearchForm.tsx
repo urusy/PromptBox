@@ -14,6 +14,11 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Rating' },
   { value: 'model_name', label: 'Model Name' },
 ]
+const GRID_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'grid', label: 'Grid Only' },
+  { value: 'non-grid', label: 'Non-Grid Only' },
+]
 
 export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -48,7 +53,8 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.model_type ||
     localParams.model_name ||
     localParams.min_rating ||
-    localParams.is_favorite
+    localParams.is_favorite ||
+    localParams.is_xyz_grid !== undefined
   )
 
   return (
@@ -152,6 +158,24 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
               {[1, 2, 3, 4, 5].map((rating) => (
                 <option key={rating} value={rating}>
                   {rating}+ Stars
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Grid Filter</label>
+            <select
+              value={localParams.is_xyz_grid === true ? 'grid' : localParams.is_xyz_grid === false ? 'non-grid' : ''}
+              onChange={(e) => {
+                const val = e.target.value
+                updateParam('is_xyz_grid', val === 'grid' ? true : val === 'non-grid' ? false : undefined)
+              }}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {GRID_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

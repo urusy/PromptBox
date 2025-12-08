@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download } from 'lucide-react'
+import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import type { ImageUpdate } from '@/types/image'
@@ -12,6 +13,7 @@ export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   const { data: image, isLoading, error } = useQuery({
     queryKey: ['image', id],
@@ -85,7 +87,9 @@ export default function DetailPage() {
           <img
             src={`/storage/${image.storage_path}`}
             alt={image.model_name || 'Generated image'}
-            className="w-full rounded-lg"
+            className="w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setIsLightboxOpen(true)}
+            title="Click to enlarge"
           />
         </div>
 
@@ -295,6 +299,28 @@ export default function DetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {isLightboxOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 p-2 text-white hover:text-gray-300 transition-colors"
+            title="Close"
+          >
+            <X size={32} />
+          </button>
+          <img
+            src={`/storage/${image.storage_path}`}
+            alt={image.model_name || 'Generated image'}
+            className="max-w-[95vw] max-h-[95vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

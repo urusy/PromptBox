@@ -56,6 +56,20 @@ class ImageService:
                 Image.loras.op("@>")(f'[{{"name": "{params.lora_name}"}}]')
             )
 
+        # Filter by XYZ grid
+        if params.is_xyz_grid is not None:
+            if params.is_xyz_grid:
+                # Grid images only (is_xyz_grid = true in model_params)
+                query = query.where(
+                    Image.model_params.op("->>")("is_xyz_grid") == "true"
+                )
+            else:
+                # Non-grid images only (is_xyz_grid is null or false)
+                query = query.where(
+                    (Image.model_params.op("->>")("is_xyz_grid").is_(None)) |
+                    (Image.model_params.op("->>")("is_xyz_grid") != "true")
+                )
+
         # Full-text search in prompts
         if params.q:
             search_terms = params.q.replace(" ", " & ")

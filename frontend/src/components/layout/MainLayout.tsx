@@ -12,52 +12,62 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <Link to="/" className="text-xl font-bold">
-                Prompt Box
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            {/* Logo */}
+            <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
+              Prompt Box
+            </Link>
+
+            {/* Navigation - Icons only on mobile */}
+            <nav className="flex items-center gap-1 sm:gap-2">
+              <Link
+                to="/"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Gallery"
+              >
+                <Image size={18} />
+                <span className="hidden sm:inline text-sm">Gallery</span>
               </Link>
-              <nav className="flex items-center gap-4">
-                <Link
-                  to="/"
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
-                >
-                  <Image size={18} />
-                  <span>Gallery</span>
-                </Link>
-                <Link
-                  to="/trash"
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
-                >
-                  <Trash2 size={18} />
-                  <span>Trash</span>
-                </Link>
-                <Link
-                  to="/duplicates"
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
-                >
-                  <Copy size={18} />
-                  <span>Duplicates</span>
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">{username}</span>
+              <Link
+                to="/trash"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Trash"
+              >
+                <Trash2 size={18} />
+                <span className="hidden sm:inline text-sm">Trash</span>
+              </Link>
+              <Link
+                to="/duplicates"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Duplicates"
+              >
+                <Copy size={18} />
+                <span className="hidden md:inline text-sm">Duplicates</span>
+              </Link>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-gray-600 mx-1 sm:mx-2" />
+
+              {/* User info - hidden on mobile */}
+              <span className="hidden md:inline text-sm text-gray-400">{username}</span>
+
+              {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Logout"
               >
                 <LogOut size={18} />
-                <span>Logout</span>
+                <span className="hidden sm:inline text-sm">Logout</span>
               </button>
-            </div>
+            </nav>
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <Outlet />
       </main>
     </div>
