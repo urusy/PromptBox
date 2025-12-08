@@ -174,6 +174,21 @@ class A1111Parser(MetadataParser):
                     model_params["denoising_strength"] = float(value)
                 except ValueError:
                     pass
+            # XYZ grid parameters
+            elif key == "X/Y/Z plot":
+                model_params["is_xyz_grid"] = True
+            elif key == "X Type":
+                model_params["xyz_x_type"] = value
+            elif key == "X Values":
+                model_params["xyz_x_values"] = value.strip('"')
+            elif key == "Y Type":
+                model_params["xyz_y_type"] = value
+            elif key == "Y Values":
+                model_params["xyz_y_values"] = value.strip('"')
+            elif key == "Z Type":
+                model_params["xyz_z_type"] = value
+            elif key == "Z Values":
+                model_params["xyz_z_values"] = value.strip('"')
 
         if model_params:
             metadata.model_params = model_params
