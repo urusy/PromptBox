@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2 } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -34,6 +34,13 @@ export default function MainLayout() {
                 >
                   <Trash2 size={18} />
                   <span>Trash</span>
+                </Link>
+                <Link
+                  to="/duplicates"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  <Copy size={18} />
+                  <span>Duplicates</span>
                 </Link>
               </nav>
             </div>
