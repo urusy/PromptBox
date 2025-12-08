@@ -4,6 +4,7 @@ import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download } from 'luci
 import toast from 'react-hot-toast'
 import { batchApi } from '@/api/batch'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { RATING_LABELS } from '@/components/common/StarRating'
 
 interface SelectionToolbarProps {
   totalCount: number
@@ -101,39 +102,39 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
   if (selectedCount === 0) return null
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-3 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0 sm:pb-6">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-x-auto scrollbar-hide">
         <button
           onClick={handleSelectAll}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors whitespace-nowrap shrink-0"
           title={allSelected ? 'Deselect all' : 'Select all'}
         >
           {allSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-          <span>{selectedCount} selected</span>
+          <span>{selectedCount}</span>
         </button>
 
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Rating */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
               onClick={() => handleSetRating(rating)}
               className="p-1 text-gray-500 hover:text-yellow-400 transition-colors"
-              title={`Set rating to ${rating}`}
+              title={`★${rating}: ${RATING_LABELS[rating]}`}
             >
               <Star size={18} />
             </button>
           ))}
         </div>
 
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Favorite */}
         <button
           onClick={() => handleToggleFavorite(true)}
-          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+          className="p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
           title="Add to favorites"
         >
           <Heart size={18} />
@@ -141,14 +142,14 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
 
         {/* Tags */}
         {showTagInput ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <input
               type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-              placeholder="Tag name"
-              className="w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Tag"
+              className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               autoFocus
             />
             <button
@@ -167,30 +168,30 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
         ) : (
           <button
             onClick={() => setShowTagInput(true)}
-            className="p-2 text-gray-500 hover:text-blue-400 transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-blue-400 transition-colors shrink-0"
             title="Add tag"
           >
             <Tag size={18} />
           </button>
         )}
 
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Delete */}
         <button
           onClick={handleDelete}
-          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+          className="p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
           title="Move to trash"
         >
           <Trash2 size={18} />
         </button>
 
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Export */}
-        <div className="relative group">
+        <div className="relative group shrink-0">
           <button
-            className="p-2 text-gray-500 hover:text-green-400 transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-green-400 transition-colors"
             title="Export"
           >
             <Download size={18} />
@@ -219,12 +220,12 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
           </div>
         </div>
 
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Clear selection */}
         <button
           onClick={clearSelection}
-          className="p-2 text-gray-500 hover:text-white transition-colors"
+          className="p-1.5 sm:p-2 text-gray-500 hover:text-white transition-colors shrink-0"
           title="Clear selection"
         >
           <X size={18} />
