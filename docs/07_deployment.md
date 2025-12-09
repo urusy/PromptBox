@@ -51,7 +51,7 @@ docker buildx build --platform linux/amd64 -t urusy7/promptbox-backend:latest --
 
 ### ディレクトリ構成
 
-```
+```text
 /volume1/docker/prompt_box/
 ├── docker-compose.yaml      # docker-compose.prod.ymlの内容
 ├── .env                     # 環境変数

@@ -2,7 +2,7 @@
 
 ## ディレクトリ構成
 
-```
+```text
 prompt-box/
 ├── docker-compose.yml
 ├── .env.example

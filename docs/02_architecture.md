@@ -43,7 +43,7 @@
 
 ## アーキテクチャ概要
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Docker Network                          │
 │                                                                 │
@@ -68,7 +68,7 @@
 
 ### レイヤー構成
 
-```
+```text
 backend/
 ├── app/
 │   ├── main.py              # FastAPIエントリーポイント
@@ -144,11 +144,11 @@ backend/
 
 ### 依存関係の流れ
 
-```
+```text
 API Layer (endpoints)
     ↓ 依存性注入
 Service Layer (services)
-    ↓ 
+    ↓
 Repository Layer (repositories)
     ↓
 Database (models)
@@ -160,7 +160,7 @@ Database (models)
 
 ### ディレクトリ構成
 
-```
+```text
 frontend/
 ├── src/
 │   ├── main.tsx             # エントリーポイント
@@ -239,7 +239,7 @@ frontend/
 
 ### 画像取り込みフロー
 
-```
+```text
 1. ユーザーが画像を /import フォルダに配置
               ↓
 2. watchdog がファイル作成を検知
@@ -268,7 +268,7 @@ frontend/
 
 ### 検索フロー
 
-```
+```text
 1. ユーザーが検索条件を入力
               ↓
 2. フロントエンドがクエリパラメータを構築

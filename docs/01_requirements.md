@@ -65,7 +65,7 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 | ソースツール | 完全一致（ドロップダウン） |
 | 削除状態 | 表示/非表示切り替え |
 
-**複数条件指定時は全てAND結合**
+> **注:** 複数条件指定時は全てAND結合
 
 ### FR-05: 一覧表示
 
@@ -171,3 +171,4 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 - input zoom: フォントサイズ16px以上
 - Safe Area: `env(safe-area-inset-*)`で対応
 - タッチ操作: ホバー依存UIを避ける
+
