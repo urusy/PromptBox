@@ -25,6 +25,12 @@ export default function GalleryPage() {
     queryFn: () => imagesApi.list(params),
   })
 
+  // Sync params from URL when navigating back to gallery
+  useEffect(() => {
+    const urlParams = parseSearchParams(searchParams)
+    setParams(urlParams)
+  }, [searchParams])
+
   // Clear selection when navigating away
   useEffect(() => {
     return () => {

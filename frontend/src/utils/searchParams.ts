@@ -97,8 +97,8 @@ export function toApiParams(params: ImageSearchParams): Record<string, string | 
   if (params.min_rating !== undefined) apiParams.min_rating = params.min_rating
   if (params.exact_rating !== undefined) apiParams.exact_rating = params.exact_rating
   if (params.is_favorite !== undefined) apiParams.is_favorite = params.is_favorite
-  if (params.is_xyz_grid !== undefined) apiParams.is_xyz_grid = params.is_xyz_grid
-  if (params.is_upscaled !== undefined) apiParams.is_upscaled = params.is_upscaled
+  if (params.is_xyz_grid !== undefined && params.is_xyz_grid !== null) apiParams.is_xyz_grid = params.is_xyz_grid
+  if (params.is_upscaled !== undefined && params.is_upscaled !== null) apiParams.is_upscaled = params.is_upscaled
   if (params.min_width !== undefined) apiParams.min_width = params.min_width
   if (params.min_height !== undefined) apiParams.min_height = params.min_height
   if (params.include_deleted) apiParams.include_deleted = params.include_deleted

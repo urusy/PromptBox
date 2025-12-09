@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Star, Heart, Check } from 'lucide-react'
 import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
@@ -9,6 +9,7 @@ interface ImageCardProps {
 }
 
 export default function ImageCard({ image }: ImageCardProps) {
+  const location = useLocation()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
   const isSelected = selectedIds.has(image.id)
 
@@ -32,7 +33,7 @@ export default function ImageCard({ image }: ImageCardProps) {
 
   return (
     <Link
-      to={isSelectionMode ? '#' : `/image/${image.id}`}
+      to={isSelectionMode ? '#' : `/image/${image.id}${location.search}`}
       onClick={handleClick}
       onMouseDown={handleLongPress}
       className={clsx(

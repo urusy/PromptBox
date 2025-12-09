@@ -29,8 +29,21 @@ export default function DetailPage() {
 
   // Navigate to prev/next image while preserving search params
   const navigateToImage = useCallback((imageId: string) => {
-    navigate(`/images/${imageId}${location.search}`)
+    navigate(`/image/${imageId}${location.search}`)
   }, [navigate, location.search])
+
+  const updateMutation = useMutation({
+    mutationFn: (data: ImageUpdate) => imagesApi.update(id!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['image', id] })
+      queryClient.invalidateQueries({ queryKey: ['images'] })
+    },
+  })
+
+  // Handle rating change
+  const handleRatingChange = useCallback((rating: number) => {
+    updateMutation.mutate({ rating })
+  }, [updateMutation])
 
   // Keyboard navigation handler
   useEffect(() => {
@@ -49,6 +62,12 @@ export default function DetailPage() {
 
       if (!image) return
 
+      // Number keys 0-5 for rating
+      if (e.key >= '0' && e.key <= '5') {
+        handleRatingChange(parseInt(e.key, 10))
+        return
+      }
+
       // Left arrow - go to previous image
       if (e.key === 'ArrowLeft' && image.prev_id) {
         navigateToImage(image.prev_id)
@@ -61,15 +80,7 @@ export default function DetailPage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [image, navigateToImage, isLightboxOpen])
-
-  const updateMutation = useMutation({
-    mutationFn: (data: ImageUpdate) => imagesApi.update(id!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['image', id] })
-      queryClient.invalidateQueries({ queryKey: ['images'] })
-    },
-  })
+  }, [image, navigateToImage, isLightboxOpen, handleRatingChange])
 
   const deleteMutation = useMutation({
     mutationFn: () => imagesApi.delete(id!),
@@ -118,7 +129,7 @@ export default function DetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/${location.search}`)}
           className="flex items-center gap-2 text-gray-400 hover:text-white"
         >
           <ArrowLeft size={20} />
