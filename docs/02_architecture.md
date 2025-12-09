@@ -192,12 +192,14 @@ frontend/
 │   │   │   ├── ImageGrid.tsx
 │   │   │   ├── ImageCard.tsx
 │   │   │   ├── SearchForm.tsx
-│   │   │   └── SelectionToolbar.tsx
+│   │   │   ├── SelectionToolbar.tsx
+│   │   │   └── Slideshow.tsx
 │   │   │
 │   │   └── detail/          # 詳細画面関連
 │   │       ├── ImageViewer.tsx
 │   │       ├── MetadataPanel.tsx
-│   │       └── TagEditor.tsx
+│   │       ├── TagEditor.tsx
+│   │       └── MemoEditor.tsx
 │   │
 │   ├── pages/               # ページコンポーネント
 │   │   ├── LoginPage.tsx
@@ -222,7 +224,8 @@ frontend/
 │   │
 │   └── utils/               # ユーティリティ
 │       ├── format.ts
-│       └── constants.ts
+│       ├── constants.ts
+│       └── searchParams.ts  # 検索パラメータ変換
 │
 ├── public/
 ├── index.html

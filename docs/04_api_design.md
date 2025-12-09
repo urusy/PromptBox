@@ -131,7 +131,25 @@
 
 ### GET /api/images/{id}
 
-画像詳細取得。
+画像詳細取得（前後画像のナビゲーション情報付き）。
+
+**クエリパラメータ:**
+
+一覧取得と同じ検索パラメータを受け取り、その検索条件内での前後画像IDを返す。
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| q | string | No | プロンプト全文検索キーワード |
+| model_type | string | No | モデルタイプ |
+| source_tool | string | No | ソースツール |
+| min_rating | integer | No | 最小評価 |
+| exact_rating | integer | No | 評価完全一致 |
+| is_favorite | boolean | No | お気に入りフィルタ |
+| is_xyz_grid | boolean | No | XYZ Gridフィルタ |
+| is_upscaled | boolean | No | アップスケール済みフィルタ |
+| sort_by | string | No | ソート項目（デフォルト: created_at） |
+| sort_order | string | No | ソート順（デフォルト: desc） |
+| ... | | | その他の検索パラメータも同様 |
 
 **レスポンス:** `200 OK`
 ```json
@@ -169,7 +187,9 @@
   "user_memo": null,
   "created_at": "2025-01-15T10:30:00Z",
   "updated_at": "2025-01-15T10:30:00Z",
-  "deleted_at": null
+  "deleted_at": null,
+  "prev_id": "01936f4e-4a29-7000-8000-0987dcba4321",
+  "next_id": "01936f4e-6c4b-7000-8000-5678efgh9012"
 }
 ```
 
