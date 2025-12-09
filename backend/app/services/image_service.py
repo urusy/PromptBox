@@ -13,10 +13,8 @@ class ImageService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def list_images(
-        self, params: ImageSearchParams
-    ) -> PaginatedResponse[ImageListResponse]:
-        """List images with search and pagination."""
+    def _build_search_query(self, params: ImageSearchParams):
+        """Build search query with filters (without sorting/pagination)."""
         query = select(Image)
 
         # Filter by deleted status
@@ -101,6 +99,14 @@ class ImageService:
                 )
             )
 
+        return query
+
+    async def list_images(
+        self, params: ImageSearchParams
+    ) -> PaginatedResponse[ImageListResponse]:
+        """List images with search and pagination."""
+        query = self._build_search_query(params)
+
         # Get total count
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)
@@ -142,6 +148,69 @@ class ImageService:
             return None
 
         return ImageResponse.model_validate(image)
+
+    async def get_image_with_neighbors(
+        self, image_id: UUID, search_params: ImageSearchParams | None = None
+    ) -> ImageResponse | None:
+        """Get a single image by ID with prev/next IDs based on search context."""
+        result = await self.db.execute(select(Image).where(Image.id == image_id))
+        image = result.scalar_one_or_none()
+
+        if not image:
+            return None
+
+        response = ImageResponse.model_validate(image)
+
+        # If no search params, return without neighbors
+        if not search_params:
+            return response
+
+        # Build the same query used for list
+        base_query = self._build_search_query(search_params)
+
+        # Get the sort column and order
+        sort_column = getattr(Image, search_params.sort_by, Image.created_at)
+        current_sort_value = getattr(image, search_params.sort_by, image.created_at)
+
+        # Find prev image (the one that comes before in the sorted order)
+        # For desc order: prev has greater sort value
+        # For asc order: prev has lesser sort value
+        if search_params.sort_order == "asc":
+            prev_query = base_query.where(
+                (sort_column < current_sort_value) |
+                ((sort_column == current_sort_value) & (Image.id < image_id))
+            ).order_by(sort_column.desc(), Image.id.desc()).limit(1)
+        else:
+            prev_query = base_query.where(
+                (sort_column > current_sort_value) |
+                ((sort_column == current_sort_value) & (Image.id > image_id))
+            ).order_by(sort_column.asc(), Image.id.asc()).limit(1)
+
+        prev_result = await self.db.execute(prev_query)
+        prev_image = prev_result.scalar_one_or_none()
+        if prev_image:
+            response.prev_id = prev_image.id
+
+        # Find next image (the one that comes after in the sorted order)
+        # For desc order: next has lesser sort value
+        # For asc order: next has greater sort value
+        if search_params.sort_order == "asc":
+            next_query = base_query.where(
+                (sort_column > current_sort_value) |
+                ((sort_column == current_sort_value) & (Image.id > image_id))
+            ).order_by(sort_column.asc(), Image.id.asc()).limit(1)
+        else:
+            next_query = base_query.where(
+                (sort_column < current_sort_value) |
+                ((sort_column == current_sort_value) & (Image.id < image_id))
+            ).order_by(sort_column.desc(), Image.id.desc()).limit(1)
+
+        next_result = await self.db.execute(next_query)
+        next_image = next_result.scalar_one_or_none()
+        if next_image:
+            response.next_id = next_image.id
+
+        return response
 
     async def update_image(
         self, image_id: UUID, update_data: ImageUpdate
