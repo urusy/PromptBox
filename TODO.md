@@ -16,32 +16,10 @@
   - ページネーションの効率化
   - サムネイル遅延読み込み
 
-- [ ] 詳細画面の画像拡大表示でEscキーで閉じるキーバインド追加
-
 ## AI提案機能(未精査)
 
 ### 画像閲覧・操作系
 
-- [ ] キーボードナビゲーション - 詳細画面で←→キーで前後の画像へ移動
-  - **実装方針**: サーバーサイドで前後画像IDを計算し、ページをまたいでナビゲーション可能に
-  - **修正ファイル**:
-    - `backend/app/schemas/image.py`: ImageResponseに`prev_id`/`next_id`追加
-    - `backend/app/services/image_service.py`: `get_image_with_neighbors()`メソッド追加
-    - `backend/app/api/endpoints/images.py`: 詳細APIに検索パラメータ受け取り追加
-    - `frontend/src/utils/searchParams.ts` (新規): parseSearchParams/toSearchParams共通化
-    - `frontend/src/pages/DetailPage.tsx`: キーボードナビゲーション追加
-    - `frontend/src/pages/GalleryPage.tsx`: 共通関数をimportに変更
-    - `frontend/src/api/images.ts`: get()に検索パラメータ渡し対応
-  - **バックエンド処理**:
-    - 詳細API呼び出し時に検索条件を受け取る
-    - 現在画像のソート値を基準に、前後1件のIDをクエリで取得
-    - `prev_id`/`next_id`をレスポンスに含める
-  - **フロントエンド処理**:
-    - URLの検索パラメータを詳細API呼び出し時に渡す
-    - keydownイベントで←→キー検出、テキスト入力中は無視
-    - `image.prev_id`/`image.next_id`を使ってnavigate
-  - **メリット**: ページ概念不要でシームレスにナビゲーション、スケーラブル
-  - **工数目安**: 小〜中
 - [ ] 画像比較モード - 2枚の画像を並べて比較表示
   - **実装方針**: 選択モードで2枚選択→比較ボタンで専用モーダル/ページ表示
   - **修正ファイル**:
@@ -244,6 +222,8 @@
 
 ### 最近の更新
 
+- [x] キーボードナビゲーション - 詳細画面で←→キーで前後の画像へ移動
+- [x] 詳細画面の画像拡大表示でEscキーで閉じるキーバインド追加
 - [x] 画面下部の選択メニューのモバイル対応（見切れ修正）
 - [x] レーティングの日本語ツールチップ追加
 - [x] 検索条件追加: Upscale、最小Width/Height、レーティング同等/以上
