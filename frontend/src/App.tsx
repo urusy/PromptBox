@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import MainLayout from '@/components/layout/MainLayout'
 import LoginPage from '@/pages/LoginPage'
@@ -9,9 +9,15 @@ import DuplicatesPage from '@/pages/DuplicatesPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    // Preserve the current path and search params as returnUrl
+    const returnUrl = location.pathname + location.search
+    const loginUrl = returnUrl !== '/'
+      ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+      : '/login'
+    return <Navigate to={loginUrl} replace />
   }
 
   return <>{children}</>

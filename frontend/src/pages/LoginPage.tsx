@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,7 +18,10 @@ export default function LoginPage() {
     try {
       await login(username, password)
       toast.success('Login successful')
-      navigate('/')
+      // Redirect to returnUrl if provided and is a relative path, otherwise go to home
+      const returnUrl = searchParams.get('returnUrl')
+      const safeReturnUrl = returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/'
+      navigate(safeReturnUrl)
     } catch {
       toast.error('Invalid username or password')
     } finally {
