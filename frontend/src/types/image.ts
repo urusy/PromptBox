@@ -52,6 +52,8 @@ export interface Image {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  prev_id: string | null
+  next_id: string | null
 }
 
 export interface ImageListItem {

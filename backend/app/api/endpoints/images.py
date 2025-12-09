@@ -68,10 +68,62 @@ async def get_image(
     image_id: UUID,
     db: DbSession,
     _: CurrentUser,
+    q: str | None = None,
+    source_tool: str | None = None,
+    model_type: str | None = None,
+    model_name: str | None = None,
+    sampler_name: str | None = None,
+    min_rating: int | None = Query(None, ge=0, le=5),
+    exact_rating: int | None = Query(None, ge=0, le=5),
+    is_favorite: bool | None = None,
+    needs_improvement: bool | None = None,
+    tags: list[str] | None = Query(None),
+    lora_name: str | None = None,
+    is_xyz_grid: bool | None = None,
+    is_upscaled: bool | None = None,
+    min_width: int | None = Query(None, ge=1),
+    min_height: int | None = Query(None, ge=1),
+    include_deleted: bool = False,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
 ) -> ImageResponse:
-    """Get a single image by ID."""
+    """Get a single image by ID with optional prev/next navigation based on search context."""
     service = ImageService(db)
-    image = await service.get_image(image_id)
+
+    # Build search params if any filter is provided
+    has_search_context = any([
+        q, source_tool, model_type, model_name, sampler_name,
+        min_rating is not None, exact_rating is not None,
+        is_favorite is not None, needs_improvement is not None,
+        tags, lora_name, is_xyz_grid is not None, is_upscaled is not None,
+        min_width is not None, min_height is not None, include_deleted,
+        sort_by != "created_at", sort_order != "desc"
+    ])
+
+    if has_search_context:
+        search_params = ImageSearchParams(
+            q=q,
+            source_tool=source_tool,
+            model_type=model_type,
+            model_name=model_name,
+            sampler_name=sampler_name,
+            min_rating=min_rating,
+            exact_rating=exact_rating,
+            is_favorite=is_favorite,
+            needs_improvement=needs_improvement,
+            tags=tags,
+            lora_name=lora_name,
+            is_xyz_grid=is_xyz_grid,
+            is_upscaled=is_upscaled,
+            min_width=min_width,
+            min_height=min_height,
+            include_deleted=include_deleted,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        image = await service.get_image_with_neighbors(image_id, search_params)
+    else:
+        image = await service.get_image(image_id)
 
     if not image:
         raise HTTPException(
