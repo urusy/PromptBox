@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid } from 'lucide-react'
+import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid, Play } from 'lucide-react'
 import { imagesApi } from '@/api/images'
 import type { ImageSearchParams } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
@@ -10,11 +10,13 @@ import SearchForm from '@/components/gallery/SearchForm'
 import ImageGrid, { type GridSize } from '@/components/gallery/ImageGrid'
 import Pagination from '@/components/common/Pagination'
 import SelectionToolbar from '@/components/gallery/SelectionToolbar'
+import Slideshow from '@/components/gallery/Slideshow'
 
 export default function GalleryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [params, setParams] = useState<ImageSearchParams>(() => parseSearchParams(searchParams))
   const [gridSize, setGridSize] = useState<GridSize>('medium')
+  const [showSlideshow, setShowSlideshow] = useState(false)
 
   const { isSelectionMode, setSelectionMode, clearSelection } = useSelectionStore()
 
@@ -118,6 +120,16 @@ export default function GalleryPage() {
                   <LayoutGrid size={16} />
                 </button>
               </div>
+              {/* Slideshow Button */}
+              <button
+                onClick={() => setShowSlideshow(true)}
+                disabled={!data?.items.length}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Start slideshow"
+              >
+                <Play size={16} />
+                <span className="hidden sm:inline">Slideshow</span>
+              </button>
               {/* Selection Mode Toggle */}
               <button
                 onClick={toggleSelectionMode}
@@ -144,6 +156,14 @@ export default function GalleryPage() {
           <SelectionToolbar totalCount={data.items.length} allIds={allImageIds} />
         </>
       ) : null}
+
+      {/* Slideshow */}
+      {showSlideshow && data?.items.length && (
+        <Slideshow
+          images={data.items}
+          onClose={() => setShowSlideshow(false)}
+        />
+      )}
     </div>
   )
 }

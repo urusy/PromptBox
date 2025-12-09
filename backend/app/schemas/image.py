@@ -109,6 +109,7 @@ class ImageListResponse(BaseModel):
     id: UUID
     source_tool: str
     model_type: str | None
+    storage_path: str
     thumbnail_path: str
     width: int
     height: int
