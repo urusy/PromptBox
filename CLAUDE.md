@@ -19,6 +19,7 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 ## 技術スタック
 
 ### バックエンド
+
 - Python 3.11+
 - FastAPI
 - SQLAlchemy 2.0（非同期）
@@ -29,6 +30,7 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 - bcrypt
 
 ### フロントエンド
+
 - React 18
 - TypeScript 5+
 - TailwindCSS 3
@@ -38,6 +40,7 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 - Zustand
 
 ### インフラ
+
 - Docker / Docker Compose
 - PostgreSQL 16
 - Nginx
@@ -104,7 +107,7 @@ const ImageCard = (props: any) => {
 
 ## ディレクトリ構成
 
-```
+```text
 prompt-box/
 ├── docker-compose.yml
 ├── .env.example
@@ -146,28 +149,32 @@ prompt-box/
 ## 実装優先順位
 
 ### Phase 1: 基盤構築
+
 1. Docker環境構築（docker-compose.yml）
 2. バックエンド基盤（FastAPI + DB接続）
 3. DBスキーマ・マイグレーション
 4. 認証機能
 
 ### Phase 2: コア機能
-5. メタデータパーサー実装
-6. 画像取り込みワーカー（watchdog）
-7. 画像API（CRUD）
-8. フロントエンド基盤（React + ルーティング）
+
+1. メタデータパーサー実装
+2. 画像取り込みワーカー（watchdog）
+3. 画像API（CRUD）
+4. フロントエンド基盤（React + ルーティング）
 
 ### Phase 3: UI実装
-9. ログイン画面
-10. 一覧画面（グリッド表示、ページネーション）
-11. 詳細画面
-12. 検索機能
+
+1. ログイン画面
+2. 一覧画面（グリッド表示、ページネーション）
+3. 詳細画面
+4. 検索機能
 
 ### Phase 4: 拡張機能
-13. 評価・タグ機能
-14. 一括操作
-15. エクスポート機能
-16. ゴミ箱機能
+
+1. 評価・タグ機能
+2. 一括操作
+3. エクスポート機能
+4. ゴミ箱機能
 
 ## 重要な実装ポイント
 
@@ -246,15 +253,18 @@ padding-bottom: env(safe-area-inset-bottom);
 ## トラブルシューティング
 
 ### DBマイグレーションエラー
+
 ```bash
 docker compose exec backend alembic upgrade head
 ```
 
 ### フロントエンドビルドエラー
+
 ```bash
 docker compose exec frontend npm install
 ```
 
 ### 画像が表示されない
+
 - storageディレクトリのパーミッション確認
 - Nginxの設定確認（/storage/のalias）

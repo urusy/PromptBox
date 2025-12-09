@@ -160,7 +160,8 @@ KSamplerのpositive/negative入力は参照（`["6", 0]`形式）なので、参
 ### A1111/Forgeパーサー
 
 **対象フォーマット:**
-```
+
+```text
 1girl, beautiful, masterpiece
 Negative prompt: ugly, blurry
 Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 7, Seed: 123456, Size: 1024x1024, Model hash: abc123, Model: ponyDiffusionV6XL, VAE: sdxl_vae.safetensors, Clip skip: 2, Lora hashes: "animeMix: abc123"
@@ -177,9 +178,11 @@ Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 7, Seed: 123456, Size: 1024x1024
 4. `<lora:name:weight>`パターンでLoRA抽出
 
 **パラメータ行の解析:**
-```
+
+```text
 key: value, key: value, ...
 ```
+
 形式をパース。主要キー:
 - Steps → steps
 - Sampler → sampler_name
