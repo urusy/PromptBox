@@ -60,6 +60,7 @@ export interface ImageListItem {
   id: string
   source_tool: string
   model_type: string | null
+  storage_path: string
   thumbnail_path: string
   width: number
   height: number
