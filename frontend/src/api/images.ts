@@ -1,5 +1,6 @@
 import client from './client'
 import type { Image, ImageListItem, ImageSearchParams, ImageUpdate, PaginatedResponse } from '@/types/image'
+import { toApiParams } from '@/utils/searchParams'
 
 export const imagesApi = {
   list: async (params: ImageSearchParams = {}): Promise<PaginatedResponse<ImageListItem>> => {
@@ -7,8 +8,9 @@ export const imagesApi = {
     return response.data
   },
 
-  get: async (id: string): Promise<Image> => {
-    const response = await client.get<Image>(`/images/${id}`)
+  get: async (id: string, searchParams?: ImageSearchParams): Promise<Image> => {
+    const params = searchParams ? toApiParams(searchParams) : undefined
+    const response = await client.get<Image>(`/images/${id}`, { params })
     return response.data
   },
 

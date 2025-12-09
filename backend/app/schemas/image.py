@@ -98,6 +98,8 @@ class ImageResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+    prev_id: UUID | None = None
+    next_id: UUID | None = None
 
     class Config:
         from_attributes = True
