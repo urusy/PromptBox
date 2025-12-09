@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X } from 'lucide-react'
+import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import type { ImageUpdate } from '@/types/image'
+import { parseSearchParams } from '@/utils/searchParams'
 import StarRating from '@/components/common/StarRating'
 import TagEditor from '@/components/detail/TagEditor'
 import MemoEditor from '@/components/detail/MemoEditor'
@@ -12,14 +13,55 @@ import MemoEditor from '@/components/detail/MemoEditor'
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [urlSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
+  // Parse search params from URL to pass to API
+  const searchParams = parseSearchParams(urlSearchParams)
+
   const { data: image, isLoading, error } = useQuery({
-    queryKey: ['image', id],
-    queryFn: () => imagesApi.get(id!),
+    queryKey: ['image', id, urlSearchParams.toString()],
+    queryFn: () => imagesApi.get(id!, searchParams),
     enabled: !!id,
   })
+
+  // Navigate to prev/next image while preserving search params
+  const navigateToImage = useCallback((imageId: string) => {
+    navigate(`/images/${imageId}${location.search}`)
+  }, [navigate, location.search])
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+
+      // Handle Escape key for lightbox
+      if (e.key === 'Escape' && isLightboxOpen) {
+        setIsLightboxOpen(false)
+        return
+      }
+
+      if (!image) return
+
+      // Left arrow - go to previous image
+      if (e.key === 'ArrowLeft' && image.prev_id) {
+        navigateToImage(image.prev_id)
+      }
+      // Right arrow - go to next image
+      else if (e.key === 'ArrowRight' && image.next_id) {
+        navigateToImage(image.next_id)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [image, navigateToImage, isLightboxOpen])
 
   const updateMutation = useMutation({
     mutationFn: (data: ImageUpdate) => imagesApi.update(id!, data),
@@ -74,13 +116,45 @@ export default function DetailPage() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-gray-400 hover:text-white mb-6"
-      >
-        <ArrowLeft size={20} />
-        <span>Back</span>
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-400 hover:text-white"
+        >
+          <ArrowLeft size={20} />
+          <span>Back</span>
+        </button>
+
+        {/* Navigation buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => image?.prev_id && navigateToImage(image.prev_id)}
+            disabled={!image?.prev_id}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              image?.prev_id
+                ? 'bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700'
+                : 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+            }`}
+            title="Previous image (←)"
+          >
+            <ChevronLeft size={18} />
+            <span className="hidden sm:inline">Prev</span>
+          </button>
+          <button
+            onClick={() => image?.next_id && navigateToImage(image.next_id)}
+            disabled={!image?.next_id}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              image?.next_id
+                ? 'bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700'
+                : 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+            }`}
+            title="Next image (→)"
+          >
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
