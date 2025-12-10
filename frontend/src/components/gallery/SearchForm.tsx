@@ -396,7 +396,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             <input
               type="range"
               min="0"
-              max="4000"
+              max="5000"
               step="100"
               value={localParams.min_width || 0}
               onChange={(e) => updateParam('min_width', parseInt(e.target.value) || undefined)}
@@ -411,7 +411,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             <input
               type="range"
               min="0"
-              max="4000"
+              max="5000"
               step="100"
               value={localParams.min_height || 0}
               onChange={(e) => updateParam('min_height', parseInt(e.target.value) || undefined)}
