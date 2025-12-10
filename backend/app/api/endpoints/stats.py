@@ -163,15 +163,16 @@ async def get_stats(
 
     # Daily counts for last N days
     start_date = datetime.utcnow() - timedelta(days=days)
+    day_trunc = func.date_trunc("day", Image.created_at)
     daily_result = await db.execute(
         select(
-            func.date_trunc("day", Image.created_at).label("day"),
+            day_trunc.label("day"),
             func.count(Image.id).label("count"),
         )
         .where(base_filter)
         .where(Image.created_at >= start_date)
-        .group_by(func.date_trunc("day", Image.created_at))
-        .order_by(func.date_trunc("day", Image.created_at))
+        .group_by(day_trunc)
+        .order_by(day_trunc)
     )
     daily_counts = [
         TimeSeriesItem(date=row.day.strftime("%Y-%m-%d"), count=row.count)
