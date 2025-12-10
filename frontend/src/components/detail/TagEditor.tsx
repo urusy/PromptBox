@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { X, Plus } from 'lucide-react'
+import { tagsApi } from '@/api/tags'
 
 interface TagEditorProps {
   tags: string[]
@@ -9,7 +11,24 @@ interface TagEditorProps {
 export default function TagEditor({ tags, onChange }: TagEditorProps) {
   const [inputValue, setInputValue] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+
+  // Fetch recent tags for suggestions
+  const { data: recentTags = [] } = useQuery({
+    queryKey: ['tags'],
+    queryFn: () => tagsApi.list(10),
+    staleTime: 30000, // Cache for 30 seconds
+  })
+
+  // Filter suggestions based on input and exclude already added tags
+  const filteredSuggestions = recentTags.filter(
+    (tag) =>
+      !tags.includes(tag) &&
+      (inputValue === '' || tag.toLowerCase().includes(inputValue.toLowerCase()))
+  )
 
   useEffect(() => {
     if (isAdding && inputRef.current) {
@@ -17,12 +36,35 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
     }
   }, [isAdding])
 
-  const handleAddTag = () => {
-    const newTag = inputValue.trim().toLowerCase()
+  // Reset selected index when suggestions change
+  useEffect(() => {
+    setSelectedIndex(-1)
+  }, [filteredSuggestions.length, inputValue])
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const newTag = (tagToAdd || inputValue).trim().toLowerCase()
     if (newTag && !tags.includes(newTag)) {
       onChange([...tags, newTag])
     }
     setInputValue('')
+    setShowSuggestions(false)
     setIsAdding(false)
   }
 
@@ -30,14 +72,56 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
     onChange(tags.filter((tag) => tag !== tagToRemove))
   }
 
+  const handleSelectSuggestion = (tag: string) => {
+    handleAddTag(tag)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      handleAddTag()
+      if (selectedIndex >= 0 && selectedIndex < filteredSuggestions.length) {
+        handleSelectSuggestion(filteredSuggestions[selectedIndex])
+      } else {
+        handleAddTag()
+      }
     } else if (e.key === 'Escape') {
       setInputValue('')
+      setShowSuggestions(false)
       setIsAdding(false)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (filteredSuggestions.length > 0) {
+        setSelectedIndex((prev) =>
+          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
+        )
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (filteredSuggestions.length > 0) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1))
+      }
     }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
+    setShowSuggestions(true)
+  }
+
+  const handleInputFocus = () => {
+    setShowSuggestions(true)
+  }
+
+  const handleInputBlur = () => {
+    // Delay to allow click on suggestions
+    setTimeout(() => {
+      if (inputValue.trim()) {
+        handleAddTag()
+      } else {
+        setIsAdding(false)
+      }
+      setShowSuggestions(false)
+    }, 150)
   }
 
   return (
@@ -60,16 +144,48 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
         ))}
 
         {isAdding ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onBlur={handleAddTag}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter tag..."
-            className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-24"
-          />
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter tag..."
+              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
+            />
+
+            {/* Tag suggestions dropdown */}
+            {showSuggestions && filteredSuggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-600 rounded shadow-lg z-10 max-h-48 overflow-y-auto"
+              >
+                <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
+                  最近使用したタグ
+                </div>
+                {filteredSuggestions.map((tag, index) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handleSelectSuggestion(tag)
+                    }}
+                    className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
+                      index === selectedIndex
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <button
             onClick={() => setIsAdding(true)}
