@@ -68,6 +68,18 @@ export default function DetailPage() {
         return
       }
 
+      // 'f' key - toggle favorite
+      if (e.key === 'f' || e.key === 'F') {
+        updateMutation.mutate({ is_favorite: !image.is_favorite })
+        return
+      }
+
+      // 'c' key - toggle needs improvement (check)
+      if (e.key === 'c' || e.key === 'C') {
+        updateMutation.mutate({ needs_improvement: !image.needs_improvement })
+        return
+      }
+
       // Left arrow - go to previous image
       if (e.key === 'ArrowLeft' && image.prev_id) {
         navigateToImage(image.prev_id)
@@ -80,7 +92,7 @@ export default function DetailPage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [image, navigateToImage, isLightboxOpen, handleRatingChange])
+  }, [image, navigateToImage, isLightboxOpen, handleRatingChange, updateMutation])
 
   const deleteMutation = useMutation({
     mutationFn: () => imagesApi.delete(id!),

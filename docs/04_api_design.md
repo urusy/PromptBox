@@ -466,6 +466,103 @@
 
 ---
 
+## 検索プリセットAPI
+
+### GET /api/search-presets
+
+検索プリセット一覧取得（作成日時降順）。
+
+**レスポンス:** `200 OK`
+```json
+[
+  {
+    "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "name": "高評価SDXL",
+    "filters": {
+      "model_type": "sdxl",
+      "min_rating": 4
+    },
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+]
+```
+
+### POST /api/search-presets
+
+検索プリセット新規作成。
+
+**リクエスト:**
+```json
+{
+  "name": "高評価SDXL",
+  "filters": {
+    "model_type": "sdxl",
+    "min_rating": 4,
+    "sort_by": "rating",
+    "sort_order": "desc"
+  }
+}
+```
+
+**レスポンス:** `201 Created`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "高評価SDXL",
+  "filters": {
+    "model_type": "sdxl",
+    "min_rating": 4,
+    "sort_by": "rating",
+    "sort_order": "desc"
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+### PUT /api/search-presets/{id}
+
+検索プリセット更新。
+
+**リクエスト:**
+```json
+{
+  "name": "高評価SDXL（更新）",
+  "filters": {
+    "model_type": "sdxl",
+    "min_rating": 5
+  }
+}
+```
+
+**レスポンス:** `200 OK`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "高評価SDXL（更新）",
+  "filters": {
+    "model_type": "sdxl",
+    "min_rating": 5
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T11:00:00Z"
+}
+```
+
+### DELETE /api/search-presets/{id}
+
+検索プリセット削除。
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Search preset deleted successfully"
+}
+```
+
+---
+
 ## エラーレスポンス形式
 
 RFC 7807 Problem Details準拠。
