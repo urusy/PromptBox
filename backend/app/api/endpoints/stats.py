@@ -65,6 +65,22 @@ class ModelListResponse(BaseModel):
     models: list[str]
 
 
+class ModelRatingDistributionItem(BaseModel):
+    model_name: str
+    rating_0: int
+    rating_1: int
+    rating_2: int
+    rating_3: int
+    rating_4: int
+    rating_5: int
+    total: int
+    avg_rating: float | None
+
+
+class ModelRatingDistributionResponse(BaseModel):
+    items: list[ModelRatingDistributionItem]
+
+
 @router.get("", response_model=StatsResponse)
 async def get_stats(
     db: DbSession,
@@ -426,3 +442,54 @@ async def get_rating_analysis(
         by_cfg=by_cfg,
         filtered_by_model=model_name,
     )
+
+
+@router.get("/model-rating-distribution", response_model=ModelRatingDistributionResponse)
+async def get_model_rating_distribution(
+    db: DbSession,
+    _: CurrentUser,
+    min_count: int = 10,
+    limit: int = 15,
+) -> ModelRatingDistributionResponse:
+    """Get rating distribution per model.
+
+    Returns the count of images at each rating level (0-5) for each model.
+    """
+    base_filter = Image.deleted_at.is_(None)
+
+    result = await db.execute(
+        select(
+            Image.model_name,
+            func.count(case((Image.rating == 0, 1))).label("rating_0"),
+            func.count(case((Image.rating == 1, 1))).label("rating_1"),
+            func.count(case((Image.rating == 2, 1))).label("rating_2"),
+            func.count(case((Image.rating == 3, 1))).label("rating_3"),
+            func.count(case((Image.rating == 4, 1))).label("rating_4"),
+            func.count(case((Image.rating == 5, 1))).label("rating_5"),
+            func.count(Image.id).label("total"),
+            func.avg(case((Image.rating > 0, Image.rating))).label("avg_rating"),
+        )
+        .where(base_filter)
+        .where(Image.model_name.isnot(None))
+        .group_by(Image.model_name)
+        .having(func.count(Image.id) >= min_count)
+        .order_by(func.count(Image.id).desc())
+        .limit(limit)
+    )
+
+    items = [
+        ModelRatingDistributionItem(
+            model_name=row.model_name,
+            rating_0=row.rating_0,
+            rating_1=row.rating_1,
+            rating_2=row.rating_2,
+            rating_3=row.rating_3,
+            rating_4=row.rating_4,
+            rating_5=row.rating_5,
+            total=row.total,
+            avg_rating=round(float(row.avg_rating), 2) if row.avg_rating else None,
+        )
+        for row in result.all()
+    ]
+
+    return ModelRatingDistributionResponse(items=items)

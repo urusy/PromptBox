@@ -51,3 +51,19 @@ export interface RatingAnalysisResponse {
 export interface ModelListResponse {
   models: string[]
 }
+
+export interface ModelRatingDistributionItem {
+  model_name: string
+  rating_0: number
+  rating_1: number
+  rating_2: number
+  rating_3: number
+  rating_4: number
+  rating_5: number
+  total: number
+  avg_rating: number | null
+}
+
+export interface ModelRatingDistributionResponse {
+  items: ModelRatingDistributionItem[]
+}
