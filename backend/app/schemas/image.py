@@ -140,6 +140,6 @@ class ImageSearchParams(BaseModel):
     min_height: int | None = Field(None, ge=1)
     include_deleted: bool = False
     page: int = Field(1, ge=1)
-    per_page: int = Field(24, ge=1, le=100)
+    per_page: int = Field(24, ge=1, le=120)
     sort_by: str = "created_at"
     sort_order: str = "desc"

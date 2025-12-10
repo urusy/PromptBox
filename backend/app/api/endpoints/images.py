@@ -31,7 +31,7 @@ async def list_images(
     min_height: int | None = Query(None, ge=1),
     include_deleted: bool = False,
     page: int = Query(1, ge=1),
-    per_page: int = Query(24, ge=1, le=100),
+    per_page: int = Query(24, ge=1, le=120),
     sort_by: str = "created_at",
     sort_order: str = "desc",
 ) -> PaginatedResponse[ImageListResponse]:

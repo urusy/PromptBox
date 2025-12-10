@@ -5,17 +5,21 @@ import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid, Play } from 'lucide-react'
 import { imagesApi } from '@/api/images'
 import type { ImageSearchParams } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { useGallerySettingsStore, PER_PAGE_OPTIONS } from '@/stores/gallerySettingsStore'
 import { parseSearchParams, toSearchParams } from '@/utils/searchParams'
 import SearchForm from '@/components/gallery/SearchForm'
-import ImageGrid, { type GridSize } from '@/components/gallery/ImageGrid'
+import ImageGrid from '@/components/gallery/ImageGrid'
 import Pagination from '@/components/common/Pagination'
 import SelectionToolbar from '@/components/gallery/SelectionToolbar'
 import Slideshow from '@/components/gallery/Slideshow'
 
 export default function GalleryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [params, setParams] = useState<ImageSearchParams>(() => parseSearchParams(searchParams))
-  const [gridSize, setGridSize] = useState<GridSize>('medium')
+  const { perPage, gridSize, setPerPage, setGridSize } = useGallerySettingsStore()
+  const [params, setParams] = useState<ImageSearchParams>(() => ({
+    ...parseSearchParams(searchParams),
+    per_page: perPage,
+  }))
   const [showSlideshow, setShowSlideshow] = useState(false)
 
   const { isSelectionMode, setSelectionMode, clearSelection } = useSelectionStore()
@@ -28,8 +32,8 @@ export default function GalleryPage() {
   // Sync params from URL when navigating back to gallery
   useEffect(() => {
     const urlParams = parseSearchParams(searchParams)
-    setParams(urlParams)
-  }, [searchParams])
+    setParams({ ...urlParams, per_page: perPage })
+  }, [searchParams, perPage])
 
   // Clear selection when navigating away
   useEffect(() => {
@@ -55,6 +59,14 @@ export default function GalleryPage() {
     updateUrl(newParams)
     clearSelection()
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePerPageChange = (newPerPage: number) => {
+    setPerPage(newPerPage as typeof perPage)
+    const newParams = { ...params, per_page: newPerPage, page: 1 }
+    setParams(newParams)
+    updateUrl(newParams)
+    clearSelection()
   }
 
   const toggleSelectionMode = () => {
@@ -96,6 +108,19 @@ export default function GalleryPage() {
               {data.total} {data.total === 1 ? 'image' : 'images'} found
             </p>
             <div className="flex items-center gap-2">
+              {/* Per Page Selector */}
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="bg-gray-800 text-gray-300 text-sm rounded-lg px-2 py-1.5 border-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                title="Images per page"
+              >
+                {PER_PAGE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
               {/* Grid Size Toggle */}
               <div className="flex items-center bg-gray-800 rounded-lg p-1">
                 <button

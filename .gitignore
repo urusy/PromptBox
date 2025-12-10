@@ -46,3 +46,6 @@ import/
 # Logs
 *.log
 logs/
+
+# Git history rewrite
+.mailmap

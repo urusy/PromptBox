@@ -421,6 +421,14 @@ export default function StatsPage() {
             ))}
           </div>
 
+          {/* Selected Model Display */}
+          {analysisTab === 'by-model' && selectedModel && (
+            <div className="bg-purple-900/30 border border-purple-600/50 rounded-lg px-4 py-2">
+              <span className="text-purple-300 text-sm">Analyzing model: </span>
+              <span className="text-white font-medium">{selectedModel}</span>
+            </div>
+          )}
+
           {/* Analysis Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analysisTab === 'overall' && (
