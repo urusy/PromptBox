@@ -25,17 +25,15 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
 
-  // Fetch recent tags for suggestions
-  const { data: recentTags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: () => tagsApi.list(10),
-    staleTime: 30000,
+  // Fetch tags - without query: recent 10, with query: search all tags
+  const { data: suggestedTags = [] } = useQuery({
+    queryKey: ['tags', tagInput],
+    queryFn: () => tagsApi.list(tagInput || undefined, tagInput ? 20 : 10),
+    staleTime: tagInput ? 0 : 30000,
   })
 
-  // Filter suggestions based on input
-  const filteredSuggestions = recentTags.filter(
-    (tag) => tagInput === '' || tag.toLowerCase().includes(tagInput.toLowerCase())
-  )
+  // Use suggested tags directly (already filtered by API)
+  const filteredSuggestions = suggestedTags
 
   // Reset selected index when suggestions change
   useEffect(() => {
@@ -255,7 +253,7 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
                 className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
               >
                 <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
-                  最近使用したタグ
+                  {tagInput ? '検索結果' : '最近使用したタグ'}
                 </div>
                 {filteredSuggestions.map((tag, index) => (
                   <button

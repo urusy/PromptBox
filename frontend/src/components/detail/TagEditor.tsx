@@ -16,19 +16,15 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
-  // Fetch recent tags for suggestions
-  const { data: recentTags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: () => tagsApi.list(10),
-    staleTime: 30000, // Cache for 30 seconds
+  // Fetch tags - without query: recent 10, with query: search all tags
+  const { data: suggestedTags = [] } = useQuery({
+    queryKey: ['tags', inputValue],
+    queryFn: () => tagsApi.list(inputValue || undefined, inputValue ? 20 : 10),
+    staleTime: inputValue ? 0 : 30000, // Don't cache search results
   })
 
-  // Filter suggestions based on input and exclude already added tags
-  const filteredSuggestions = recentTags.filter(
-    (tag) =>
-      !tags.includes(tag) &&
-      (inputValue === '' || tag.toLowerCase().includes(inputValue.toLowerCase()))
-  )
+  // Exclude already added tags
+  const filteredSuggestions = suggestedTags.filter((tag) => !tags.includes(tag))
 
   useEffect(() => {
     if (isAdding && inputRef.current) {
@@ -164,7 +160,7 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
                 className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-600 rounded shadow-lg z-10 max-h-48 overflow-y-auto"
               >
                 <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
-                  最近使用したタグ
+                  {inputValue ? '検索結果' : '最近使用したタグ'}
                 </div>
                 {filteredSuggestions.map((tag, index) => (
                   <button
