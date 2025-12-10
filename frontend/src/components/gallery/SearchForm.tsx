@@ -50,6 +50,17 @@ const filtersToParams = (filters: SearchFilters, currentParams: ImageSearchParam
   }
 }
 
+// Helper function to check if filters have any meaningful values
+const filtersHaveActiveConditions = (filters: SearchFilters): boolean => {
+  const { sort_by, sort_order, ...rest } = filters
+  // Ignore sort_by and sort_order for determining if filters are "active"
+  return Object.values(rest).some((val) => {
+    if (val === undefined || val === null || val === '' || val === 0) return false
+    if (Array.isArray(val) && val.length === 0) return false
+    return true
+  })
+}
+
 // Helper function to compare filters (ignoring undefined vs not-present)
 const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
   const keys: (keyof SearchFilters)[] = [
@@ -109,6 +120,13 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     if (presets.length === 0) return
 
     const currentFilters = paramsToFilters(params)
+
+    // Don't match presets if no filters are active (initial/reset state)
+    if (!filtersHaveActiveConditions(currentFilters)) {
+      setSelectedPresetId(null)
+      return
+    }
+
     const matchingPreset = presets.find((preset) =>
       filtersMatch(currentFilters, preset.filters)
     )

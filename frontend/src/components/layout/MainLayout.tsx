@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy, FolderSearch } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
   const { username, logout } = useAuthStore()
   const navigate = useNavigate()
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleLogout = async () => {
+    setShowUserMenu(false)
     await logout()
     navigate('/login')
   }
@@ -59,18 +62,39 @@ export default function MainLayout() {
               {/* Divider */}
               <div className="w-px h-6 bg-gray-600 mx-1 sm:mx-2" />
 
-              {/* User info - hidden on mobile */}
-              <span className="hidden md:inline text-sm text-gray-400">{username}</span>
+              {/* User menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                  title={username || undefined}
+                >
+                  <User size={18} />
+                  <span className="hidden sm:inline text-sm text-gray-300">{username}</span>
+                  <ChevronDown size={14} className={`hidden sm:block text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                </button>
 
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Logout"
-              >
-                <LogOut size={18} />
-                <span className="hidden sm:inline text-sm">Logout</span>
-              </button>
+                {showUserMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowUserMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20">
+                      <div className="px-3 py-2 border-b border-gray-600 sm:hidden">
+                        <span className="text-sm text-gray-300">{username}</span>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white transition-colors rounded-b-lg"
+                      >
+                        <LogOut size={16} />
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         </div>
