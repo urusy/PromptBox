@@ -20,14 +20,14 @@ export interface BatchRestoreRequest {
 
 export const batchApi = {
   update: async (data: BatchUpdateRequest): Promise<void> => {
-    await client.post('/batch/update', data)
+    await client.post('/bulk/update', data)
   },
 
   delete: async (data: BatchDeleteRequest): Promise<void> => {
-    await client.post('/batch/delete', data)
+    await client.post('/bulk/delete', data)
   },
 
   restore: async (data: BatchRestoreRequest): Promise<void> => {
-    await client.post('/batch/restore', data)
+    await client.post('/bulk/restore', data)
   },
 }

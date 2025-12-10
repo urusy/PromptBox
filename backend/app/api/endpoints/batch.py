@@ -7,7 +7,7 @@ from app.api.deps import CurrentUser, DbSession
 from app.schemas.common import MessageResponse
 from app.services.batch_service import BatchService
 
-router = APIRouter(prefix="/batch", tags=["batch"])
+router = APIRouter(prefix="/bulk", tags=["bulk"])
 
 
 class BatchUpdateRequest(BaseModel):
