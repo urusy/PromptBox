@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -47,6 +48,23 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
       tagInputRef.current.focus()
     }
   }, [showTagInput])
+
+  // Calculate dropdown position
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+
+  const updateDropdownPosition = useCallback(() => {
+    if (tagInputRef.current && showSuggestions) {
+      const rect = tagInputRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.top - 8, // 8px margin above input
+        left: rect.left,
+      })
+    }
+  }, [showSuggestions])
+
+  useEffect(() => {
+    updateDropdownPosition()
+  }, [showSuggestions, updateDropdownPosition])
 
   const selectedCount = selectedIds.size
   const hasSelection = selectedCount > 0
@@ -206,54 +224,59 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
 
         {/* Tags */}
         {showTagInput ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
-            <div className="relative">
-              <input
-                ref={tagInputRef}
-                type="text"
-                value={tagInput}
-                onChange={(e) => {
-                  setTagInput(e.target.value)
-                  setShowSuggestions(true)
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <input
+              ref={tagInputRef}
+              type="text"
+              value={tagInput}
+              onChange={(e) => {
+                setTagInput(e.target.value)
+                setShowSuggestions(true)
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                // Delay to allow click on suggestions
+                setTimeout(() => setShowSuggestions(false), 150)
+              }}
+              onKeyDown={handleTagKeyDown}
+              placeholder="Tag"
+              className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            {/* Tag suggestions dropdown - rendered via Portal */}
+            {showSuggestions && filteredSuggestions.length > 0 && dropdownPosition && createPortal(
+              <div
+                ref={suggestionsRef}
+                style={{
+                  position: 'fixed',
+                  top: dropdownPosition.top,
+                  left: dropdownPosition.left,
+                  transform: 'translateY(-100%)',
                 }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => {
-                  // Delay to allow click on suggestions
-                  setTimeout(() => setShowSuggestions(false), 150)
-                }}
-                onKeyDown={handleTagKeyDown}
-                placeholder="Tag"
-                className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {/* Tag suggestions dropdown */}
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <div
-                  ref={suggestionsRef}
-                  className="absolute bottom-full left-0 mb-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto"
-                >
-                  <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
-                    最近使用したタグ
-                  </div>
-                  {filteredSuggestions.map((tag, index) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        handleAddTag(tag)
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
-                        index === selectedIndex
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
+              >
+                <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
+                  最近使用したタグ
                 </div>
-              )}
-            </div>
+                {filteredSuggestions.map((tag, index) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handleAddTag(tag)
+                    }}
+                    className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
+                      index === selectedIndex
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )}
             <button
               onClick={() => handleAddTag()}
               disabled={!hasSelection}
