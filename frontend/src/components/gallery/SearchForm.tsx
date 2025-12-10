@@ -145,13 +145,13 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   }
 
   const handleSelectPreset = (presetId: string) => {
+    setShowPresetDropdown(false)
     const preset = presets.find((p) => p.id === presetId)
     if (preset) {
       const newParams = filtersToParams(preset.filters, localParams)
       setLocalParams(newParams)
       onSearch(newParams)
     }
-    setShowPresetDropdown(false)
   }
 
   const handleDeletePreset = (e: React.MouseEvent, presetId: string) => {
