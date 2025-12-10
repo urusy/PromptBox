@@ -1,4 +1,5 @@
 import type { ImageSearchParams } from '@/types/image'
+import type { SearchFilters } from '@/types/searchPreset'
 
 export const DEFAULT_SEARCH_PARAMS: ImageSearchParams = {
   page: 1,
@@ -125,4 +126,14 @@ export function toApiParams(params: ImageSearchParams): Record<string, string | 
   if (params.sort_order && params.sort_order !== 'desc') apiParams.sort_order = params.sort_order
 
   return apiParams
+}
+
+// Convert SearchFilters to URLSearchParams for navigation
+export function filtersToSearchParams(filters: SearchFilters): URLSearchParams {
+  const params: ImageSearchParams = {
+    ...DEFAULT_SEARCH_PARAMS,
+    ...filters,
+    page: 1,
+  }
+  return toSearchParams(params)
 }

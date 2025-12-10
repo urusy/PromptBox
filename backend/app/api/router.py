@@ -1,6 +1,16 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, batch, duplicates, export, health, images, search_presets, tags
+from app.api.endpoints import (
+    auth,
+    batch,
+    duplicates,
+    export,
+    health,
+    images,
+    search_presets,
+    smart_folders,
+    tags,
+)
 
 api_router = APIRouter(prefix="/api")
 
@@ -11,4 +21,5 @@ api_router.include_router(batch.router)
 api_router.include_router(export.router)
 api_router.include_router(duplicates.router)
 api_router.include_router(search_presets.router)
+api_router.include_router(smart_folders.router)
 api_router.include_router(tags.router)

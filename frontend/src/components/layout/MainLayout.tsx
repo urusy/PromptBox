@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy, FolderSearch } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -46,6 +46,14 @@ export default function MainLayout() {
               >
                 <Copy size={18} />
                 <span className="hidden md:inline text-sm">Duplicates</span>
+              </Link>
+              <Link
+                to="/smart-folders"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Smart Folders"
+              >
+                <FolderSearch size={18} />
+                <span className="hidden md:inline text-sm">Smart</span>
               </Link>
 
               {/* Divider */}
