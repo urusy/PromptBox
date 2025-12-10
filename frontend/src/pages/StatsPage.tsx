@@ -395,13 +395,15 @@ export default function StatsPage() {
           <div className="bg-gray-800 rounded-lg p-4">
             <ResponsiveContainer width="100%" height={Math.max(300, modelRatingDistribution.items.length * 35)}>
               <BarChart
-                data={modelRatingDistribution.items.map(item => ({
-                  name: item.model_name.length > 20 ? item.model_name.slice(0, 20) + '...' : item.model_name,
-                  fullName: item.model_name,
-                  avg_rating: item.avg_rating || 0,
-                  total: item.total,
-                  rated_count: item.total - item.rating_0,
-                }))}
+                data={[...modelRatingDistribution.items]
+                  .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0))
+                  .map(item => ({
+                    name: item.model_name.length > 20 ? item.model_name.slice(0, 20) + '...' : item.model_name,
+                    fullName: item.model_name,
+                    avg_rating: item.avg_rating || 0,
+                    total: item.total,
+                    rated_count: item.total - item.rating_0,
+                  }))}
                 layout="vertical"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
