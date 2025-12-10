@@ -50,25 +50,71 @@ const filtersToParams = (filters: SearchFilters, currentParams: ImageSearchParam
   }
 }
 
+// Helper function to compare filters (ignoring undefined vs not-present)
+const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
+  const keys: (keyof SearchFilters)[] = [
+    'q', 'source_tool', 'model_type', 'model_name', 'sampler_name',
+    'min_rating', 'exact_rating', 'is_favorite', 'needs_improvement',
+    'tags', 'lora_name', 'is_xyz_grid', 'is_upscaled',
+    'min_width', 'min_height', 'sort_by', 'sort_order'
+  ]
+
+  for (const key of keys) {
+    const aVal = a[key]
+    const bVal = b[key]
+
+    // Treat undefined, null, empty string, and 0 as equivalent for comparison
+    const aEmpty = aVal === undefined || aVal === null || aVal === '' || aVal === 0
+    const bEmpty = bVal === undefined || bVal === null || bVal === '' || bVal === 0
+
+    if (aEmpty && bEmpty) continue
+    if (aEmpty !== bEmpty) return false
+
+    // For arrays, compare contents
+    if (Array.isArray(aVal) && Array.isArray(bVal)) {
+      if (aVal.length !== bVal.length) return false
+      if (!aVal.every((v, i) => v === bVal[i])) return false
+      continue
+    }
+
+    if (aVal !== bVal) return false
+  }
+
+  return true
+}
+
 export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [localParams, setLocalParams] = useState<ImageSearchParams>(params)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [presetName, setPresetName] = useState('')
   const [showPresetDropdown, setShowPresetDropdown] = useState(false)
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
-
-  // Sync localParams when params prop changes
-  useEffect(() => {
-    setLocalParams(params)
-  }, [params])
 
   // Fetch presets
   const { data: presets = [] } = useQuery({
     queryKey: ['search-presets'],
     queryFn: searchPresetsApi.list,
   })
+
+  // Sync localParams when params prop changes
+  useEffect(() => {
+    setLocalParams(params)
+  }, [params])
+
+  // Check if current params match any preset and update selectedPresetId
+  useEffect(() => {
+    if (presets.length === 0) return
+
+    const currentFilters = paramsToFilters(params)
+    const matchingPreset = presets.find((preset) =>
+      filtersMatch(currentFilters, preset.filters)
+    )
+
+    setSelectedPresetId(matchingPreset?.id ?? null)
+  }, [params, presets])
 
   // Create preset mutation
   const createPresetMutation = useMutation({
@@ -161,6 +207,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     }
   }
 
+  // Get selected preset name
+  const selectedPreset = presets.find((p) => p.id === selectedPresetId)
+
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-4 mb-6">
       {/* Preset selector row */}
@@ -169,10 +218,14 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           <button
             type="button"
             onClick={() => setShowPresetDropdown(!showPresetDropdown)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+              selectedPreset
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
           >
-            <Bookmark size={16} />
-            <span>プリセット</span>
+            <Bookmark size={16} className={selectedPreset ? 'fill-current' : ''} />
+            <span className="max-w-32 truncate">{selectedPreset?.name || 'プリセット'}</span>
             <ChevronDown size={14} className={`transition-transform ${showPresetDropdown ? 'rotate-180' : ''}`} />
           </button>
 
@@ -187,10 +240,16 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   {presets.map((preset) => (
                     <div
                       key={preset.id}
-                      className="flex items-center justify-between px-3 py-2 hover:bg-gray-600 cursor-pointer group"
+                      className={`flex items-center justify-between px-3 py-2 cursor-pointer group ${
+                        preset.id === selectedPresetId
+                          ? 'bg-blue-600/30 hover:bg-blue-600/40'
+                          : 'hover:bg-gray-600'
+                      }`}
                       onClick={() => handleSelectPreset(preset.id)}
                     >
-                      <span className="text-sm text-white truncate flex-1">{preset.name}</span>
+                      <span className={`text-sm truncate flex-1 ${
+                        preset.id === selectedPresetId ? 'text-blue-300 font-medium' : 'text-white'
+                      }`}>{preset.name}</span>
                       <button
                         type="button"
                         onClick={(e) => handleDeletePreset(e, preset.id)}

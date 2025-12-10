@@ -238,7 +238,7 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
               }}
               onKeyDown={handleTagKeyDown}
               placeholder="Tag"
-              className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-28 sm:w-32 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             {/* Tag suggestions dropdown - rendered via Portal */}
             {showSuggestions && filteredSuggestions.length > 0 && dropdownPosition && createPortal(
