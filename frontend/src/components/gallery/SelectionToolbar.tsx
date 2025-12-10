@@ -9,15 +9,18 @@ import { RATING_LABELS } from '@/components/common/StarRating'
 interface SelectionToolbarProps {
   totalCount: number
   allIds: string[]
+  isSelectionMode: boolean
+  onExitSelectionMode: () => void
 }
 
-export default function SelectionToolbar({ totalCount, allIds }: SelectionToolbarProps) {
+export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, onExitSelectionMode }: SelectionToolbarProps) {
   const { selectedIds, clearSelection, selectAll } = useSelectionStore()
   const [showTagInput, setShowTagInput] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const queryClient = useQueryClient()
 
   const selectedCount = selectedIds.size
+  const hasSelection = selectedCount > 0
   const allSelected = selectedCount === totalCount && totalCount > 0
 
   const updateMutation = useMutation({
@@ -99,7 +102,9 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
     }
   }
 
-  if (selectedCount === 0) return null
+  if (!isSelectionMode) return null
+
+  const disabledClass = !hasSelection ? 'opacity-40 cursor-not-allowed' : ''
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0 sm:pb-6">
@@ -116,12 +121,13 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
         <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Rating */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <div className={`flex items-center gap-0.5 sm:gap-1 shrink-0 ${disabledClass}`}>
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
-              onClick={() => handleSetRating(rating)}
-              className="p-1 text-gray-500 hover:text-yellow-400 transition-colors"
+              onClick={() => hasSelection && handleSetRating(rating)}
+              disabled={!hasSelection}
+              className="p-1 text-gray-500 hover:text-yellow-400 transition-colors disabled:hover:text-gray-500"
               title={`★${rating}: ${RATING_LABELS[rating]}`}
             >
               <Star size={18} />
@@ -133,8 +139,9 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
 
         {/* Favorite */}
         <button
-          onClick={() => handleToggleFavorite(true)}
-          className="p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
+          onClick={() => hasSelection && handleToggleFavorite(true)}
+          disabled={!hasSelection}
+          className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
           title="Add to favorites"
         >
           <Heart size={18} />
@@ -154,7 +161,8 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
             />
             <button
               onClick={handleAddTag}
-              className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              disabled={!hasSelection}
+              className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add
             </button>
@@ -168,8 +176,8 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
         ) : (
           <button
             onClick={() => setShowTagInput(true)}
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-blue-400 transition-colors shrink-0"
-            title="Add tag"
+            className={`p-1.5 sm:p-2 text-gray-500 hover:text-blue-400 transition-colors shrink-0 ${disabledClass}`}
+            disabled={!hasSelection}
           >
             <Tag size={18} />
           </button>
@@ -179,8 +187,9 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
 
         {/* Delete */}
         <button
-          onClick={handleDelete}
-          className="p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
+          onClick={() => hasSelection && handleDelete()}
+          disabled={!hasSelection}
+          className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
           title="Move to trash"
         >
           <Trash2 size={18} />
@@ -189,44 +198,47 @@ export default function SelectionToolbar({ totalCount, allIds }: SelectionToolba
         <div className="w-px h-6 bg-gray-700 shrink-0" />
 
         {/* Export */}
-        <div className="relative group shrink-0">
+        <div className={`relative group shrink-0 ${disabledClass}`}>
           <button
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-green-400 transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-green-400 transition-colors disabled:hover:text-gray-500"
             title="Export"
+            disabled={!hasSelection}
           >
             <Download size={18} />
           </button>
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-            <div className="bg-gray-700 rounded-lg shadow-lg py-1 min-w-[100px]">
-              <button
-                onClick={() => handleExport('json')}
-                className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-              >
-                JSON
-              </button>
-              <button
-                onClick={() => handleExport('csv')}
-                className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-              >
-                CSV
-              </button>
-              <button
-                onClick={() => handleExport('prompts')}
-                className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-              >
-                Prompts
-              </button>
+          {hasSelection && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+              <div className="bg-gray-700 rounded-lg shadow-lg py-1 min-w-[100px]">
+                <button
+                  onClick={() => handleExport('json')}
+                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                >
+                  JSON
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                >
+                  CSV
+                </button>
+                <button
+                  onClick={() => handleExport('prompts')}
+                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                >
+                  Prompts
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="w-px h-6 bg-gray-700 shrink-0" />
 
-        {/* Clear selection */}
+        {/* Exit selection mode */}
         <button
-          onClick={clearSelection}
+          onClick={onExitSelectionMode}
           className="p-1.5 sm:p-2 text-gray-500 hover:text-white transition-colors shrink-0"
-          title="Clear selection"
+          title="Exit selection mode"
         >
           <X size={18} />
         </button>

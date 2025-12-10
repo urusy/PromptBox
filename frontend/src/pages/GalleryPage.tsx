@@ -60,9 +60,15 @@ export default function GalleryPage() {
   const toggleSelectionMode = () => {
     if (isSelectionMode) {
       clearSelection()
+      setSelectionMode(false)
     } else {
       setSelectionMode(true)
     }
+  }
+
+  const exitSelectionMode = () => {
+    clearSelection()
+    setSelectionMode(false)
   }
 
   if (error) {
@@ -159,7 +165,12 @@ export default function GalleryPage() {
             onPageChange={handlePageChange}
           />
 
-          <SelectionToolbar totalCount={data.items.length} allIds={allImageIds} />
+          <SelectionToolbar
+            totalCount={data.items.length}
+            allIds={allImageIds}
+            isSelectionMode={isSelectionMode}
+            onExitSelectionMode={exitSelectionMode}
+          />
         </>
       ) : null}
 

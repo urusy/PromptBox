@@ -84,6 +84,17 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           />
         </div>
 
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            title="Clear filters"
+          >
+            <X size={18} />
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -102,17 +113,6 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
         >
           Search
         </button>
-
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-            title="Clear filters"
-          >
-            <X size={18} />
-          </button>
-        )}
       </div>
 
       {isExpanded && (
@@ -177,7 +177,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Any</option>
-                <option value="0">★0 (Unrated)</option>
+                <option value="0">★0</option>
                 {[1, 2, 3, 4, 5].map((rating) => (
                   <option key={rating} value={rating}>
                     ★{rating}
