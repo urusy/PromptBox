@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
@@ -25,7 +25,7 @@ async def list_tags(
             Image.updated_at,
         )
         .where(Image.deleted_at.is_(None))
-        .where(Image.user_tags != [])
+        .where(func.cardinality(Image.user_tags) > 0)
         .subquery()
     )
 
