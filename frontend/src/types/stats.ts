@@ -45,4 +45,9 @@ export interface RatingAnalysisResponse {
   by_lora: RatingAnalysisItem[]
   by_steps: RatingAnalysisItem[]
   by_cfg: RatingAnalysisItem[]
+  filtered_by_model: string | null
+}
+
+export interface ModelListResponse {
+  models: string[]
 }

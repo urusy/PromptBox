@@ -58,6 +58,11 @@ class RatingAnalysisResponse(BaseModel):
     by_lora: list[RatingAnalysisItem]
     by_steps: list[RatingAnalysisItem]
     by_cfg: list[RatingAnalysisItem]
+    filtered_by_model: str | None = None  # Model name if filtered
+
+
+class ModelListResponse(BaseModel):
+    models: list[str]
 
 
 @router.get("", response_model=StatsResponse)
@@ -209,43 +214,76 @@ async def get_stats(
     )
 
 
-@router.get("/rating-analysis", response_model=RatingAnalysisResponse)
-async def get_rating_analysis(
+@router.get("/models-for-analysis", response_model=ModelListResponse)
+async def get_models_for_analysis(
     db: DbSession,
     _: CurrentUser,
     min_count: int = 5,
-) -> RatingAnalysisResponse:
-    """Get rating analysis - which settings tend to get higher ratings."""
-
-    # Base filter: non-deleted, rated images only
+) -> ModelListResponse:
+    """Get list of models with enough rated images for analysis."""
     base_filter = Image.deleted_at.is_(None)
     rated_filter = Image.rating > 0
 
-    # By model name (top 10 by avg rating, with minimum count)
-    model_result = await db.execute(
-        select(
-            Image.model_name,
-            func.avg(Image.rating).label("avg_rating"),
-            func.count(Image.id).label("count"),
-            func.count(case((Image.rating >= 4, 1))).label("high_rated"),
-        )
+    result = await db.execute(
+        select(Image.model_name)
         .where(base_filter)
         .where(rated_filter)
         .where(Image.model_name.isnot(None))
         .group_by(Image.model_name)
         .having(func.count(Image.id) >= min_count)
-        .order_by(func.avg(Image.rating).desc())
-        .limit(10)
+        .order_by(func.count(Image.id).desc())
     )
-    by_model = [
-        RatingAnalysisItem(
-            name=row.model_name,
-            avg_rating=round(float(row.avg_rating), 2),
-            count=row.count,
-            high_rated_count=row.high_rated,
+    models = [row[0] for row in result.all()]
+    return ModelListResponse(models=models)
+
+
+@router.get("/rating-analysis", response_model=RatingAnalysisResponse)
+async def get_rating_analysis(
+    db: DbSession,
+    _: CurrentUser,
+    min_count: int = 5,
+    model_name: str | None = None,
+) -> RatingAnalysisResponse:
+    """Get rating analysis - which settings tend to get higher ratings.
+
+    If model_name is provided, analyze only images using that model.
+    """
+
+    # Base filter: non-deleted, rated images only
+    base_filter = Image.deleted_at.is_(None)
+    rated_filter = Image.rating > 0
+
+    # Optional model filter
+    model_filter = Image.model_name == model_name if model_name else True
+
+    # By model name (top 10 by avg rating, with minimum count)
+    # Skip if filtering by specific model
+    by_model: list[RatingAnalysisItem] = []
+    if not model_name:
+        model_result = await db.execute(
+            select(
+                Image.model_name,
+                func.avg(Image.rating).label("avg_rating"),
+                func.count(Image.id).label("count"),
+                func.count(case((Image.rating >= 4, 1))).label("high_rated"),
+            )
+            .where(base_filter)
+            .where(rated_filter)
+            .where(Image.model_name.isnot(None))
+            .group_by(Image.model_name)
+            .having(func.count(Image.id) >= min_count)
+            .order_by(func.avg(Image.rating).desc())
+            .limit(10)
         )
-        for row in model_result.all()
-    ]
+        by_model = [
+            RatingAnalysisItem(
+                name=row.model_name,
+                avg_rating=round(float(row.avg_rating), 2),
+                count=row.count,
+                high_rated_count=row.high_rated,
+            )
+            for row in model_result.all()
+        ]
 
     # By sampler (top 10 by avg rating)
     sampler_result = await db.execute(
@@ -257,6 +295,7 @@ async def get_rating_analysis(
         )
         .where(base_filter)
         .where(rated_filter)
+        .where(model_filter)
         .where(Image.sampler_name.isnot(None))
         .group_by(Image.sampler_name)
         .having(func.count(Image.id) >= min_count)
@@ -284,6 +323,7 @@ async def get_rating_analysis(
         )
         .where(base_filter)
         .where(rated_filter)
+        .where(model_filter)
         .where(func.jsonb_array_length(Image.loras) > 0)
         .subquery()
     )
@@ -326,6 +366,7 @@ async def get_rating_analysis(
         )
         .where(base_filter)
         .where(rated_filter)
+        .where(model_filter)
         .where(Image.steps.isnot(None))
         .group_by(steps_case)
         .having(func.count(Image.id) >= min_count)
@@ -358,6 +399,7 @@ async def get_rating_analysis(
         )
         .where(base_filter)
         .where(rated_filter)
+        .where(model_filter)
         .where(Image.cfg_scale.isnot(None))
         .group_by(cfg_case)
         .having(func.count(Image.id) >= min_count)
@@ -379,4 +421,5 @@ async def get_rating_analysis(
         by_lora=by_lora,
         by_steps=by_steps,
         by_cfg=by_cfg,
+        filtered_by_model=model_name,
     )

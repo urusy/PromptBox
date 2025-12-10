@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart,
@@ -14,7 +15,7 @@ import {
   Line,
   ComposedChart,
 } from 'recharts'
-import { Image, Star, Heart, TrendingUp, Sparkles } from 'lucide-react'
+import { Image, Star, Heart, TrendingUp, Sparkles, ChevronDown } from 'lucide-react'
 import { statsApi } from '@/api/stats'
 import type { RatingAnalysisItem } from '@/types/stats'
 
@@ -82,14 +83,22 @@ function RatingAnalysisChart({
 }
 
 export default function StatsPage() {
+  const [analysisTab, setAnalysisTab] = useState<'overall' | 'by-model'>('overall')
+  const [selectedModel, setSelectedModel] = useState<string>('')
+
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['stats'],
     queryFn: () => statsApi.get(30),
   })
 
   const { data: ratingAnalysis } = useQuery({
-    queryKey: ['rating-analysis'],
-    queryFn: () => statsApi.getRatingAnalysis(3),
+    queryKey: ['rating-analysis', analysisTab === 'by-model' ? selectedModel : undefined],
+    queryFn: () => statsApi.getRatingAnalysis(3, analysisTab === 'by-model' && selectedModel ? selectedModel : undefined),
+  })
+
+  const { data: modelList } = useQuery({
+    queryKey: ['models-for-analysis'],
+    queryFn: () => statsApi.getModelsForAnalysis(3),
   })
 
   if (isLoading) {
@@ -372,39 +381,107 @@ export default function StatsPage() {
       {/* Rating Analysis Section */}
       {ratingAnalysis && (
         <>
-          <div className="flex items-center gap-2 mt-8">
-            <Sparkles size={24} className="text-purple-400" />
-            <h2 className="text-xl font-bold">Rating Analysis</h2>
-            <span className="text-sm text-gray-400">- Which settings get higher ratings?</span>
+          <div className="flex items-center justify-between mt-8 flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={24} className="text-purple-400" />
+              <h2 className="text-xl font-bold">Rating Analysis</h2>
+              <span className="text-sm text-gray-400 hidden sm:inline">- Which settings get higher ratings?</span>
+            </div>
+
+            {/* Tab Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setAnalysisTab('overall')
+                  setSelectedModel('')
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  analysisTab === 'overall'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Overall
+              </button>
+              <button
+                onClick={() => setAnalysisTab('by-model')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  analysisTab === 'by-model'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                By Model
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <RatingAnalysisChart
-              data={ratingAnalysis.by_model}
-              title="Best Models"
-              color="#3b82f6"
-            />
-            <RatingAnalysisChart
-              data={ratingAnalysis.by_sampler}
-              title="Best Samplers"
-              color="#10b981"
-            />
-            <RatingAnalysisChart
-              data={ratingAnalysis.by_lora}
-              title="Best LoRAs"
-              color="#f59e0b"
-            />
-            <RatingAnalysisChart
-              data={ratingAnalysis.by_steps}
-              title="Best Steps Range"
-              color="#8b5cf6"
-            />
-            <RatingAnalysisChart
-              data={ratingAnalysis.by_cfg}
-              title="Best CFG Range"
-              color="#ec4899"
-            />
-          </div>
+          {/* Model Selector (only shown in by-model tab) */}
+          {analysisTab === 'by-model' && modelList && (
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-400">Model:</label>
+              <div className="relative">
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="appearance-none bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[200px]"
+                >
+                  <option value="">Select a model...</option>
+                  {modelList.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model.length > 30 ? model.slice(0, 30) + '...' : model}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+              {selectedModel && (
+                <span className="text-sm text-purple-400">
+                  Analyzing: {selectedModel.length > 20 ? selectedModel.slice(0, 20) + '...' : selectedModel}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Analysis Charts */}
+          {(analysisTab === 'overall' || (analysisTab === 'by-model' && selectedModel)) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {analysisTab === 'overall' && (
+                <RatingAnalysisChart
+                  data={ratingAnalysis.by_model}
+                  title="Best Models"
+                  color="#3b82f6"
+                />
+              )}
+              <RatingAnalysisChart
+                data={ratingAnalysis.by_sampler}
+                title={analysisTab === 'by-model' ? 'Best Samplers for this Model' : 'Best Samplers'}
+                color="#10b981"
+              />
+              <RatingAnalysisChart
+                data={ratingAnalysis.by_lora}
+                title={analysisTab === 'by-model' ? 'Best LoRAs for this Model' : 'Best LoRAs'}
+                color="#f59e0b"
+              />
+              <RatingAnalysisChart
+                data={ratingAnalysis.by_steps}
+                title={analysisTab === 'by-model' ? 'Best Steps for this Model' : 'Best Steps Range'}
+                color="#8b5cf6"
+              />
+              <RatingAnalysisChart
+                data={ratingAnalysis.by_cfg}
+                title={analysisTab === 'by-model' ? 'Best CFG for this Model' : 'Best CFG Range'}
+                color="#ec4899"
+              />
+            </div>
+          )}
+
+          {/* Prompt to select model */}
+          {analysisTab === 'by-model' && !selectedModel && (
+            <div className="bg-gray-800 rounded-lg p-8 text-center">
+              <p className="text-gray-400">Select a model above to see which settings work best with it.</p>
+            </div>
+          )}
         </>
       )}
     </div>
