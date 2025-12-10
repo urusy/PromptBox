@@ -17,7 +17,7 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700">
-        <div className="mx-auto px-2 sm:px-4 lg:px-8 max-w-[1920px] 4xl:max-w-none">
+        <div className="mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
@@ -107,7 +107,7 @@ export default function MainLayout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 max-w-[1920px] 4xl:max-w-none">
+      <main className="px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <Outlet />
       </main>
     </div>
