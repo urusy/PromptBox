@@ -23,6 +23,9 @@ export function parseSearchParams(searchParams: URLSearchParams): ImageSearchPar
   const model_name = searchParams.get('model_name')
   if (model_name) params.model_name = model_name
 
+  const sampler_name = searchParams.get('sampler_name')
+  if (sampler_name) params.sampler_name = sampler_name
+
   const min_rating = searchParams.get('min_rating')
   if (min_rating) params.min_rating = parseInt(min_rating)
 
@@ -31,6 +34,15 @@ export function parseSearchParams(searchParams: URLSearchParams): ImageSearchPar
 
   const is_favorite = searchParams.get('is_favorite')
   if (is_favorite === 'true') params.is_favorite = true
+
+  const needs_improvement = searchParams.get('needs_improvement')
+  if (needs_improvement === 'true') params.needs_improvement = true
+
+  const tags = searchParams.get('tags')
+  if (tags) params.tags = tags.split(',')
+
+  const lora_name = searchParams.get('lora_name')
+  if (lora_name) params.lora_name = lora_name
 
   const is_xyz_grid = searchParams.get('is_xyz_grid')
   if (is_xyz_grid === 'true') params.is_xyz_grid = true
@@ -69,9 +81,13 @@ export function toSearchParams(params: ImageSearchParams): URLSearchParams {
   if (params.source_tool) searchParams.set('source_tool', params.source_tool)
   if (params.model_type) searchParams.set('model_type', params.model_type)
   if (params.model_name) searchParams.set('model_name', params.model_name)
+  if (params.sampler_name) searchParams.set('sampler_name', params.sampler_name)
   if (params.min_rating !== undefined) searchParams.set('min_rating', params.min_rating.toString())
   if (params.exact_rating !== undefined) searchParams.set('exact_rating', params.exact_rating.toString())
   if (params.is_favorite === true) searchParams.set('is_favorite', 'true')
+  if (params.needs_improvement === true) searchParams.set('needs_improvement', 'true')
+  if (params.tags && params.tags.length > 0) searchParams.set('tags', params.tags.join(','))
+  if (params.lora_name) searchParams.set('lora_name', params.lora_name)
   if (params.is_xyz_grid === true) searchParams.set('is_xyz_grid', 'true')
   else if (params.is_xyz_grid === false) searchParams.set('is_xyz_grid', 'false')
   if (params.is_upscaled === true) searchParams.set('is_upscaled', 'true')
@@ -94,9 +110,12 @@ export function toApiParams(params: ImageSearchParams): Record<string, string | 
   if (params.source_tool) apiParams.source_tool = params.source_tool
   if (params.model_type) apiParams.model_type = params.model_type
   if (params.model_name) apiParams.model_name = params.model_name
+  if (params.sampler_name) apiParams.sampler_name = params.sampler_name
   if (params.min_rating !== undefined) apiParams.min_rating = params.min_rating
   if (params.exact_rating !== undefined) apiParams.exact_rating = params.exact_rating
   if (params.is_favorite !== undefined) apiParams.is_favorite = params.is_favorite
+  if (params.needs_improvement !== undefined) apiParams.needs_improvement = params.needs_improvement
+  if (params.lora_name) apiParams.lora_name = params.lora_name
   if (params.is_xyz_grid !== undefined && params.is_xyz_grid !== null) apiParams.is_xyz_grid = params.is_xyz_grid
   if (params.is_upscaled !== undefined && params.is_upscaled !== null) apiParams.is_upscaled = params.is_upscaled
   if (params.min_width !== undefined) apiParams.min_width = params.min_width
