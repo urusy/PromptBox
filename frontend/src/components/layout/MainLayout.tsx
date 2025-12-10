@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -57,6 +57,14 @@ export default function MainLayout() {
               >
                 <FolderSearch size={18} />
                 <span className="hidden md:inline text-sm">Smart</span>
+              </Link>
+              <Link
+                to="/stats"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Statistics"
+              >
+                <BarChart3 size={18} />
+                <span className="hidden md:inline text-sm">Stats</span>
               </Link>
 
               {/* Divider */}

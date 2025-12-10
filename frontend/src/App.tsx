@@ -7,6 +7,7 @@ import DetailPage from '@/pages/DetailPage'
 import TrashPage from '@/pages/TrashPage'
 import DuplicatesPage from '@/pages/DuplicatesPage'
 import SmartFoldersPage from '@/pages/SmartFoldersPage'
+import StatsPage from '@/pages/StatsPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -41,6 +42,7 @@ function App() {
         <Route path="trash" element={<TrashPage />} />
         <Route path="duplicates" element={<DuplicatesPage />} />
         <Route path="smart-folders" element={<SmartFoldersPage />} />
+        <Route path="stats" element={<StatsPage />} />
       </Route>
     </Routes>
   )
