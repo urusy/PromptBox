@@ -402,7 +402,7 @@ export default function StatsPage() {
                     fullName: item.model_name,
                     avg_rating: item.avg_rating || 0,
                     total: item.total,
-                    rated_count: item.total - item.rating_0,
+                    rated_count: item.total - (item.rating_0 ?? 0),
                   }))}
                 layout="vertical"
               >
