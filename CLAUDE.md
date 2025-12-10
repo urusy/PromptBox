@@ -230,6 +230,12 @@ padding-bottom: env(safe-area-inset-bottom);
 - フロントエンド: Vitest + React Testing Library
 - E2E: 不要（1ユーザーアプリのため）
 
+## コードレビュー方針
+
+- Code Rabbitを設定しているため `coderabbit --prompt-only` のコマンドを使用してレビューを受けること
+- 上記で指摘があれば対応し、再度コマンドを実行してレビューを受けること
+- 指摘がなくなるまで繰り返すこと
+
 ## 注意事項
 
 1. **画像ファイルの取り扱い**
