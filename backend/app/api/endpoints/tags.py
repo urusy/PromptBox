@@ -17,15 +17,15 @@ async def list_tags(
     Get most recently used tags.
     Returns unique tags ordered by most recent usage (based on image updated_at).
     """
-    # Unnest user_tags array and get distinct tags with their most recent usage
+    # user_tags is JSONB, use jsonb_array_elements_text to unnest
     # Using a subquery to get the max updated_at for each tag
     unnested = (
         select(
-            func.unnest(Image.user_tags).label("tag"),
+            func.jsonb_array_elements_text(Image.user_tags).label("tag"),
             Image.updated_at,
         )
         .where(Image.deleted_at.is_(None))
-        .where(func.cardinality(Image.user_tags) > 0)
+        .where(func.jsonb_array_length(Image.user_tags) > 0)
         .subquery()
     )
 
