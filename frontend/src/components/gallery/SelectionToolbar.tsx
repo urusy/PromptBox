@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { batchApi } from '@/api/batch'
+import { tagsApi } from '@/api/tags'
 import { useSelectionStore } from '@/stores/selectionStore'
 import { RATING_LABELS } from '@/components/common/StarRating'
 
@@ -17,7 +18,35 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
   const { selectedIds, clearSelection, selectAll } = useSelectionStore()
   const [showTagInput, setShowTagInput] = useState(false)
   const [tagInput, setTagInput] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const tagInputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+
+  // Fetch recent tags for suggestions
+  const { data: recentTags = [] } = useQuery({
+    queryKey: ['tags'],
+    queryFn: () => tagsApi.list(10),
+    staleTime: 30000,
+  })
+
+  // Filter suggestions based on input
+  const filteredSuggestions = recentTags.filter(
+    (tag) => tagInput === '' || tag.toLowerCase().includes(tagInput.toLowerCase())
+  )
+
+  // Reset selected index when suggestions change
+  useEffect(() => {
+    setSelectedIndex(-1)
+  }, [filteredSuggestions.length, tagInput])
+
+  // Focus input when showing
+  useEffect(() => {
+    if (showTagInput && tagInputRef.current) {
+      tagInputRef.current.focus()
+    }
+  }, [showTagInput])
 
   const selectedCount = selectedIds.size
   const hasSelection = selectedCount > 0
@@ -60,8 +89,8 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
     })
   }
 
-  const handleAddTag = () => {
-    const tag = tagInput.trim().toLowerCase()
+  const handleAddTag = (tagToAdd?: string) => {
+    const tag = (tagToAdd || tagInput).trim().toLowerCase()
     if (!tag) return
 
     updateMutation.mutate({
@@ -70,6 +99,34 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
     })
     setTagInput('')
     setShowTagInput(false)
+    setShowSuggestions(false)
+  }
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (selectedIndex >= 0 && selectedIndex < filteredSuggestions.length) {
+        handleAddTag(filteredSuggestions[selectedIndex])
+      } else {
+        handleAddTag()
+      }
+    } else if (e.key === 'Escape') {
+      setTagInput('')
+      setShowTagInput(false)
+      setShowSuggestions(false)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (filteredSuggestions.length > 0) {
+        setSelectedIndex((prev) =>
+          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
+        )
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (filteredSuggestions.length > 0) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1))
+      }
+    }
   }
 
   const handleDelete = () => {
@@ -149,25 +206,66 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
 
         {/* Tags */}
         {showTagInput ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-              placeholder="Tag"
-              className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              autoFocus
-            />
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
+            <div className="relative">
+              <input
+                ref={tagInputRef}
+                type="text"
+                value={tagInput}
+                onChange={(e) => {
+                  setTagInput(e.target.value)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  // Delay to allow click on suggestions
+                  setTimeout(() => setShowSuggestions(false), 150)
+                }}
+                onKeyDown={handleTagKeyDown}
+                placeholder="Tag"
+                className="w-20 sm:w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {/* Tag suggestions dropdown */}
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute bottom-full left-0 mb-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto"
+                >
+                  <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
+                    最近使用したタグ
+                  </div>
+                  {filteredSuggestions.map((tag, index) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        handleAddTag(tag)
+                      }}
+                      className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
+                        index === selectedIndex
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
-              onClick={handleAddTag}
+              onClick={() => handleAddTag()}
               disabled={!hasSelection}
               className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add
             </button>
             <button
-              onClick={() => setShowTagInput(false)}
+              onClick={() => {
+                setShowTagInput(false)
+                setShowSuggestions(false)
+              }}
               className="p-1 text-gray-400 hover:text-white"
             >
               <X size={16} />
