@@ -30,6 +30,7 @@ class StatsOverview(BaseModel):
     total_images: int
     total_favorites: int
     total_rated: int
+    total_unrated: int
     avg_rating: float | None
 
 
@@ -61,6 +62,7 @@ async def get_stats(
             func.count(Image.id).label("total"),
             func.count(case((Image.is_favorite == True, 1))).label("favorites"),  # noqa: E712
             func.count(case((Image.rating > 0, 1))).label("rated"),
+            func.count(case((Image.rating == 0, 1))).label("unrated"),
             func.avg(case((Image.rating > 0, Image.rating))).label("avg_rating"),
         ).where(base_filter)
     )
@@ -69,6 +71,7 @@ async def get_stats(
         total_images=overview_row.total or 0,
         total_favorites=overview_row.favorites or 0,
         total_rated=overview_row.rated or 0,
+        total_unrated=overview_row.unrated or 0,
         avg_rating=round(float(overview_row.avg_rating), 2) if overview_row.avg_rating else None,
     )
 

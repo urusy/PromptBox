@@ -17,6 +17,7 @@ export interface StatsOverview {
   total_images: number
   total_favorites: number
   total_rated: number
+  total_unrated: number
   avg_rating: number | null
 }
 

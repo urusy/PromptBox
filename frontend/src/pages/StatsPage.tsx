@@ -54,7 +54,7 @@ export default function StatsPage() {
       <h1 className="text-2xl font-bold">Statistics</h1>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <div className="bg-gray-800 rounded-lg p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
@@ -86,7 +86,19 @@ export default function StatsPage() {
             </div>
             <div>
               <div className="text-2xl font-bold">{stats.overview.total_rated.toLocaleString()}</div>
-              <div className="text-sm text-gray-400">Rated Images</div>
+              <div className="text-sm text-gray-400">Rated</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gray-600/20 rounded-lg">
+              <Star size={24} className="text-gray-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{stats.overview.total_unrated.toLocaleString()}</div>
+              <div className="text-sm text-gray-400">Unrated</div>
             </div>
           </div>
         </div>
