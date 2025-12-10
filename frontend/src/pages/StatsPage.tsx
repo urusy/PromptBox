@@ -12,9 +12,11 @@ import {
   Cell,
   LineChart,
   Line,
+  ComposedChart,
 } from 'recharts'
-import { Image, Star, Heart, TrendingUp } from 'lucide-react'
+import { Image, Star, Heart, TrendingUp, Sparkles } from 'lucide-react'
 import { statsApi } from '@/api/stats'
+import type { RatingAnalysisItem } from '@/types/stats'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
 
@@ -27,10 +29,67 @@ const RATING_COLORS: Record<number, string> = {
   5: '#3b82f6', // blue
 }
 
+// Rating Analysis Chart Component
+function RatingAnalysisChart({
+  data,
+  title,
+  color
+}: {
+  data: RatingAnalysisItem[]
+  title: string
+  color: string
+}) {
+  if (data.length === 0) return null
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <h3 className="text-md font-semibold mb-3">{title}</h3>
+      <ResponsiveContainer width="100%" height={200}>
+        <ComposedChart data={data} layout="vertical">
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <XAxis type="number" stroke="#9ca3af" fontSize={11} domain={[0, 5]} />
+          <YAxis
+            type="category"
+            dataKey="name"
+            stroke="#9ca3af"
+            fontSize={10}
+            width={100}
+            tickFormatter={(value) => value.length > 12 ? value.slice(0, 12) + '...' : value}
+          />
+          <Tooltip
+            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+            formatter={(value: number, name: string) => {
+              if (name === 'avg_rating') return [`★${value.toFixed(2)}`, 'Avg Rating']
+              return [value, name]
+            }}
+            labelFormatter={(label) => label}
+          />
+          <Bar dataKey="avg_rating" fill={color} radius={[0, 4, 4, 0]} name="avg_rating" />
+        </ComposedChart>
+      </ResponsiveContainer>
+      <div className="mt-2 text-xs text-gray-400 space-y-1">
+        {data.slice(0, 3).map((item, i) => (
+          <div key={i} className="flex justify-between">
+            <span className="truncate mr-2">{i + 1}. {item.name}</span>
+            <span className="shrink-0">
+              ★{item.avg_rating.toFixed(2)} ({item.count}枚, 高評価{item.high_rated_count}枚)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function StatsPage() {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['stats'],
     queryFn: () => statsApi.get(30),
+  })
+
+  const { data: ratingAnalysis } = useQuery({
+    queryKey: ['rating-analysis'],
+    queryFn: () => statsApi.getRatingAnalysis(3),
   })
 
   if (isLoading) {
@@ -309,6 +368,45 @@ export default function StatsPage() {
           </div>
         )}
       </div>
+
+      {/* Rating Analysis Section */}
+      {ratingAnalysis && (
+        <>
+          <div className="flex items-center gap-2 mt-8">
+            <Sparkles size={24} className="text-purple-400" />
+            <h2 className="text-xl font-bold">Rating Analysis</h2>
+            <span className="text-sm text-gray-400">- Which settings get higher ratings?</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <RatingAnalysisChart
+              data={ratingAnalysis.by_model}
+              title="Best Models"
+              color="#3b82f6"
+            />
+            <RatingAnalysisChart
+              data={ratingAnalysis.by_sampler}
+              title="Best Samplers"
+              color="#10b981"
+            />
+            <RatingAnalysisChart
+              data={ratingAnalysis.by_lora}
+              title="Best LoRAs"
+              color="#f59e0b"
+            />
+            <RatingAnalysisChart
+              data={ratingAnalysis.by_steps}
+              title="Best Steps Range"
+              color="#8b5cf6"
+            />
+            <RatingAnalysisChart
+              data={ratingAnalysis.by_cfg}
+              title="Best CFG Range"
+              color="#ec4899"
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

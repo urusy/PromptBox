@@ -31,3 +31,18 @@ export interface StatsResponse {
   by_rating: RatingDistribution[]
   daily_counts: TimeSeriesItem[]
 }
+
+export interface RatingAnalysisItem {
+  name: string
+  avg_rating: number
+  count: number
+  high_rated_count: number
+}
+
+export interface RatingAnalysisResponse {
+  by_model: RatingAnalysisItem[]
+  by_sampler: RatingAnalysisItem[]
+  by_lora: RatingAnalysisItem[]
+  by_steps: RatingAnalysisItem[]
+  by_cfg: RatingAnalysisItem[]
+}

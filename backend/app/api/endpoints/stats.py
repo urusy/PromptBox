@@ -45,6 +45,21 @@ class StatsResponse(BaseModel):
     daily_counts: list[TimeSeriesItem]
 
 
+class RatingAnalysisItem(BaseModel):
+    name: str
+    avg_rating: float
+    count: int
+    high_rated_count: int  # Count of images with rating >= 4
+
+
+class RatingAnalysisResponse(BaseModel):
+    by_model: list[RatingAnalysisItem]
+    by_sampler: list[RatingAnalysisItem]
+    by_lora: list[RatingAnalysisItem]
+    by_steps: list[RatingAnalysisItem]
+    by_cfg: list[RatingAnalysisItem]
+
+
 @router.get("", response_model=StatsResponse)
 async def get_stats(
     db: DbSession,
@@ -191,4 +206,177 @@ async def get_stats(
         by_lora=by_lora,
         by_rating=by_rating,
         daily_counts=daily_counts,
+    )
+
+
+@router.get("/rating-analysis", response_model=RatingAnalysisResponse)
+async def get_rating_analysis(
+    db: DbSession,
+    _: CurrentUser,
+    min_count: int = 5,
+) -> RatingAnalysisResponse:
+    """Get rating analysis - which settings tend to get higher ratings."""
+
+    # Base filter: non-deleted, rated images only
+    base_filter = Image.deleted_at.is_(None)
+    rated_filter = Image.rating > 0
+
+    # By model name (top 10 by avg rating, with minimum count)
+    model_result = await db.execute(
+        select(
+            Image.model_name,
+            func.avg(Image.rating).label("avg_rating"),
+            func.count(Image.id).label("count"),
+            func.count(case((Image.rating >= 4, 1))).label("high_rated"),
+        )
+        .where(base_filter)
+        .where(rated_filter)
+        .where(Image.model_name.isnot(None))
+        .group_by(Image.model_name)
+        .having(func.count(Image.id) >= min_count)
+        .order_by(func.avg(Image.rating).desc())
+        .limit(10)
+    )
+    by_model = [
+        RatingAnalysisItem(
+            name=row.model_name,
+            avg_rating=round(float(row.avg_rating), 2),
+            count=row.count,
+            high_rated_count=row.high_rated,
+        )
+        for row in model_result.all()
+    ]
+
+    # By sampler (top 10 by avg rating)
+    sampler_result = await db.execute(
+        select(
+            Image.sampler_name,
+            func.avg(Image.rating).label("avg_rating"),
+            func.count(Image.id).label("count"),
+            func.count(case((Image.rating >= 4, 1))).label("high_rated"),
+        )
+        .where(base_filter)
+        .where(rated_filter)
+        .where(Image.sampler_name.isnot(None))
+        .group_by(Image.sampler_name)
+        .having(func.count(Image.id) >= min_count)
+        .order_by(func.avg(Image.rating).desc())
+        .limit(10)
+    )
+    by_sampler = [
+        RatingAnalysisItem(
+            name=row.sampler_name,
+            avg_rating=round(float(row.avg_rating), 2),
+            count=row.count,
+            high_rated_count=row.high_rated,
+        )
+        for row in sampler_result.all()
+    ]
+
+    # By LoRA (unnest and aggregate)
+    lora_unnest = (
+        select(
+            Image.id,
+            Image.rating,
+            func.jsonb_array_elements(Image.loras).op("->>")(
+                "name"
+            ).label("lora_name"),
+        )
+        .where(base_filter)
+        .where(rated_filter)
+        .where(func.jsonb_array_length(Image.loras) > 0)
+        .subquery()
+    )
+    lora_result = await db.execute(
+        select(
+            lora_unnest.c.lora_name,
+            func.avg(lora_unnest.c.rating).label("avg_rating"),
+            func.count().label("count"),
+            func.count(case((lora_unnest.c.rating >= 4, 1))).label("high_rated"),
+        )
+        .group_by(lora_unnest.c.lora_name)
+        .having(func.count() >= min_count)
+        .order_by(func.avg(lora_unnest.c.rating).desc())
+        .limit(10)
+    )
+    by_lora = [
+        RatingAnalysisItem(
+            name=row.lora_name,
+            avg_rating=round(float(row.avg_rating), 2),
+            count=row.count,
+            high_rated_count=row.high_rated,
+        )
+        for row in lora_result.all()
+    ]
+
+    # By steps (group into ranges)
+    steps_case = case(
+        (Image.steps < 20, "< 20"),
+        (Image.steps < 30, "20-29"),
+        (Image.steps < 40, "30-39"),
+        (Image.steps < 50, "40-49"),
+        else_="50+",
+    )
+    steps_result = await db.execute(
+        select(
+            steps_case.label("steps_range"),
+            func.avg(Image.rating).label("avg_rating"),
+            func.count(Image.id).label("count"),
+            func.count(case((Image.rating >= 4, 1))).label("high_rated"),
+        )
+        .where(base_filter)
+        .where(rated_filter)
+        .where(Image.steps.isnot(None))
+        .group_by(steps_case)
+        .having(func.count(Image.id) >= min_count)
+        .order_by(func.avg(Image.rating).desc())
+    )
+    by_steps = [
+        RatingAnalysisItem(
+            name=row.steps_range,
+            avg_rating=round(float(row.avg_rating), 2),
+            count=row.count,
+            high_rated_count=row.high_rated,
+        )
+        for row in steps_result.all()
+    ]
+
+    # By CFG scale (group into ranges)
+    cfg_case = case(
+        (Image.cfg_scale < 5, "< 5"),
+        (Image.cfg_scale < 7, "5-6.9"),
+        (Image.cfg_scale < 9, "7-8.9"),
+        (Image.cfg_scale < 12, "9-11.9"),
+        else_="12+",
+    )
+    cfg_result = await db.execute(
+        select(
+            cfg_case.label("cfg_range"),
+            func.avg(Image.rating).label("avg_rating"),
+            func.count(Image.id).label("count"),
+            func.count(case((Image.rating >= 4, 1))).label("high_rated"),
+        )
+        .where(base_filter)
+        .where(rated_filter)
+        .where(Image.cfg_scale.isnot(None))
+        .group_by(cfg_case)
+        .having(func.count(Image.id) >= min_count)
+        .order_by(func.avg(Image.rating).desc())
+    )
+    by_cfg = [
+        RatingAnalysisItem(
+            name=row.cfg_range,
+            avg_rating=round(float(row.avg_rating), 2),
+            count=row.count,
+            high_rated_count=row.high_rated,
+        )
+        for row in cfg_result.all()
+    ]
+
+    return RatingAnalysisResponse(
+        by_model=by_model,
+        by_sampler=by_sampler,
+        by_lora=by_lora,
+        by_steps=by_steps,
+        by_cfg=by_cfg,
     )
