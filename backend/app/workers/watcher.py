@@ -1,5 +1,6 @@
 import asyncio
 import shutil
+import threading
 from pathlib import Path
 from uuid import UUID
 
@@ -17,6 +18,9 @@ from app.utils.file_utils import ensure_directory, get_storage_path, get_thumbna
 from app.utils.hash_utils import calculate_file_hash
 from app.utils.image_utils import create_thumbnail, get_image_dimensions
 
+# Interval for periodic folder scanning (in seconds)
+PERIODIC_SCAN_INTERVAL = 30
+
 
 def create_watcher_session() -> async_sessionmaker[AsyncSession]:
     """Create a new engine and session factory for the watcher thread.
@@ -28,8 +32,8 @@ def create_watcher_session() -> async_sessionmaker[AsyncSession]:
     engine = create_async_engine(
         settings.database_url,
         echo=False,
-        pool_size=2,
-        max_overflow=3,
+        pool_size=5,
+        max_overflow=10,
     )
     return async_sessionmaker(
         engine,
@@ -231,6 +235,8 @@ class ImageWatcher:
         self.settings = get_settings()
         self.observer = Observer()
         self.handler = ImageImportHandler()
+        self._scanner_thread: threading.Thread | None = None
+        self._stop_scanner = threading.Event()
 
     def start(self) -> None:
         """Start watching the import folder."""
@@ -241,11 +247,71 @@ class ImageWatcher:
         self.observer.start()
         logger.info(f"Started watching: {import_path}")
 
+        # Start periodic scanner thread
+        self._stop_scanner.clear()
+        self._scanner_thread = threading.Thread(
+            target=self._periodic_scan_loop,
+            daemon=True,
+            name="PeriodicScanner",
+        )
+        self._scanner_thread.start()
+        logger.info(f"Started periodic scanner (interval: {PERIODIC_SCAN_INTERVAL}s)")
+
     def stop(self) -> None:
         """Stop watching."""
+        # Stop periodic scanner
+        self._stop_scanner.set()
+        if self._scanner_thread and self._scanner_thread.is_alive():
+            self._scanner_thread.join(timeout=5)
+            logger.info("Stopped periodic scanner")
+
         self.observer.stop()
         self.observer.join()
         logger.info("Stopped watching")
+
+    def _periodic_scan_loop(self) -> None:
+        """Background thread that periodically scans for unprocessed files."""
+        while not self._stop_scanner.is_set():
+            # Wait for the interval (or until stop is signaled)
+            if self._stop_scanner.wait(timeout=PERIODIC_SCAN_INTERVAL):
+                break  # Stop was signaled
+
+            # Scan for unprocessed files
+            try:
+                self._scan_and_process()
+            except Exception as e:
+                logger.error(f"Error in periodic scan: {e}")
+
+    def _scan_and_process(self) -> None:
+        """Scan import folder and process any unprocessed files."""
+        import_path = Path(self.settings.import_path)
+
+        if not import_path.exists():
+            return
+
+        unprocessed_files = []
+        for file_path in import_path.iterdir():
+            if file_path.is_file():
+                ext = file_path.suffix.lower()
+                if ext in ImageImportHandler.SUPPORTED_EXTENSIONS:
+                    # Skip files currently being processed
+                    if str(file_path) not in self.handler._processing:
+                        unprocessed_files.append(file_path)
+
+        if unprocessed_files:
+            logger.info(f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)")
+            for file_path in unprocessed_files:
+                try:
+                    # Add to processing set to avoid duplicate processing
+                    if str(file_path) in self.handler._processing:
+                        continue
+                    self.handler._processing.add(str(file_path))
+                    try:
+                        asyncio.run(self.handler._process_file(file_path))
+                    finally:
+                        self.handler._processing.discard(str(file_path))
+                except Exception as e:
+                    logger.error(f"Error processing {file_path} in periodic scan: {e}")
 
     def process_existing(self) -> None:
         """Process any existing files in the import folder."""
