@@ -11,7 +11,7 @@ router = APIRouter(prefix="/bulk", tags=["bulk"])
 
 
 class BatchUpdateRequest(BaseModel):
-    ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    ids: list[UUID] = Field(..., min_length=1, max_length=500)
     rating: int | None = Field(None, ge=0, le=5)
     is_favorite: bool | None = None
     needs_improvement: bool | None = None
@@ -20,12 +20,12 @@ class BatchUpdateRequest(BaseModel):
 
 
 class BatchDeleteRequest(BaseModel):
-    ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    ids: list[UUID] = Field(..., min_length=1, max_length=500)
     permanent: bool = False
 
 
 class BatchRestoreRequest(BaseModel):
-    ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    ids: list[UUID] = Field(..., min_length=1, max_length=500)
 
 
 @router.post("/update", response_model=MessageResponse)
