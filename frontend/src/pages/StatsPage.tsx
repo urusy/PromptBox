@@ -103,7 +103,7 @@ export default function StatsPage() {
 
   const { data: modelRatingDistribution } = useQuery({
     queryKey: ['model-rating-distribution'],
-    queryFn: () => statsApi.getModelRatingDistribution(10, 15),
+    queryFn: () => statsApi.getModelRatingDistribution(3, 15),
   })
 
   if (isLoading) {
@@ -389,28 +389,30 @@ export default function StatsPage() {
           <div className="flex items-center gap-2 mt-8">
             <BarChart2 size={24} className="text-cyan-400" />
             <h2 className="text-xl font-bold">Model Rating Distribution</h2>
-            <span className="text-sm text-gray-400 hidden sm:inline">- Rating breakdown by model</span>
+            <span className="text-sm text-gray-400 hidden sm:inline">- Average rating by model</span>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4">
-            <ResponsiveContainer width="100%" height={Math.max(400, modelRatingDistribution.items.length * 40)}>
+            <ResponsiveContainer width="100%" height={Math.max(300, modelRatingDistribution.items.length * 35)}>
               <BarChart
                 data={modelRatingDistribution.items.map(item => ({
                   name: item.model_name.length > 20 ? item.model_name.slice(0, 20) + '...' : item.model_name,
                   fullName: item.model_name,
-                  '★0 (未評価)': item.rating_0,
-                  '★1': item.rating_1,
-                  '★2': item.rating_2,
-                  '★3': item.rating_3,
-                  '★4': item.rating_4,
-                  '★5': item.rating_5,
+                  avg_rating: item.avg_rating || 0,
                   total: item.total,
-                  avg: item.avg_rating,
+                  rated_count: item.total - item.rating_0,
                 }))}
                 layout="vertical"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis type="number" stroke="#9ca3af" fontSize={12} />
+                <XAxis
+                  type="number"
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  domain={[0, 5]}
+                  ticks={[0, 1, 2, 3, 4, 5]}
+                  tickFormatter={(value) => `★${value}`}
+                />
                 <YAxis
                   type="category"
                   dataKey="name"
@@ -420,36 +422,18 @@ export default function StatsPage() {
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
-                  formatter={(value: number, name: string) => [value, name]}
+                  formatter={(value: number) => [`★${value.toFixed(2)}`, 'Avg Rating']}
                   labelFormatter={(_, payload) => {
                     if (payload && payload[0]) {
                       const data = payload[0].payload
-                      return `${data.fullName} (Total: ${data.total}, Avg: ${data.avg ? '★' + data.avg : '-'})`
+                      return `${data.fullName} (Total: ${data.total}, Rated: ${data.rated_count})`
                     }
                     return ''
                   }}
                 />
-                <Bar dataKey="★0 (未評価)" stackId="rating" fill={RATING_COLORS[0]} />
-                <Bar dataKey="★1" stackId="rating" fill={RATING_COLORS[1]} />
-                <Bar dataKey="★2" stackId="rating" fill={RATING_COLORS[2]} />
-                <Bar dataKey="★3" stackId="rating" fill={RATING_COLORS[3]} />
-                <Bar dataKey="★4" stackId="rating" fill={RATING_COLORS[4]} />
-                <Bar dataKey="★5" stackId="rating" fill={RATING_COLORS[5]} />
+                <Bar dataKey="avg_rating" fill="#14b8a6" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <div className="flex flex-wrap gap-3 mt-4 justify-center">
-              {[0, 1, 2, 3, 4, 5].map(rating => (
-                <div key={rating} className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: RATING_COLORS[rating] }}
-                  />
-                  <span className="text-xs text-gray-400">
-                    {rating === 0 ? '未評価' : `★${rating}`}
-                  </span>
-                </div>
-              ))}
-            </div>
           </div>
         </>
       )}
