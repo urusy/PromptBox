@@ -10,6 +10,8 @@
 
 - [ ] リポジトリをpuclicへ変更してCode Rabbitを導入する
 
+- [ ] Rating AnalysisのBest Models以外は、評価の高いモデルごとに分析することを検討
+
 ## AI提案機能(未精査)
 
 ### 画像閲覧・操作系
