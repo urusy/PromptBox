@@ -220,7 +220,10 @@ async def get_models_for_analysis(
     _: CurrentUser,
     min_count: int = 5,
 ) -> ModelListResponse:
-    """Get list of models with enough rated images for analysis."""
+    """Get list of models with enough rated images for analysis.
+
+    Returns models ordered by average rating (highest first) to match Best Models chart.
+    """
     base_filter = Image.deleted_at.is_(None)
     rated_filter = Image.rating > 0
 
@@ -231,7 +234,7 @@ async def get_models_for_analysis(
         .where(Image.model_name.isnot(None))
         .group_by(Image.model_name)
         .having(func.count(Image.id) >= min_count)
-        .order_by(func.count(Image.id).desc())
+        .order_by(func.avg(Image.rating).desc())
     )
     models = [row[0] for row in result.all()]
     return ModelListResponse(models=models)
