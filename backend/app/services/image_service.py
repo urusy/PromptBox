@@ -1,12 +1,20 @@
+import json
+import re
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.image import Image
 from app.schemas.common import PaginatedResponse
 from app.schemas.image import ImageListResponse, ImageResponse, ImageSearchParams, ImageUpdate
+
+
+def escape_like_pattern(value: str) -> str:
+    """Escape special characters in LIKE patterns (%, _, \\)."""
+    return re.sub(r"([%_\\])", r"\\\1", value)
 
 
 class ImageService:
@@ -31,7 +39,8 @@ class ImageService:
             query = query.where(Image.model_type == params.model_type)
 
         if params.model_name:
-            query = query.where(Image.model_name.ilike(f"%{params.model_name}%"))
+            escaped_name = escape_like_pattern(params.model_name)
+            query = query.where(Image.model_name.ilike(f"%{escaped_name}%", escape="\\"))
 
         if params.sampler_name:
             query = query.where(Image.sampler_name == params.sampler_name)
@@ -52,8 +61,10 @@ class ImageService:
                 query = query.where(Image.user_tags.contains([tag]))
 
         if params.lora_name:
+            # Use parameterized JSON to prevent SQL injection
+            lora_filter = json.dumps([{"name": params.lora_name}])
             query = query.where(
-                Image.loras.op("@>")(f'[{{"name": "{params.lora_name}"}}]')
+                Image.loras.op("@>")(cast(lora_filter, JSONB))
             )
 
         # Filter by XYZ grid

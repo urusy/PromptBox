@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, X, ChevronDown, ChevronUp, Save, Trash2, Bookmark } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -120,7 +120,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   })
 
   // Extract model name (after last backslash), dedupe, sort alphabetically, and filter
-  const processedModels = (() => {
+  const processedModels = useMemo(() => {
     if (!modelList?.models) return []
 
     // Extract name after last backslash and dedupe
@@ -135,7 +135,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     return Array.from(modelNames).sort((a, b) =>
       a.toLowerCase().localeCompare(b.toLowerCase())
     )
-  })()
+  }, [modelList?.models])
 
   // Filter models based on current input
   const filteredModels = processedModels.filter(

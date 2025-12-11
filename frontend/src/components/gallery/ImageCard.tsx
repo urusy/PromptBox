@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Star, Heart, Check } from 'lucide-react'
 import clsx from 'clsx'
@@ -8,19 +9,19 @@ interface ImageCardProps {
   image: ImageListItem
 }
 
-export default function ImageCard({ image }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
   const location = useLocation()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
   const isSelected = selectedIds.has(image.id)
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     if (isSelectionMode) {
       e.preventDefault()
       toggleSelection(image.id)
     }
-  }
+  }, [isSelectionMode, toggleSelection, image.id])
 
-  const handleLongPress = (e: React.MouseEvent) => {
+  const handleLongPress = useCallback((e: React.MouseEvent) => {
     // Enable selection mode on right-click or ctrl+click
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault()
@@ -29,7 +30,7 @@ export default function ImageCard({ image }: ImageCardProps) {
       }
       toggleSelection(image.id)
     }
-  }
+  }, [isSelectionMode, setSelectionMode, toggleSelection, image.id])
 
   return (
     <Link
@@ -98,4 +99,6 @@ export default function ImageCard({ image }: ImageCardProps) {
       </div>
     </Link>
   )
-}
+})
+
+export default ImageCard

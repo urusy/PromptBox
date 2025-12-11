@@ -1,8 +1,15 @@
+import re
+
 from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
+
+
+def escape_like_pattern(value: str) -> str:
+    """Escape special characters in LIKE patterns (%, _, \\)."""
+    return re.sub(r"([%_\\])", r"\\\1", value)
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -36,7 +43,8 @@ async def list_tags(
 
     # If search query provided, filter tags
     if q:
-        query = query.where(unnested.c.tag.ilike(f"%{q}%"))
+        escaped_q = escape_like_pattern(q)
+        query = query.where(unnested.c.tag.ilike(f"%{escaped_q}%", escape="\\"))
 
     # Order by most recent usage
     query = query.order_by(func.max(unnested.c.updated_at).desc()).limit(limit)

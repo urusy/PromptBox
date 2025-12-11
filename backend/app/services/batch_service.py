@@ -87,17 +87,13 @@ class BatchService:
     async def batch_delete(self, ids: list[UUID], permanent: bool = False) -> int:
         """Delete multiple images."""
         if permanent:
-            # Get images to delete files
-            result = await self.db.execute(
-                select(Image).where(Image.id.in_(ids))
-            )
-            images = result.scalars().all()
+            # Use bulk delete instead of individual deletes
+            from sqlalchemy import delete
 
-            for image in images:
-                await self.db.delete(image)
-
+            stmt = delete(Image).where(Image.id.in_(ids))
+            result = await self.db.execute(stmt)
             await self.db.commit()
-            return len(images)
+            return result.rowcount
         else:
             # Soft delete
             stmt = (

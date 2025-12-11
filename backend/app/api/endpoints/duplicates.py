@@ -82,16 +82,22 @@ async def delete_duplicate_file(filename: str, current_user: CurrentUser) -> dic
     duplicated_dir = get_duplicated_dir()
     file_path = duplicated_dir / filename
 
-    # Security check - prevent path traversal
-    if not file_path.resolve().parent == duplicated_dir.resolve():
+    # Resolve paths and check containment (prevents path traversal and symlink attacks)
+    resolved_dir = duplicated_dir.resolve()
+    try:
+        resolved_file = file_path.resolve()
+        resolved_file.relative_to(resolved_dir)
+    except ValueError:
         raise HTTPException(status_code=400, detail="Invalid filename")
 
-    if not file_path.exists():
+    if not resolved_file.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
     try:
-        file_size = file_path.stat().st_size
-        file_path.unlink()
+        file_size = resolved_file.stat().st_size
+        resolved_file.unlink()
         return {"deleted": filename, "freed_bytes": file_size}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    except OSError:
+        raise HTTPException(status_code=500, detail="Failed to delete file")

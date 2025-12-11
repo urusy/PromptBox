@@ -1,5 +1,8 @@
-from pydantic_settings import BaseSettings
+import secrets
 from functools import lru_cache
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -9,8 +12,20 @@ class Settings(BaseSettings):
     # Auth
     admin_username: str = "admin"
     admin_password_hash: str = ""
-    secret_key: str = "your_secret_key_here_minimum_32_characters"
+    secret_key: str = ""
     session_expire_hours: int = 24 * 7  # 1 week
+
+    @field_validator("secret_key", mode="after")
+    @classmethod
+    def validate_secret_key(cls, v: str, info) -> str:
+        """Generate secure secret key if not provided."""
+        if not v:
+            # Generate a random secret key for development
+            # In production, this should be set via environment variable
+            return secrets.token_urlsafe(32)
+        if len(v) < 32:
+            raise ValueError("secret_key must be at least 32 characters")
+        return v
 
     # Paths
     import_path: str = "/app/import"

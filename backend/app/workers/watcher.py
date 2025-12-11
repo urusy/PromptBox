@@ -22,6 +22,32 @@ from app.utils.image_utils import create_thumbnail, get_image_dimensions
 PERIODIC_SCAN_INTERVAL = 30
 
 
+class ThreadSafeSet:
+    """A thread-safe set implementation using a lock."""
+
+    def __init__(self) -> None:
+        self._set: set[str] = set()
+        self._lock = threading.Lock()
+
+    def add(self, item: str) -> bool:
+        """Add an item to the set. Returns True if added, False if already present."""
+        with self._lock:
+            if item in self._set:
+                return False
+            self._set.add(item)
+            return True
+
+    def discard(self, item: str) -> None:
+        """Remove an item from the set if present."""
+        with self._lock:
+            self._set.discard(item)
+
+    def __contains__(self, item: str) -> bool:
+        """Check if an item is in the set."""
+        with self._lock:
+            return item in self._set
+
+
 def create_watcher_session() -> async_sessionmaker[AsyncSession]:
     """Create a new engine and session factory for the watcher thread.
 
@@ -50,7 +76,7 @@ class ImageImportHandler(FileSystemEventHandler):
     def __init__(self) -> None:
         self.settings = get_settings()
         self.parser_factory = MetadataParserFactory()
-        self._processing: set[str] = set()
+        self._processing = ThreadSafeSet()
 
     def on_created(self, event: FileCreatedEvent) -> None:
         """Handle file creation events."""
@@ -63,17 +89,17 @@ class ImageImportHandler(FileSystemEventHandler):
         if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
             return
 
-        # Avoid duplicate processing
-        if str(file_path) in self._processing:
+        # Avoid duplicate processing (atomic check-and-add)
+        if not self._processing.add(str(file_path)):
             return
-
-        self._processing.add(str(file_path))
 
         # Process in a new event loop (watchdog runs in a separate thread)
         try:
             asyncio.run(self._process_file(file_path))
-        except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+        except (OSError, IOError) as e:
+            logger.error(f"I/O error processing {file_path}: {e}")
+        except RuntimeError as e:
+            logger.error(f"Runtime error processing {file_path}: {e}")
         finally:
             self._processing.discard(str(file_path))
 
@@ -301,17 +327,17 @@ class ImageWatcher:
         if unprocessed_files:
             logger.info(f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)")
             for file_path in unprocessed_files:
+                # Atomic check-and-add to avoid duplicate processing
+                if not self.handler._processing.add(str(file_path)):
+                    continue
                 try:
-                    # Add to processing set to avoid duplicate processing
-                    if str(file_path) in self.handler._processing:
-                        continue
-                    self.handler._processing.add(str(file_path))
-                    try:
-                        asyncio.run(self.handler._process_file(file_path))
-                    finally:
-                        self.handler._processing.discard(str(file_path))
-                except Exception as e:
-                    logger.error(f"Error processing {file_path} in periodic scan: {e}")
+                    asyncio.run(self.handler._process_file(file_path))
+                except (OSError, IOError) as e:
+                    logger.error(f"I/O error processing {file_path} in periodic scan: {e}")
+                except RuntimeError as e:
+                    logger.error(f"Runtime error processing {file_path} in periodic scan: {e}")
+                finally:
+                    self.handler._processing.discard(str(file_path))
 
     def process_existing(self) -> None:
         """Process any existing files in the import folder."""
@@ -324,5 +350,7 @@ class ImageWatcher:
                     logger.info(f"Processing existing file: {file_path}")
                     try:
                         asyncio.run(self.handler._process_file(file_path))
-                    except Exception as e:
-                        logger.error(f"Error processing {file_path}: {e}")
+                    except (OSError, IOError) as e:
+                        logger.error(f"I/O error processing {file_path}: {e}")
+                    except RuntimeError as e:
+                        logger.error(f"Runtime error processing {file_path}: {e}")

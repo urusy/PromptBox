@@ -64,7 +64,7 @@ export default function Pagination({
       {getPageNumbers().map((p, i) =>
         typeof p === 'number' ? (
           <button
-            key={i}
+            key={`page-${p}`}
             onClick={() => onPageChange(p)}
             className={clsx(
               'min-w-[40px] h-10 rounded-lg transition-colors',
@@ -76,7 +76,7 @@ export default function Pagination({
             {p}
           </button>
         ) : (
-          <span key={i} className="px-2 text-gray-600">
+          <span key={`ellipsis-${i}`} className="px-2 text-gray-600">
             {p}
           </span>
         )

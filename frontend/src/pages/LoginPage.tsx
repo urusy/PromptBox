@@ -11,6 +11,23 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
+  const getSafeReturnUrl = (url: string | null): string => {
+    if (!url) return '/'
+
+    // Whitelist of allowed path prefixes
+    const allowedPrefixes = ['/', '/images/', '/trash', '/stats', '/smart-folders', '/slideshow']
+
+    // Must start with single slash (not //, not protocol)
+    if (!url.startsWith('/') || url.startsWith('//')) return '/'
+
+    // Check against whitelist
+    const isAllowed = allowedPrefixes.some(prefix =>
+      url === prefix || url.startsWith(prefix)
+    )
+
+    return isAllowed ? url : '/'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -18,10 +35,8 @@ export default function LoginPage() {
     try {
       await login(username, password)
       toast.success('Login successful')
-      // Redirect to returnUrl if provided and is a relative path, otherwise go to home
       const returnUrl = searchParams.get('returnUrl')
-      const safeReturnUrl = returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/'
-      navigate(safeReturnUrl)
+      navigate(getSafeReturnUrl(returnUrl))
     } catch {
       toast.error('Invalid username or password')
     } finally {
