@@ -274,7 +274,7 @@
 
 ## 一括操作API
 
-### PATCH /api/images/bulk
+### POST /api/bulk/update
 
 複数画像の一括更新。
 
@@ -285,26 +285,53 @@
     "01936f4e-5b3a-7000-8000-1234abcd5678",
     "01936f4e-6c4b-7000-8000-5678efgh9012"
   ],
-  "update": {
-    "rating": 4,
-    "add_tags": ["selected"],
-    "remove_tags": ["wip"],
-    "is_favorite": true
-  }
+  "rating": 4,
+  "is_favorite": true,
+  "needs_improvement": false,
+  "add_tags": ["selected"],
+  "remove_tags": ["wip"]
 }
 ```
+
+※ `ids` 以外のフィールドはすべてオプション。指定したフィールドのみ更新される。
 
 **レスポンス:** `200 OK`
 ```json
 {
-  "updated_count": 2,
   "message": "2 images updated"
 }
 ```
 
-### DELETE /api/images/bulk
+### POST /api/bulk/delete
 
-複数画像の一括論理削除。
+複数画像の一括削除（論理削除または物理削除）。
+
+**リクエスト:**
+```json
+{
+  "ids": [
+    "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "01936f4e-6c4b-7000-8000-5678efgh9012"
+  ],
+  "permanent": false
+}
+```
+
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| ids | string[] | Yes | 削除対象の画像ID |
+| permanent | boolean | No | true: 物理削除、false: 論理削除（デフォルト: false） |
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "2 images deleted"
+}
+```
+
+### POST /api/bulk/restore
+
+論理削除した複数画像の一括復元。
 
 **リクエスト:**
 ```json
@@ -319,32 +346,8 @@
 **レスポンス:** `200 OK`
 ```json
 {
-  "deleted_count": 2,
-  "message": "2 images moved to trash"
+  "message": "2 images restored"
 }
-```
-
-### DELETE /api/images/bulk/permanent
-
-複数画像の一括物理削除。
-
-**リクエスト:**
-```json
-{
-  "ids": [
-    "01936f4e-5b3a-7000-8000-1234abcd5678",
-    "01936f4e-6c4b-7000-8000-5678efgh9012"
-  ]
-}
-```
-
-**レスポンス:** `200 OK`
-```json
-{
-  "deleted_count": 2,
-  "message": "2 images permanently deleted"
-}
-```
 
 ---
 
@@ -558,6 +561,161 @@
 ```json
 {
   "message": "Search preset deleted successfully"
+}
+```
+
+---
+
+## スマートフォルダAPI
+
+### GET /api/smart-folders
+
+スマートフォルダ一覧取得（作成日時降順）。
+
+**レスポンス:** `200 OK`
+```json
+[
+  {
+    "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "name": "お気に入り",
+    "icon": "heart.fill",
+    "filters": {
+      "is_favorite": true
+    },
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+]
+```
+
+### POST /api/smart-folders
+
+スマートフォルダ新規作成。
+
+**リクエスト:**
+```json
+{
+  "name": "高評価作品",
+  "icon": "star.fill",
+  "filters": {
+    "min_rating": 4,
+    "sort_by": "rating",
+    "sort_order": "desc"
+  }
+}
+```
+
+**レスポンス:** `201 Created`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "高評価作品",
+  "icon": "star.fill",
+  "filters": {
+    "min_rating": 4,
+    "sort_by": "rating",
+    "sort_order": "desc"
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+### GET /api/smart-folders/{id}
+
+スマートフォルダ詳細取得。
+
+**レスポンス:** `200 OK`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "高評価作品",
+  "icon": "star.fill",
+  "filters": {
+    "min_rating": 4
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+### GET /api/smart-folders/{id}/images
+
+スマートフォルダに含まれる画像一覧取得。
+
+フォルダに設定されたフィルター条件に基づいて画像を検索して返す。
+
+**クエリパラメータ:**
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| page | integer | No | ページ番号（デフォルト: 1） |
+| per_page | integer | No | 1ページあたり件数（デフォルト: 24、最大: 120） |
+
+**レスポンス:** `200 OK`
+```json
+{
+  "items": [
+    {
+      "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+      "source_tool": "comfyui",
+      "model_type": "pony",
+      "storage_path": "01/93/01936f4e-5b3a-7000-8000-1234abcd5678.png",
+      "thumbnail_path": "01/93/01936f4e-5b3a-7000-8000-1234abcd5678_thumb.webp",
+      "width": 1024,
+      "height": 1024,
+      "model_name": "ponyDiffusionV6XL",
+      "rating": 5,
+      "is_favorite": true,
+      "created_at": "2025-01-15T10:30:00Z"
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "per_page": 24,
+  "total_pages": 7
+}
+```
+
+### PUT /api/smart-folders/{id}
+
+スマートフォルダ更新。
+
+**リクエスト:**
+```json
+{
+  "name": "高評価作品（更新）",
+  "icon": "star.circle.fill",
+  "filters": {
+    "min_rating": 5
+  }
+}
+```
+
+※ 含まれるフィールドのみ更新
+
+**レスポンス:** `200 OK`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "高評価作品（更新）",
+  "icon": "star.circle.fill",
+  "filters": {
+    "min_rating": 5
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T11:00:00Z"
+}
+```
+
+### DELETE /api/smart-folders/{id}
+
+スマートフォルダ削除。
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Smart folder deleted successfully"
 }
 ```
 

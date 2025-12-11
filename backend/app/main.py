@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from app.api.router import api_router
@@ -56,6 +58,14 @@ app.add_middleware(
 
 # Include API router
 app.include_router(api_router)
+
+# Mount static files for storage (images, thumbnails)
+storage_path = Path(settings.storage_path)
+if storage_path.exists():
+    app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
+    logger.info(f"Mounted storage directory: {storage_path}")
+else:
+    logger.warning(f"Storage path does not exist: {storage_path}")
 
 
 @app.get("/")
