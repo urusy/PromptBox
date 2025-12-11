@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, X, ChevronDown, ChevronUp, Save, Trash2, Bookmark } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { ImageSearchParams } from '@/types/image'
 import type { SearchFilters } from '@/types/searchPreset'
 import { searchPresetsApi } from '@/api/searchPresets'
+import { statsApi } from '@/api/stats'
 
 interface SearchFormProps {
   params: ImageSearchParams
@@ -101,6 +102,8 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [presetName, setPresetName] = useState('')
   const [showPresetDropdown, setShowPresetDropdown] = useState(false)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+  const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const modelInputRef = useRef<HTMLInputElement>(null)
 
   const queryClient = useQueryClient()
 
@@ -109,6 +112,35 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     queryKey: ['search-presets'],
     queryFn: searchPresetsApi.list,
   })
+
+  // Fetch model names for dropdown
+  const { data: modelList } = useQuery({
+    queryKey: ['models-for-filter'],
+    queryFn: () => statsApi.getModelsForAnalysis(1),  // min_count=1 to get all models
+  })
+
+  // Extract model name (after last backslash), dedupe, sort alphabetically, and filter
+  const processedModels = (() => {
+    if (!modelList?.models) return []
+
+    // Extract name after last backslash and dedupe
+    const modelNames = new Set<string>()
+    modelList.models.forEach((model) => {
+      const lastBackslash = model.lastIndexOf('\\')
+      const name = lastBackslash >= 0 ? model.slice(lastBackslash + 1) : model
+      if (name) modelNames.add(name)
+    })
+
+    // Convert to array and sort alphabetically (case-insensitive)
+    return Array.from(modelNames).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    )
+  })()
+
+  // Filter models based on current input
+  const filteredModels = processedModels.filter(
+    (model) => !localParams.model_name || model.toLowerCase().includes(localParams.model_name.toLowerCase())
+  )
 
   // Sync localParams when params prop changes
   useEffect(() => {
@@ -374,15 +406,63 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             </select>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-sm text-gray-400 mb-1">Model Name</label>
-            <input
-              type="text"
-              placeholder="Filter by model..."
-              value={localParams.model_name || ''}
-              onChange={(e) => updateParam('model_name', e.target.value || undefined)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                ref={modelInputRef}
+                type="text"
+                placeholder="Filter by model..."
+                value={localParams.model_name || ''}
+                onChange={(e) => {
+                  updateParam('model_name', e.target.value || undefined)
+                  setShowModelDropdown(true)
+                }}
+                onFocus={() => setShowModelDropdown(true)}
+                onBlur={() => {
+                  // Delay to allow click on dropdown items
+                  setTimeout(() => setShowModelDropdown(false), 150)
+                }}
+                className="w-full px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModelDropdown(!showModelDropdown)
+                  modelInputRef.current?.focus()
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <ChevronDown size={16} className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+            {showModelDropdown && filteredModels.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                {filteredModels.slice(0, 20).map((model) => (
+                  <button
+                    key={model}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      updateParam('model_name', model)
+                      setShowModelDropdown(false)
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                      localParams.model_name === model
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {model}
+                  </button>
+                ))}
+                {filteredModels.length > 20 && (
+                  <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
+                    他 {filteredModels.length - 20} 件...
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
