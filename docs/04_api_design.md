@@ -639,44 +639,6 @@
 }
 ```
 
-### GET /api/smart-folders/{id}/images
-
-スマートフォルダに含まれる画像一覧取得。
-
-フォルダに設定されたフィルター条件に基づいて画像を検索して返す。
-
-**クエリパラメータ:**
-
-| パラメータ | 型 | 必須 | 説明 |
-|-----------|-----|------|------|
-| page | integer | No | ページ番号（デフォルト: 1） |
-| per_page | integer | No | 1ページあたり件数（デフォルト: 24、最大: 120） |
-
-**レスポンス:** `200 OK`
-```json
-{
-  "items": [
-    {
-      "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
-      "source_tool": "comfyui",
-      "model_type": "pony",
-      "storage_path": "01/93/01936f4e-5b3a-7000-8000-1234abcd5678.png",
-      "thumbnail_path": "01/93/01936f4e-5b3a-7000-8000-1234abcd5678_thumb.webp",
-      "width": 1024,
-      "height": 1024,
-      "model_name": "ponyDiffusionV6XL",
-      "rating": 5,
-      "is_favorite": true,
-      "created_at": "2025-01-15T10:30:00Z"
-    }
-  ],
-  "total": 150,
-  "page": 1,
-  "per_page": 24,
-  "total_pages": 7
-}
-```
-
 ### PUT /api/smart-folders/{id}
 
 スマートフォルダ更新。
