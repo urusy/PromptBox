@@ -92,17 +92,18 @@
 
 ---
 
-### 🟡 LOW: コード品質
+### ✅ LOW: コード品質（修正済み）
 
 #### 14. 戻り値の型ヒント不足
 - **ファイル**: `backend/app/services/image_service.py`
-- **行**: 16
-- **問題**: `_build_search_query` に戻り値型がない
+- **ステータス**: ✅ 修正済み
+- **修正内容**: `_build_search_query`に`-> Select[tuple[Image]]`型ヒントを追加
 
 #### 15. setattr によるバリデーションバイパス
 - **ファイル**: `backend/app/services/image_service.py`
 - **行**: 227
-- **問題**: `setattr(image, key, value)` でPydanticバリデーションをバイパス
+- **ステータス**: 許容
+- **理由**: SQLAlchemyモデルの更新であり、Pydanticバリデーションは入力スキーマで既に実行済み
 
 ---
 
@@ -159,38 +160,38 @@
 
 ---
 
-### 🟡 LOW: アクセシビリティ
+### ✅ LOW: アクセシビリティ（修正済み）
 
 #### 26. Slideshowの空alt
 - **ファイル**: `frontend/src/components/gallery/Slideshow.tsx`
-- **行**: 144
-- **問題**: `alt=""` で画像の説明がない
-- **修正方法**: 意味のあるalt属性を設定
+- **ステータス**: ✅ 修正済み
+- **修正内容**: モデル名または画像番号を表示する意味のあるalt属性を設定
 
 #### 27. ドロップダウンのARIAラベル不足
 - **ファイル**:
-  - `frontend/src/components/gallery/SearchForm.tsx` (行 268-280)
-  - `frontend/src/components/detail/TagEditor.tsx` (行 157-183)
-- **問題**: `aria-label`, `aria-expanded`, `aria-haspopup` が不足
+  - `frontend/src/components/gallery/SearchForm.tsx`
+  - `frontend/src/components/detail/TagEditor.tsx`
+- **ステータス**: ✅ 修正済み
+- **修正内容**: `aria-label`, `aria-expanded`, `aria-haspopup`, `role`属性を追加
 
 #### 28. モーダルのフォーカス管理
 - **ファイル**: `frontend/src/components/gallery/SearchForm.tsx`
-- **行**: 621-653
-- **問題**: フォーカストラップがない
+- **ステータス**: ✅ 修正済み
+- **修正内容**: フォーカストラップを実装、`role="dialog"`, `aria-modal`, `aria-labelledby`を追加
 
 ---
 
-### 🟡 LOW: Reactベストプラクティス
+### ✅ LOW: Reactベストプラクティス（修正済み）
 
 #### 29. useEffectの依存配列
 - **ファイル**: `frontend/src/pages/GalleryPage.tsx`
-- **行**: 46-48
-- **問題**: `updateUrl` がメモ化されていない
+- **ステータス**: ✅ 既に修正済み
+- **理由**: `updateUrl`は既に`useCallback`でメモ化されている
 
 #### 30. エラーバウンダリの不在
-- **ファイル**: なし
-- **問題**: アプリレベルのエラーバウンダリがない
-- **修正方法**: React Error Boundaryコンポーネントを追加
+- **ファイル**: `frontend/src/components/common/ErrorBoundary.tsx` (新規作成)
+- **ステータス**: ✅ 修正済み
+- **修正内容**: `ErrorBoundary`コンポーネントを作成し、`App.tsx`でアプリ全体をラップ
 
 ---
 
@@ -209,11 +210,11 @@
 8. ✅ N+1問題（#11）
 9. ✅ スレッドセーフティ（#13）
 
-### バックログ（LOW）
-10. 型安全性の改善（#23, #24, #25）- 許容として対応済み
-11. アクセシビリティ（#26, #27, #28）
-12. 型ヒントの追加（#14）
-13. エラーバウンダリ（#30）
+### ✅ バックログ（LOW）- 完了
+10. ✅ 型安全性の改善（#23, #24, #25）- 許容として対応済み
+11. ✅ アクセシビリティ（#26, #27, #28）
+12. ✅ 型ヒントの追加（#14）
+13. ✅ エラーバウンダリ（#30）
 
 ---
 

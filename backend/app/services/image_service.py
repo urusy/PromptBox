@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import cast, func, select
+from sqlalchemy import Select, cast, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ class ImageService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    def _build_search_query(self, params: ImageSearchParams):
+    def _build_search_query(self, params: ImageSearchParams) -> Select[tuple[Image]]:
         """Build search query with filters (without sorting/pagination)."""
         query = select(Image)
 

@@ -104,6 +104,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const modelInputRef = useRef<HTMLInputElement>(null)
+  const saveModalRef = useRef<HTMLDivElement>(null)
 
   const queryClient = useQueryClient()
 
@@ -165,6 +166,42 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
 
     setSelectedPresetId(matchingPreset?.id ?? null)
   }, [params, presets])
+
+  // Focus trap for save modal
+  useEffect(() => {
+    if (!showSaveModal || !saveModalRef.current) return
+
+    const modal = saveModalRef.current
+    const focusableElements = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const firstFocusable = focusableElements[0]
+    const lastFocusable = focusableElements[focusableElements.length - 1]
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowSaveModal(false)
+        return
+      }
+
+      if (e.key !== 'Tab') return
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault()
+          lastFocusable?.focus()
+        }
+      } else {
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault()
+          firstFocusable?.focus()
+        }
+      }
+    }
+
+    modal.addEventListener('keydown', handleKeyDown)
+    return () => modal.removeEventListener('keydown', handleKeyDown)
+  }, [showSaveModal])
 
   // Create preset mutation
   const createPresetMutation = useMutation({
@@ -268,6 +305,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           <button
             type="button"
             onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+            aria-label="プリセット選択"
+            aria-expanded={showPresetDropdown}
+            aria-haspopup="listbox"
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
               selectedPreset
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -280,7 +320,11 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           </button>
 
           {showPresetDropdown && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20">
+            <div
+              role="listbox"
+              aria-label="プリセット一覧"
+              className="absolute top-full left-0 mt-1 w-64 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20"
+            >
               {presets.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-gray-400">
                   保存されたプリセットはありません
@@ -619,9 +663,20 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
 
       {/* Save preset modal */}
       {showSaveModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSaveModal(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4">検索条件を保存</h3>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowSaveModal(false)}
+          role="presentation"
+        >
+          <div
+            ref={saveModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-preset-title"
+            className="bg-gray-800 rounded-lg p-6 w-full max-w-sm mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="save-preset-title" className="text-lg font-semibold text-white mb-4">検索条件を保存</h3>
             <input
               type="text"
               placeholder="プリセット名"

@@ -141,7 +141,7 @@ export default function Slideshow({ images, startIndex = 0, onClose }: Slideshow
       {/* Image */}
       <img
         src={`/storage/${currentImage.storage_path}`}
-        alt=""
+        alt={currentImage.model_name || `Image ${currentIndex + 1} of ${images.length}`}
         className="max-w-full max-h-full object-contain"
         onClick={(e) => e.stopPropagation()}
       />

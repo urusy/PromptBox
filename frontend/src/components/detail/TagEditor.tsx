@@ -150,6 +150,10 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
               onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
               placeholder="Enter tag..."
+              aria-label="タグを入力"
+              aria-expanded={showSuggestions && filteredSuggestions.length > 0}
+              aria-haspopup="listbox"
+              aria-autocomplete="list"
               className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
             />
 
@@ -157,6 +161,8 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
             {showSuggestions && filteredSuggestions.length > 0 && (
               <div
                 ref={suggestionsRef}
+                role="listbox"
+                aria-label="タグ候補"
                 className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-600 rounded shadow-lg z-10 max-h-48 overflow-y-auto"
               >
                 <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
@@ -166,6 +172,8 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
                   <button
                     key={tag}
                     type="button"
+                    role="option"
+                    aria-selected={index === selectedIndex}
                     onMouseDown={(e) => {
                       e.preventDefault()
                       handleSelectSuggestion(tag)

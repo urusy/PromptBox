@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import ErrorBoundary from '@/components/common/ErrorBoundary'
 import MainLayout from '@/components/layout/MainLayout'
 import LoginPage from '@/pages/LoginPage'
 import GalleryPage from '@/pages/GalleryPage'
@@ -27,24 +28,26 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <MainLayout />
-          </PrivateRoute>
-        }
-      >
-        <Route index element={<GalleryPage />} />
-        <Route path="image/:id" element={<DetailPage />} />
-        <Route path="trash" element={<TrashPage />} />
-        <Route path="duplicates" element={<DuplicatesPage />} />
-        <Route path="smart-folders" element={<SmartFoldersPage />} />
-        <Route path="stats" element={<StatsPage />} />
-      </Route>
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <MainLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<GalleryPage />} />
+          <Route path="image/:id" element={<DetailPage />} />
+          <Route path="trash" element={<TrashPage />} />
+          <Route path="duplicates" element={<DuplicatesPage />} />
+          <Route path="smart-folders" element={<SmartFoldersPage />} />
+          <Route path="stats" element={<StatsPage />} />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   )
 }
 
