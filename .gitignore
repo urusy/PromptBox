@@ -11,6 +11,9 @@ Thumbs.db
 # MCP
 .mcp.json
 
+# Serena
+.serena/
+
 # Environment
 .env
 .env.local
