@@ -1,10 +1,9 @@
 import asyncio
-import json
 import re
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Select, cast, func, select
+from sqlalchemy import Select, func, select, type_coerce
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,10 +61,10 @@ class ImageService:
                 query = query.where(Image.user_tags.contains([tag]))
 
         if params.lora_name:
-            # Use parameterized JSON to prevent SQL injection
-            lora_filter = json.dumps([{"name": params.lora_name}])
+            # Use type_coerce to properly pass Python dict as JSONB
+            lora_filter = [{"name": params.lora_name}]
             query = query.where(
-                Image.loras.op("@>")(cast(lora_filter, JSONB))
+                Image.loras.op("@>")(type_coerce(lora_filter, JSONB))
             )
 
         # Filter by XYZ grid

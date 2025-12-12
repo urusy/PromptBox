@@ -440,194 +440,277 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
       </div>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Source Tool</label>
-            <select
-              value={localParams.source_tool || ''}
-              onChange={(e) => updateParam('source_tool', e.target.value || undefined)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All</option>
-              {SOURCE_TOOLS.map((tool) => (
-                <option key={tool} value={tool}>
-                  {tool.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Model Type</label>
-            <select
-              value={localParams.model_type || ''}
-              onChange={(e) => updateParam('model_type', e.target.value || undefined)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All</option>
-              {MODEL_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm text-gray-400 mb-1">Model Name</label>
-            <div className="relative">
-              <input
-                ref={modelInputRef}
-                type="text"
-                placeholder="Filter by model..."
-                value={localParams.model_name || ''}
-                onChange={(e) => {
-                  updateParam('model_name', e.target.value || undefined)
-                  setShowModelDropdown(true)
-                }}
-                onFocus={() => setShowModelDropdown(true)}
-                onBlur={() => {
-                  // Delay to allow click on dropdown items
-                  setTimeout(() => setShowModelDropdown(false), 150)
-                }}
-                className="w-full px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModelDropdown(!showModelDropdown)
-                  modelInputRef.current?.focus()
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              >
-                <ChevronDown size={16} className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-            {showModelDropdown && filteredModels.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
-                {filteredModels.slice(0, 20).map((model) => (
-                  <button
-                    key={model}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      updateParam('model_name', model)
-                      setShowModelDropdown(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                      localParams.model_name === model
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {model}
-                  </button>
-                ))}
-                {filteredModels.length > 20 && (
-                  <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
-                    他 {filteredModels.length - 20} 件...
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm text-gray-400 mb-1">LoRA</label>
-            <div className="relative">
-              <input
-                ref={loraInputRef}
-                type="text"
-                placeholder="Filter by LoRA..."
-                value={localParams.lora_name || ''}
-                onChange={(e) => {
-                  updateParam('lora_name', e.target.value || undefined)
-                  setShowLoraDropdown(true)
-                }}
-                onFocus={() => setShowLoraDropdown(true)}
-                onBlur={() => {
-                  // Delay to allow click on dropdown items
-                  setTimeout(() => setShowLoraDropdown(false), 150)
-                }}
-                className="w-full px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setShowLoraDropdown(!showLoraDropdown)
-                  loraInputRef.current?.focus()
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              >
-                <ChevronDown size={16} className={`transition-transform ${showLoraDropdown ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-            {showLoraDropdown && filteredLoras.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
-                {filteredLoras.slice(0, 20).map((lora) => (
-                  <button
-                    key={lora}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      updateParam('lora_name', lora)
-                      setShowLoraDropdown(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                      localParams.lora_name === lora
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {lora}
-                  </button>
-                ))}
-                {filteredLoras.length > 20 && (
-                  <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
-                    他 {filteredLoras.length - 20} 件...
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Rating</label>
-            <div className="flex gap-2">
+        <div className="mt-4 pt-4 border-t border-gray-700 space-y-4">
+          {/* Row 1: Model/Generation filters */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Source Tool</label>
               <select
-                value={localParams.exact_rating ?? localParams.min_rating ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value ? parseInt(e.target.value) : undefined
-                  const isExactMode = localParams.exact_rating !== undefined
-                  if (isExactMode) {
-                    setLocalParams({ ...localParams, exact_rating: val, min_rating: undefined })
-                  } else {
-                    setLocalParams({ ...localParams, min_rating: val, exact_rating: undefined })
-                  }
-                }}
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={localParams.source_tool || ''}
+                onChange={(e) => updateParam('source_tool', e.target.value || undefined)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Any</option>
-                <option value="0">★0</option>
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <option key={rating} value={rating}>
-                    ★{rating}
+                <option value="">All</option>
+                {SOURCE_TOOLS.map((tool) => (
+                  <option key={tool} value={tool}>
+                    {tool.toUpperCase()}
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Model Type</label>
               <select
-                value={localParams.exact_rating !== undefined ? 'exact' : 'min'}
-                onChange={(e) => {
-                  const currentVal = localParams.exact_rating ?? localParams.min_rating
-                  if (e.target.value === 'exact') {
-                    setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
-                  } else {
-                    setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
-                  }
-                }}
-                className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={localParams.model_type || ''}
+                onChange={(e) => updateParam('model_type', e.target.value || undefined)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {RATING_MATCH_OPTIONS.map((option) => (
+                <option value="">All</option>
+                {MODEL_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm text-gray-400 mb-1">Model Name</label>
+              <div className="relative">
+                <input
+                  ref={modelInputRef}
+                  type="text"
+                  placeholder="Filter by model..."
+                  value={localParams.model_name || ''}
+                  onChange={(e) => {
+                    updateParam('model_name', e.target.value || undefined)
+                    setShowModelDropdown(true)
+                  }}
+                  onFocus={() => setShowModelDropdown(true)}
+                  onBlur={() => {
+                    // Delay to allow click on dropdown items
+                    setTimeout(() => setShowModelDropdown(false), 150)
+                  }}
+                  className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${localParams.model_name ? 'pr-14' : 'pr-8'}`}
+                />
+                {localParams.model_name && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParam('model_name', undefined)
+                      modelInputRef.current?.focus()
+                    }}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    title="クリア"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModelDropdown(!showModelDropdown)
+                    modelInputRef.current?.focus()
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <ChevronDown size={16} className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              {showModelDropdown && filteredModels.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                  {filteredModels.slice(0, 20).map((model) => (
+                    <button
+                      key={model}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        updateParam('model_name', model)
+                        setShowModelDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        localParams.model_name === model
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {model}
+                    </button>
+                  ))}
+                  {filteredModels.length > 20 && (
+                    <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
+                      他 {filteredModels.length - 20} 件...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm text-gray-400 mb-1">LoRA</label>
+              <div className="relative">
+                <input
+                  ref={loraInputRef}
+                  type="text"
+                  placeholder="Filter by LoRA..."
+                  value={localParams.lora_name || ''}
+                  onChange={(e) => {
+                    updateParam('lora_name', e.target.value || undefined)
+                    setShowLoraDropdown(true)
+                  }}
+                  onFocus={() => setShowLoraDropdown(true)}
+                  onBlur={() => {
+                    // Delay to allow click on dropdown items
+                    setTimeout(() => setShowLoraDropdown(false), 150)
+                  }}
+                  className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${localParams.lora_name ? 'pr-14' : 'pr-8'}`}
+                />
+                {localParams.lora_name && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParam('lora_name', undefined)
+                      loraInputRef.current?.focus()
+                    }}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    title="クリア"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLoraDropdown(!showLoraDropdown)
+                    loraInputRef.current?.focus()
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <ChevronDown size={16} className={`transition-transform ${showLoraDropdown ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              {showLoraDropdown && filteredLoras.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                  {filteredLoras.slice(0, 20).map((lora) => (
+                    <button
+                      key={lora}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        updateParam('lora_name', lora)
+                        setShowLoraDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        localParams.lora_name === lora
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {lora}
+                    </button>
+                  ))}
+                  {filteredLoras.length > 20 && (
+                    <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
+                      他 {filteredLoras.length - 20} 件...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Quality & Attributes */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Rating</label>
+              <div className="flex gap-2">
+                <select
+                  value={localParams.exact_rating ?? localParams.min_rating ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value) : undefined
+                    const isExactMode = localParams.exact_rating !== undefined
+                    if (isExactMode) {
+                      setLocalParams({ ...localParams, exact_rating: val, min_rating: undefined })
+                    } else {
+                      setLocalParams({ ...localParams, min_rating: val, exact_rating: undefined })
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Any</option>
+                  <option value="0">★0</option>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <option key={rating} value={rating}>
+                      ★{rating}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={localParams.exact_rating !== undefined ? 'exact' : 'min'}
+                  onChange={(e) => {
+                    const currentVal = localParams.exact_rating ?? localParams.min_rating
+                    if (e.target.value === 'exact') {
+                      setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
+                    } else {
+                      setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
+                    }
+                  }}
+                  className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {RATING_MATCH_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Favorites</label>
+              <button
+                type="button"
+                onClick={() => updateParam('is_favorite', localParams.is_favorite ? undefined : true)}
+                className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  localParams.is_favorite
+                    ? 'bg-blue-600 border-blue-500 text-white'
+                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                {localParams.is_favorite ? '★ ON' : '☆ OFF'}
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Grid Filter</label>
+              <select
+                value={localParams.is_xyz_grid === true ? 'grid' : localParams.is_xyz_grid === false ? 'non-grid' : ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  updateParam('is_xyz_grid', val === 'grid' ? true : val === 'non-grid' ? false : undefined)
+                }}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {GRID_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Upscale</label>
+              <select
+                value={localParams.is_upscaled === true ? 'upscaled' : localParams.is_upscaled === false ? 'non-upscaled' : ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  updateParam('is_upscaled', val === 'upscaled' ? true : val === 'non-upscaled' ? false : undefined)
+                }}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {UPSCALE_FILTER_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -636,109 +719,71 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Grid Filter</label>
-            <select
-              value={localParams.is_xyz_grid === true ? 'grid' : localParams.is_xyz_grid === false ? 'non-grid' : ''}
-              onChange={(e) => {
-                const val = e.target.value
-                updateParam('is_xyz_grid', val === 'grid' ? true : val === 'non-grid' ? false : undefined)
-              }}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {GRID_FILTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Row 3: Dimensions & Sorting */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm text-gray-400 mb-1">
+                Min Size: {localParams.min_width || localParams.min_height
+                  ? `${localParams.min_width || 0} × ${localParams.min_height || 0}px`
+                  : 'Any'}
+              </label>
+              <div className="flex gap-3 items-center">
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="5000"
+                    step="100"
+                    value={localParams.min_width || 0}
+                    onChange={(e) => updateParam('min_width', parseInt(e.target.value) || undefined)}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    title={`Width: ${localParams.min_width || 0}px`}
+                  />
+                  <div className="text-xs text-gray-500 text-center mt-1">W</div>
+                </div>
+                <span className="text-gray-500">×</span>
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="5000"
+                    step="100"
+                    value={localParams.min_height || 0}
+                    onChange={(e) => updateParam('min_height', parseInt(e.target.value) || undefined)}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    title={`Height: ${localParams.min_height || 0}px`}
+                  />
+                  <div className="text-xs text-gray-500 text-center mt-1">H</div>
+                </div>
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Upscale</label>
-            <select
-              value={localParams.is_upscaled === true ? 'upscaled' : localParams.is_upscaled === false ? 'non-upscaled' : ''}
-              onChange={(e) => {
-                const val = e.target.value
-                updateParam('is_upscaled', val === 'upscaled' ? true : val === 'non-upscaled' ? false : undefined)
-              }}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {UPSCALE_FILTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sort By</label>
+              <select
+                value={localParams.sort_by || 'created_at'}
+                onChange={(e) => updateParam('sort_by', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Min Width: {localParams.min_width ? `${localParams.min_width}px` : 'Any'}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="5000"
-              step="100"
-              value={localParams.min_width || 0}
-              onChange={(e) => updateParam('min_width', parseInt(e.target.value) || undefined)}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Min Height: {localParams.min_height ? `${localParams.min_height}px` : 'Any'}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="5000"
-              step="100"
-              value={localParams.min_height || 0}
-              onChange={(e) => updateParam('min_height', parseInt(e.target.value) || undefined)}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Sort By</label>
-            <select
-              value={localParams.sort_by || 'created_at'}
-              onChange={(e) => updateParam('sort_by', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Order</label>
-            <select
-              value={localParams.sort_order || 'desc'}
-              onChange={(e) => updateParam('sort_order', e.target.value as 'asc' | 'desc')}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={localParams.is_favorite === true}
-                onChange={(e) => updateParam('is_favorite', e.target.checked ? true : undefined)}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-300">Favorites only</span>
-            </label>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Order</label>
+              <select
+                value={localParams.sort_order || 'desc'}
+                onChange={(e) => updateParam('sort_order', e.target.value as 'asc' | 'desc')}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
           </div>
         </div>
       )}

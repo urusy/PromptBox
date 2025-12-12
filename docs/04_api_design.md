@@ -88,6 +88,7 @@
 | model_type | string | No | モデルタイプ（sd15/sdxl/pony/illustrious/flux/qwen/other） |
 | model_name | string | No | モデル名（部分一致） |
 | sampler | string | No | サンプラー名（完全一致） |
+| lora_name | string | No | LoRA名（完全一致） |
 | source_tool | string | No | ソースツール（comfyui/a1111/forge/novelai/unknown） |
 | min_steps | integer | No | 最小ステップ数 |
 | max_steps | integer | No | 最大ステップ数 |
@@ -464,6 +465,34 @@
   "favorites_count": 85,
   "needs_improvement_count": 45,
   "deleted_count": 30
+}
+```
+
+### GET /api/stats/models-for-analysis
+
+分析用モデル一覧取得（画像数が指定数以上のモデルのみ）。
+
+**クエリパラメータ:**
+- `min_count` (optional, default: 5): 最小画像数
+
+**レスポンス:** `200 OK`
+```json
+{
+  "models": ["animagine-xl-3.1", "pony-diffusion-v6", "illustrious-xl-v0.1"]
+}
+```
+
+### GET /api/stats/loras-for-filter
+
+検索フィルター用LoRA一覧取得。
+
+**クエリパラメータ:**
+- `min_count` (optional, default: 1): 最小使用回数
+
+**レスポンス:** `200 OK`
+```json
+{
+  "loras": ["detail_tweaker_xl", "add_more_details", "brightness_slider"]
 }
 ```
 
