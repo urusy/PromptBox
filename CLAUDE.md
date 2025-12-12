@@ -1,5 +1,9 @@
 # CLAUDE.md - Claude Code向けプロジェクト指示
 
+## 重要なルール
+
+- 指示があるまでコミットとプッシュは勝手に行わないこと
+
 ## プロジェクト概要
 
 ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリケーション（Prompt Box）。
