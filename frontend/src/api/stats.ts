@@ -1,5 +1,5 @@
 import client from './client'
-import type { StatsResponse, RatingAnalysisResponse, ModelListResponse, LoraListResponse, ModelRatingDistributionResponse } from '@/types/stats'
+import type { StatsResponse, RatingAnalysisResponse, ModelListResponse, LoraListResponse, SamplerListResponse, ModelRatingDistributionResponse } from '@/types/stats'
 
 export const statsApi = {
   get: async (days: number = 30): Promise<StatsResponse> => {
@@ -25,6 +25,13 @@ export const statsApi = {
 
   getLorasForFilter: async (minCount: number = 1): Promise<LoraListResponse> => {
     const response = await client.get<LoraListResponse>('/stats/loras-for-filter', {
+      params: { min_count: minCount },
+    })
+    return response.data
+  },
+
+  getSamplersForFilter: async (minCount: number = 1): Promise<SamplerListResponse> => {
+    const response = await client.get<SamplerListResponse>('/stats/samplers-for-filter', {
       params: { min_count: minCount },
     })
     return response.data

@@ -14,6 +14,7 @@ export interface SearchFilters {
   is_upscaled?: boolean | null
   min_width?: number
   min_height?: number
+  date_from?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
 }

@@ -102,6 +102,7 @@ export interface ImageSearchParams {
   is_upscaled?: boolean | null  // true = upscaled only, false = non-upscaled only
   min_width?: number
   min_height?: number
+  date_from?: string  // ISO date string (YYYY-MM-DD)
   include_deleted?: boolean
   page?: number
   per_page?: number

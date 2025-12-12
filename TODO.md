@@ -253,6 +253,11 @@
 
 ### 最近の更新
 
+- [x] 検索フィルター追加（Sampler / Date Range / Unrated）
+  - Sampler: ドロップダウンで選択可能（バックエンドは既存、UIを追加）
+  - Date Range: Today / Past 7 Days / Past 30 Days / This Month のクイックフィルター
+  - Unrated: 未評価画像のみ表示するトグルボタン
+  - バックエンド: date_fromパラメータ、/stats/samplers-for-filter API追加
 - [x] 検索フォームのUI改善
   - レイアウトをカテゴリ別に整理（モデル/生成 → 品質/属性 → サイズ/ソート）
   - Min Width / Min Height を統合して横並び表示

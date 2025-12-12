@@ -99,6 +99,7 @@
 | is_favorite | boolean | No | お気に入りフィルタ |
 | needs_improvement | boolean | No | 改善対象フィルタ |
 | tags | string | No | タグ（カンマ区切りでAND検索） |
+| date_from | string | No | 日付フィルタ（ISO 8601形式、この日時以降の画像のみ） |
 | include_deleted | boolean | No | 削除済みを含めるか（デフォルト: false） |
 
 **レスポンス:** `200 OK`
@@ -493,6 +494,20 @@
 ```json
 {
   "loras": ["detail_tweaker_xl", "add_more_details", "brightness_slider"]
+}
+```
+
+### GET /api/stats/samplers-for-filter
+
+検索フィルター用Sampler一覧取得（使用回数順）。
+
+**クエリパラメータ:**
+- `min_count` (optional, default: 1): 最小使用回数
+
+**レスポンス:** `200 OK`
+```json
+{
+  "samplers": ["euler_ancestral", "dpmpp_2m_sde", "euler"]
 }
 ```
 

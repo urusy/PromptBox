@@ -34,6 +34,49 @@ const RATING_MATCH_OPTIONS = [
   { value: 'min', label: '以上' },
   { value: 'exact', label: '同等' },
 ]
+const DATE_RANGE_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'today', label: 'Today' },
+  { value: '7days', label: 'Past 7 Days' },
+  { value: '30days', label: 'Past 30 Days' },
+  { value: 'month', label: 'This Month' },
+]
+
+// Helper to convert date range option to ISO date string
+const getDateFromValue = (option: string): string | undefined => {
+  if (!option) return undefined
+  const now = new Date()
+  switch (option) {
+    case 'today':
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    case '7days':
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    case '30days':
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    case 'month':
+      return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    default:
+      return undefined
+  }
+}
+
+// Helper to convert ISO date string back to option value (for display)
+const getDateRangeOption = (dateFrom: string | undefined): string => {
+  if (!dateFrom) return ''
+  const date = new Date(dateFrom)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  if (date.getTime() === today.getTime()) return 'today'
+  if (date.getTime() === thisMonth.getTime()) return 'month'
+
+  const diffDays = Math.round((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000))
+  if (diffDays >= 6 && diffDays <= 8) return '7days'
+  if (diffDays >= 29 && diffDays <= 31) return '30days'
+
+  return ''
+}
 
 // Helper function to convert ImageSearchParams to SearchFilters (excluding page, per_page)
 const paramsToFilters = (params: ImageSearchParams): SearchFilters => {
@@ -68,7 +111,7 @@ const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
     'q', 'source_tool', 'model_type', 'model_name', 'sampler_name',
     'min_rating', 'exact_rating', 'is_favorite', 'needs_improvement',
     'tags', 'lora_name', 'is_xyz_grid', 'is_upscaled',
-    'min_width', 'min_height', 'sort_by', 'sort_order'
+    'min_width', 'min_height', 'date_from', 'sort_by', 'sort_order'
   ]
 
   for (const key of keys) {
@@ -126,6 +169,12 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const { data: loraList } = useQuery({
     queryKey: ['loras-for-filter'],
     queryFn: () => statsApi.getLorasForFilter(1),  // min_count=1 to get all LoRAs
+  })
+
+  // Fetch Sampler names for dropdown
+  const { data: samplerList } = useQuery({
+    queryKey: ['samplers-for-filter'],
+    queryFn: () => statsApi.getSamplersForFilter(1),  // min_count=1 to get all Samplers
   })
 
   // Extract model name (after last backslash), dedupe, sort alphabetically, and filter
@@ -279,6 +328,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.source_tool ||
     localParams.model_type ||
     localParams.model_name ||
+    localParams.sampler_name ||
     localParams.lora_name ||
     localParams.min_rating ||
     localParams.exact_rating !== undefined ||
@@ -286,7 +336,8 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.is_xyz_grid !== undefined ||
     localParams.is_upscaled !== undefined ||
     localParams.min_width ||
-    localParams.min_height
+    localParams.min_height ||
+    localParams.date_from
   )
 
   const handleSavePreset = () => {
@@ -620,8 +671,24 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             </div>
           </div>
 
-          {/* Row 2: Quality & Attributes */}
+          {/* Row 2: Sampler & Rating */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sampler</label>
+              <select
+                value={localParams.sampler_name || ''}
+                onChange={(e) => updateParam('sampler_name', e.target.value || undefined)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All</option>
+                {samplerList?.samplers.map((sampler) => (
+                  <option key={sampler} value={sampler}>
+                    {sampler}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm text-gray-400 mb-1">Rating</label>
               <div className="flex gap-2">
@@ -680,6 +747,45 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
               >
                 {localParams.is_favorite ? '★ ON' : '☆ OFF'}
               </button>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Unrated</label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (localParams.exact_rating === 0) {
+                    setLocalParams({ ...localParams, exact_rating: undefined, min_rating: undefined })
+                  } else {
+                    setLocalParams({ ...localParams, exact_rating: 0, min_rating: undefined })
+                  }
+                }}
+                className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  localParams.exact_rating === 0
+                    ? 'bg-blue-600 border-blue-500 text-white'
+                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                {localParams.exact_rating === 0 ? '☆ ON' : '- OFF'}
+              </button>
+            </div>
+          </div>
+
+          {/* Row 3: Date & Attributes */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Date Range</label>
+              <select
+                value={getDateRangeOption(localParams.date_from)}
+                onChange={(e) => updateParam('date_from', getDateFromValue(e.target.value))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {DATE_RANGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

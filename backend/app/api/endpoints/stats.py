@@ -84,6 +84,10 @@ class LoraListResponse(BaseModel):
     loras: list[str]
 
 
+class SamplerListResponse(BaseModel):
+    samplers: list[str]
+
+
 class ModelRatingDistributionItem(BaseModel):
     model_name: str
     rating_0: int
@@ -339,6 +343,30 @@ async def get_loras_for_filter(
     )
     loras = [row[0] for row in result.all()]
     return LoraListResponse(loras=loras)
+
+
+@router.get("/samplers-for-filter", response_model=SamplerListResponse)
+async def get_samplers_for_filter(
+    db: DbSession,
+    _: CurrentUser,
+    min_count: int = 1,
+) -> SamplerListResponse:
+    """Get list of samplers for search filter dropdown.
+
+    Returns sampler names ordered by usage count (most used first).
+    """
+    base_filter = Image.deleted_at.is_(None)
+
+    result = await db.execute(
+        select(Image.sampler_name)
+        .where(base_filter)
+        .where(Image.sampler_name.isnot(None))
+        .group_by(Image.sampler_name)
+        .having(func.count() >= min_count)
+        .order_by(func.count().desc())
+    )
+    samplers = [row[0] for row in result.all()]
+    return SamplerListResponse(samplers=samplers)
 
 
 @router.get("/rating-analysis", response_model=RatingAnalysisResponse)

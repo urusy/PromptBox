@@ -101,6 +101,14 @@ class ImageService:
         if params.min_height is not None:
             query = query.where(Image.height >= params.min_height)
 
+        # Filter by date
+        if params.date_from:
+            try:
+                date_from = datetime.fromisoformat(params.date_from)
+                query = query.where(Image.created_at >= date_from)
+            except ValueError:
+                pass  # Ignore invalid date format
+
         # Full-text search in prompts
         if params.q:
             search_terms = params.q.replace(" ", " & ")
