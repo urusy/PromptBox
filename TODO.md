@@ -1,8 +1,8 @@
 # TODO
 
-## 未着手
+- [ ] Showcaseや一覧画面等のスライドショーでは画像の順序をシャッフルするかしないかを選べるようにする
 
-- [ ] 日毎のレーティングやお気に入り登録などの更新操作を行った量をグラフ化する(インポート量のグラフと同じような見た目)
+## 未着手
 
 - [ ] 大量画像インポート時のさらなる改善（中期・長期対策）
   - **中期対策**:
@@ -65,25 +65,10 @@
 
 ### 整理・管理系
 
-- [ ] コレクション/アルバム機能 - 画像をカスタムフォルダに整理
-  - **実装方針**: コレクションテーブルを追加し、画像との多対多関係を構築
-  - **修正ファイル**:
-    - `backend/app/models/collection.py` (新規): Collectionモデル
-    - `backend/app/models/image_collection.py` (新規): 中間テーブル
-    - `backend/app/api/endpoints/collections.py` (新規): コレクションCRUD API
-    - `frontend/src/pages/CollectionsPage.tsx` (新規): コレクション一覧
-    - `frontend/src/components/gallery/AddToCollectionModal.tsx` (新規)
-  - **処理内容**:
-    - コレクション作成（名前、説明、カバー画像）
-    - 画像を1つ以上のコレクションに追加/削除
-    - コレクション内の画像一覧表示
-  - **工数目安**: 中（DBスキーマ変更あり）
-
 - [ ] 画像の並び替え - ドラッグ&ドロップで手動並び替え
-  - **実装方針**: コレクション内の画像に表示順序(sort_order)を持たせる
+  - **実装方針**: Showcase内の画像にドラッグ&ドロップで並び替え
   - **修正ファイル**:
-    - `backend/app/models/image_collection.py`: sort_orderカラム追加
-    - `backend/app/api/endpoints/collections.py`: 並び順更新API追加
+    - `frontend/src/pages/ShowcaseDetailPage.tsx`: D&D対応追加
     - `frontend/src/components/gallery/SortableImageGrid.tsx` (新規): D&D対応グリッド
   - **処理内容**:
     - react-beautiful-dnd等でドラッグ&ドロップ実装
@@ -270,6 +255,28 @@
 
 ### 最近の更新
 
+- [x] ESLint設定を追加、コード警告を修正
+  - ESLint v9 Flat Config形式で設定ファイル追加
+  - 未使用変数の警告を修正
+  - RATING_LABELS定数を別ファイルに移動（Fast Refresh警告対応）
+  - package.jsonのlintスクリプトを更新
+- [x] Showcase機能（コレクション/アルバム）を追加
+  - 画像をカスタムコレクション（Showcase）に整理
+  - Showcase作成・編集・削除
+  - ギャラリーの選択ツールバーからShowcaseに画像追加
+  - **詳細画面からも画像をShowcaseに追加可能**
+  - Showcase詳細ページで画像一覧・削除
+  - ナビゲーションにShowcaseリンク追加
+- [x] 日毎の更新操作量グラフを追加（統計ページ）
+  - レーティング変更やお気に入り登録など、更新操作を行った画像数を日別に表示
+  - Daily Importsグラフと同様のデザインで横並び表示
+  - バックエンド: `updated_at > created_at`の画像をカウント
+- [x] バックエンドパフォーマンス最適化
+  - タグリストのキャッシング（TTL: 5分）
+  - 統計データのキャッシング（TTL: 10分）
+  - Prev/Nextクエリの並列実行（asyncio.gather）
+  - ワーカーのセッションファクトリキャッシュ
+  - 非同期サムネイル生成（ThreadPoolExecutor）
 - [x] iOS/iPadアプリ向けSwiftUI設計ドキュメント作成 (docs/09_ios_app_design.md)
   - MVVM + SwiftUIアーキテクチャ
   - Webアプリと同等の機能を網羅

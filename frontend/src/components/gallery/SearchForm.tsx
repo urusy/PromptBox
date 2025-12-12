@@ -53,7 +53,7 @@ const filtersToParams = (filters: SearchFilters, currentParams: ImageSearchParam
 
 // Helper function to check if filters have any meaningful values
 const filtersHaveActiveConditions = (filters: SearchFilters): boolean => {
-  const { sort_by, sort_order, ...rest } = filters
+  const { sort_by: _sort_by, sort_order: _sort_order, ...rest } = filters
   // Ignore sort_by and sort_order for determining if filters are "active"
   return Object.values(rest).some((val) => {
     if (val === undefined || val === null || val === '' || val === 0) return false

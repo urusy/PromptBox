@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 
+from cachetools import TTLCache
 from fastapi import APIRouter
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import func, select, case, extract
 from sqlalchemy.dialects.postgresql import JSONB
@@ -9,6 +11,18 @@ from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
 
 router = APIRouter(prefix="/stats", tags=["stats"])
+
+# In-memory cache for stats (TTL: 10 minutes)
+_stats_cache: TTLCache[str, "StatsResponse"] = TTLCache(maxsize=10, ttl=600)
+_rating_analysis_cache: TTLCache[str, "RatingAnalysisResponse"] = TTLCache(maxsize=50, ttl=600)
+_model_rating_dist_cache: TTLCache[str, "ModelRatingDistributionResponse"] = TTLCache(maxsize=10, ttl=600)
+
+
+def invalidate_stats_cache() -> None:
+    """Clear all stats caches. Call this when images are modified."""
+    _stats_cache.clear()
+    _rating_analysis_cache.clear()
+    _model_rating_dist_cache.clear()
 
 
 class CountItem(BaseModel):
@@ -43,6 +57,7 @@ class StatsResponse(BaseModel):
     by_lora: list[CountItem]
     by_rating: list[RatingDistribution]
     daily_counts: list[TimeSeriesItem]
+    daily_updates: list[TimeSeriesItem]  # Daily count of updated images (rating, favorite, tags, etc.)
 
 
 class RatingAnalysisItem(BaseModel):
@@ -88,6 +103,13 @@ async def get_stats(
     days: int = 30,
 ) -> StatsResponse:
     """Get usage statistics for the image library."""
+    # Check cache first
+    cache_key = f"stats:{days}"
+    if cache_key in _stats_cache:
+        logger.debug(f"Returning cached stats for {cache_key}")
+        return _stats_cache[cache_key]
+
+    logger.debug(f"Computing stats for {cache_key}")
 
     # Base filter: non-deleted images
     base_filter = Image.deleted_at.is_(None)
@@ -200,25 +222,44 @@ async def get_stats(
         for row in rating_result.all()
     ]
 
-    # Daily counts for last N days
+    # Daily counts for last N days (imports)
     start_date = datetime.utcnow() - timedelta(days=days)
-    day_trunc = func.date_trunc("day", Image.created_at)
+    day_trunc_created = func.date_trunc("day", Image.created_at)
     daily_result = await db.execute(
         select(
-            day_trunc.label("day"),
+            day_trunc_created.label("day"),
             func.count(Image.id).label("count"),
         )
         .where(base_filter)
         .where(Image.created_at >= start_date)
-        .group_by(day_trunc)
-        .order_by(day_trunc)
+        .group_by(day_trunc_created)
+        .order_by(day_trunc_created)
     )
     daily_counts = [
         TimeSeriesItem(date=row.day.strftime("%Y-%m-%d"), count=row.count)
         for row in daily_result.all()
     ]
 
-    return StatsResponse(
+    # Daily update counts for last N days (rating, favorite, tags changes)
+    # Count images where updated_at differs from created_at (meaning they were modified)
+    day_trunc_updated = func.date_trunc("day", Image.updated_at)
+    daily_updates_result = await db.execute(
+        select(
+            day_trunc_updated.label("day"),
+            func.count(Image.id).label("count"),
+        )
+        .where(base_filter)
+        .where(Image.updated_at >= start_date)
+        .where(Image.updated_at > Image.created_at)  # Only count actual updates, not initial imports
+        .group_by(day_trunc_updated)
+        .order_by(day_trunc_updated)
+    )
+    daily_updates = [
+        TimeSeriesItem(date=row.day.strftime("%Y-%m-%d"), count=row.count)
+        for row in daily_updates_result.all()
+    ]
+
+    result = StatsResponse(
         overview=overview,
         by_model_type=by_model_type,
         by_source_tool=by_source_tool,
@@ -227,7 +268,13 @@ async def get_stats(
         by_lora=by_lora,
         by_rating=by_rating,
         daily_counts=daily_counts,
+        daily_updates=daily_updates,
     )
+
+    # Store in cache
+    _stats_cache[cache_key] = result
+
+    return result
 
 
 @router.get("/models-for-analysis", response_model=ModelListResponse)
@@ -267,6 +314,10 @@ async def get_rating_analysis(
 
     If model_name is provided, analyze only images using that model.
     """
+    # Check cache first
+    cache_key = f"rating_analysis:{min_count}:{model_name or 'all'}"
+    if cache_key in _rating_analysis_cache:
+        return _rating_analysis_cache[cache_key]
 
     # Base filter: non-deleted, rated images only
     base_filter = Image.deleted_at.is_(None)
@@ -434,7 +485,7 @@ async def get_rating_analysis(
         for row in cfg_result.all()
     ]
 
-    return RatingAnalysisResponse(
+    result = RatingAnalysisResponse(
         by_model=by_model,
         by_sampler=by_sampler,
         by_lora=by_lora,
@@ -442,6 +493,11 @@ async def get_rating_analysis(
         by_cfg=by_cfg,
         filtered_by_model=model_name,
     )
+
+    # Store in cache
+    _rating_analysis_cache[cache_key] = result
+
+    return result
 
 
 @router.get("/model-rating-distribution", response_model=ModelRatingDistributionResponse)
@@ -455,9 +511,14 @@ async def get_model_rating_distribution(
 
     Returns the count of images at each rating level (0-5) for each model.
     """
+    # Check cache first
+    cache_key = f"model_rating_dist:{min_count}:{limit}"
+    if cache_key in _model_rating_dist_cache:
+        return _model_rating_dist_cache[cache_key]
+
     base_filter = Image.deleted_at.is_(None)
 
-    result = await db.execute(
+    db_result = await db.execute(
         select(
             Image.model_name,
             func.count(case((Image.rating == 0, 1))).label("rating_0"),
@@ -489,7 +550,12 @@ async def get_model_rating_distribution(
             total=row.total,
             avg_rating=round(float(row.avg_rating), 2) if row.avg_rating else None,
         )
-        for row in result.all()
+        for row in db_result.all()
     ]
 
-    return ModelRatingDistributionResponse(items=items)
+    result = ModelRatingDistributionResponse(items=items)
+
+    # Store in cache
+    _model_rating_dist_cache[cache_key] = result
+
+    return result

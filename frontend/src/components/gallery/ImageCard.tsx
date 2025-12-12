@@ -1,9 +1,11 @@
 import { memo, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Star, Heart, Check } from 'lucide-react'
 import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { imagesApi } from '@/api/images'
 
 interface ImageCardProps {
   image: ImageListItem
@@ -11,6 +13,7 @@ interface ImageCardProps {
 
 const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
   const location = useLocation()
+  const queryClient = useQueryClient()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
   const isSelected = selectedIds.has(image.id)
 
@@ -32,11 +35,29 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
     }
   }, [isSelectionMode, setSelectionMode, toggleSelection, image.id])
 
+  // Prefetch image data and full image on hover (desktop only)
+  const handleMouseEnter = useCallback(() => {
+    // Prefetch API data
+    queryClient.prefetchQuery({
+      queryKey: ['image', image.id],
+      queryFn: () => imagesApi.get(image.id),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    })
+
+    // Prefetch full image
+    const link = document.createElement('link')
+    link.rel = 'prefetch'
+    link.href = `/storage/${image.storage_path}`
+    link.as = 'image'
+    document.head.appendChild(link)
+  }, [image.id, image.storage_path, queryClient])
+
   return (
     <Link
       to={isSelectionMode ? '#' : `/image/${image.id}${location.search}`}
       onClick={handleClick}
       onMouseDown={handleLongPress}
+      onMouseEnter={handleMouseEnter}
       className={clsx(
         'group relative bg-gray-800 rounded-lg overflow-hidden transition-all',
         isSelected

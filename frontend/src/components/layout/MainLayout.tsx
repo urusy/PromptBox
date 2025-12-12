@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3 } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3, Album } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -19,10 +19,20 @@ export default function MainLayout() {
       <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700">
         <div className="mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Logo */}
-            <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
-              Prompt Box
-            </Link>
+            {/* Logo and Showcase */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
+                Prompt Box
+              </Link>
+              <Link
+                to="/showcases"
+                className="flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
+                title="Showcases"
+              >
+                <Album size={16} />
+                <span className="text-sm">Showcase</span>
+              </Link>
+            </div>
 
             {/* Navigation - Icons only on mobile */}
             <nav className="flex items-center gap-1 sm:gap-2">

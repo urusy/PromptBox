@@ -15,7 +15,7 @@ import {
   Line,
   ComposedChart,
 } from 'recharts'
-import { Image, Star, Heart, TrendingUp, Sparkles, BarChart2 } from 'lucide-react'
+import { Image, Star, Heart, TrendingUp, Sparkles, BarChart2, RefreshCw } from 'lucide-react'
 import { statsApi } from '@/api/stats'
 import type { RatingAnalysisItem } from '@/types/stats'
 
@@ -191,35 +191,75 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Daily Trend */}
-      {stats.daily_counts.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Daily Image Count (Last 30 Days)</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={stats.daily_counts}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="date"
-                stroke="#9ca3af"
-                fontSize={12}
-                tickFormatter={(value) => value.slice(5)} // MM-DD
-              />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
-                labelStyle={{ color: '#fff' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Daily Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Image Count */}
+        {stats.daily_counts.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Image size={20} className="text-blue-400" />
+              <h2 className="text-lg font-semibold">Daily Imports (Last 30 Days)</h2>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={stats.daily_counts}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  tickFormatter={(value) => value.slice(5)} // MM-DD
+                />
+                <YAxis stroke="#9ca3af" fontSize={12} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                  labelStyle={{ color: '#fff' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Daily Updates */}
+        {stats.daily_updates.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <RefreshCw size={20} className="text-green-400" />
+              <h2 className="text-lg font-semibold">Daily Updates (Last 30 Days)</h2>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={stats.daily_updates}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  tickFormatter={(value) => value.slice(5)} // MM-DD
+                />
+                <YAxis stroke="#9ca3af" fontSize={12} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                  labelStyle={{ color: '#fff' }}
+                  formatter={(value: number) => [value, 'Updates']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ fill: '#10b981', strokeWidth: 0, r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

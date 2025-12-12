@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download } from 'lucide-react'
+import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download, Album, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { batchApi } from '@/api/batch'
 import { tagsApi } from '@/api/tags'
+import { showcasesApi } from '@/api/showcases'
 import { useSelectionStore } from '@/stores/selectionStore'
-import { RATING_LABELS } from '@/components/common/StarRating'
+import { RATING_LABELS } from '@/constants/rating'
+import type { ShowcaseCreate } from '@/types/showcase'
 
 interface SelectionToolbarProps {
   totalCount: number
@@ -21,8 +23,12 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
   const [tagInput, setTagInput] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [showShowcaseMenu, setShowShowcaseMenu] = useState(false)
+  const [showNewShowcaseInput, setShowNewShowcaseInput] = useState(false)
+  const [newShowcaseName, setNewShowcaseName] = useState('')
   const tagInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  const showcaseMenuRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
 
   // Fetch tags - without query: recent 10, with query: search all tags
@@ -34,6 +40,61 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
 
   // Use suggested tags directly (already filtered by API)
   const filteredSuggestions = suggestedTags
+
+  // Fetch showcases for the dropdown
+  const { data: showcases = [] } = useQuery({
+    queryKey: ['showcases'],
+    queryFn: showcasesApi.list,
+    enabled: showShowcaseMenu,
+  })
+
+  // Check which showcases already contain the selected images
+  const { data: imageCheckResults = [] } = useQuery({
+    queryKey: ['showcase-image-check', Array.from(selectedIds).sort().join(',')],
+    queryFn: () => showcasesApi.checkImages({ image_ids: Array.from(selectedIds) }),
+    enabled: showShowcaseMenu && selectedIds.size > 0,
+  })
+
+  // Create a map of showcase_id -> existing_count
+  const existingCountMap = new Map(
+    imageCheckResults.map((r) => [r.showcase_id, r.existing_count])
+  )
+
+  // Add to showcase mutation
+  const addToShowcaseMutation = useMutation({
+    mutationFn: ({ showcaseId, imageIds }: { showcaseId: string; imageIds: string[] }) =>
+      showcasesApi.addImages(showcaseId, { image_ids: imageIds }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['showcases'] })
+      queryClient.invalidateQueries({ queryKey: ['showcase', variables.showcaseId] })
+      queryClient.invalidateQueries({ queryKey: ['showcase-image-check'] })
+      toast.success('Showcaseに追加しました')
+      setShowShowcaseMenu(false)
+    },
+    onError: () => {
+      toast.error('Showcaseへの追加に失敗しました')
+    },
+  })
+
+  // Create new showcase and add images
+  const createShowcaseMutation = useMutation({
+    mutationFn: async (data: ShowcaseCreate) => {
+      const showcase = await showcasesApi.create(data)
+      await showcasesApi.addImages(showcase.id, { image_ids: Array.from(selectedIds) })
+      return showcase
+    },
+    onSuccess: (showcase) => {
+      queryClient.invalidateQueries({ queryKey: ['showcases'] })
+      queryClient.invalidateQueries({ queryKey: ['showcase', showcase.id] })
+      toast.success(`"${showcase.name}" を作成し、画像を追加しました`)
+      setShowShowcaseMenu(false)
+      setShowNewShowcaseInput(false)
+      setNewShowcaseName('')
+    },
+    onError: () => {
+      toast.error('Showcaseの作成に失敗しました')
+    },
+  })
 
   // Reset selected index when suggestions change
   useEffect(() => {
@@ -167,6 +228,22 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
     window.open(url, '_blank')
   }
 
+  const handleAddToShowcase = (showcaseId: string) => {
+    addToShowcaseMutation.mutate({
+      showcaseId,
+      imageIds: Array.from(selectedIds),
+    })
+  }
+
+  const handleCreateShowcase = () => {
+    const name = newShowcaseName.trim()
+    if (!name) {
+      toast.error('名前を入力してください')
+      return
+    }
+    createShowcaseMutation.mutate({ name })
+  }
+
   const handleSelectAll = () => {
     if (allSelected) {
       clearSelection()
@@ -219,6 +296,97 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
         >
           <Heart size={18} />
         </button>
+
+        {/* Showcase */}
+        <div className="relative shrink-0" ref={showcaseMenuRef}>
+          <button
+            onClick={() => hasSelection && setShowShowcaseMenu(!showShowcaseMenu)}
+            disabled={!hasSelection}
+            className={`p-1.5 sm:p-2 text-gray-500 hover:text-purple-400 transition-colors disabled:hover:text-gray-500 ${disabledClass}`}
+            title="Add to showcase"
+          >
+            <Album size={18} />
+          </button>
+          {showShowcaseMenu && hasSelection && (
+            <div className="absolute bottom-full left-0 mb-2 w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
+              <div className="p-2 border-b border-gray-700">
+                <span className="text-xs text-gray-400">Showcaseに追加</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {showcases.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">Showcaseがありません</div>
+                ) : (
+                  showcases.map((showcase) => {
+                    const existingCount = existingCountMap.get(showcase.id) || 0
+                    const allAlreadyAdded = existingCount >= selectedIds.size
+                    const someAlreadyAdded = existingCount > 0 && existingCount < selectedIds.size
+
+                    return (
+                      <button
+                        key={showcase.id}
+                        onClick={() => !allAlreadyAdded && handleAddToShowcase(showcase.id)}
+                        disabled={addToShowcaseMutation.isPending || allAlreadyAdded}
+                        className={`w-full px-3 py-2 text-sm text-left flex items-center gap-2 ${
+                          allAlreadyAdded
+                            ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
+                            : 'text-gray-300 hover:bg-gray-700 disabled:opacity-50'
+                        }`}
+                      >
+                        <Album size={14} className={allAlreadyAdded ? 'text-gray-500' : 'text-purple-400'} />
+                        <span className="truncate">{showcase.name}</span>
+                        <span className="text-xs ml-auto shrink-0 flex items-center gap-1">
+                          {allAlreadyAdded ? (
+                            <span className="text-green-500">追加済み</span>
+                          ) : someAlreadyAdded ? (
+                            <span className="text-yellow-500">{existingCount}枚追加済み</span>
+                          ) : (
+                            <span className="text-gray-500">{showcase.image_count}枚</span>
+                          )}
+                        </span>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+              <div className="border-t border-gray-700 p-2">
+                {showNewShowcaseInput ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newShowcaseName}
+                      onChange={(e) => setNewShowcaseName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCreateShowcase()
+                        if (e.key === 'Escape') {
+                          setShowNewShowcaseInput(false)
+                          setNewShowcaseName('')
+                        }
+                      }}
+                      placeholder="名前"
+                      className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleCreateShowcase}
+                      disabled={createShowcaseMutation.isPending}
+                      className="px-2 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      作成
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowNewShowcaseInput(true)}
+                    className="w-full px-3 py-1.5 text-sm text-purple-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <Plus size={14} />
+                    新規Showcase作成
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Tags */}
         {showTagInput ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   X,
   Play,
@@ -6,101 +6,95 @@ import {
   ChevronLeft,
   ChevronRight,
   Shuffle,
-  List,
-  Settings,
 } from 'lucide-react'
-import type { ImageListItem } from '@/types/image'
+
+// Slideshow interval options (in seconds)
+const INTERVAL_OPTIONS = [3, 5, 10, 15, 30]
+
+// Generic image type - only requires storage_path
+interface SlideshowImage {
+  storage_path: string
+}
 
 interface SlideshowProps {
-  images: ImageListItem[]
+  images: SlideshowImage[]
   startIndex?: number
   onClose: () => void
 }
 
-export default function Slideshow({ images, startIndex = 0, onClose }: SlideshowProps) {
-  const [currentIndex, setCurrentIndex] = useState(startIndex)
-  const [isPlaying, setIsPlaying] = useState(true)
-  const [isRandom, setIsRandom] = useState(false)
-  const [interval, setInterval_] = useState(5) // seconds
-  const [showControls, setShowControls] = useState(true)
-  const [showSettings, setShowSettings] = useState(false)
-  const timerRef = useRef<number | null>(null)
-  const controlsTimerRef = useRef<number | null>(null)
-  const [randomOrder, setRandomOrder] = useState<number[]>([])
-  const [randomPosition, setRandomPosition] = useState(0)
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
 
-  // Generate random order when random mode is enabled
+export default function Slideshow({ images, startIndex = 0, onClose }: SlideshowProps) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [isShuffled, setIsShuffled] = useState(false)
+  const [interval, setInterval_] = useState(5)
+  const [showControls, setShowControls] = useState(true)
+  const [displayOrder, setDisplayOrder] = useState<number[]>(() =>
+    Array.from({ length: images.length }, (_, i) => i)
+  )
+
+  // Initialize with the correct starting position
   useEffect(() => {
-    if (isRandom) {
-      const indices = Array.from({ length: images.length }, (_, i) => i)
-      // Fisher-Yates shuffle
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[indices[i], indices[j]] = [indices[j], indices[i]]
-      }
-      setRandomOrder(indices)
-      setRandomPosition(0)
+    if (!isShuffled) {
+      setDisplayOrder(Array.from({ length: images.length }, (_, i) => i))
+      setCurrentIndex(startIndex)
     }
-  }, [isRandom, images.length])
+  }, [images.length, startIndex, isShuffled])
+
+  const currentImageIndex = displayOrder[currentIndex]
+  const currentImage = images[currentImageIndex]
 
   const goToNext = useCallback(() => {
-    if (isRandom) {
-      const nextPos = (randomPosition + 1) % images.length
-      setRandomPosition(nextPos)
-      setCurrentIndex(randomOrder[nextPos] ?? 0)
-    } else {
-      setCurrentIndex((prev) => (prev + 1) % images.length)
-    }
-  }, [isRandom, randomPosition, randomOrder, images.length])
+    setCurrentIndex((prev) => (prev + 1) % images.length)
+  }, [images.length])
 
   const goToPrev = useCallback(() => {
-    if (isRandom) {
-      const prevPos = (randomPosition - 1 + images.length) % images.length
-      setRandomPosition(prevPos)
-      setCurrentIndex(randomOrder[prevPos] ?? 0)
-    } else {
-      setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
-    }
-  }, [isRandom, randomPosition, randomOrder, images.length])
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+  }, [images.length])
 
-  // Auto-play timer
+  const togglePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev)
+  }, [])
+
+  const toggleShuffle = useCallback(() => {
+    setIsShuffled((prev) => {
+      if (!prev) {
+        // Turn on shuffle: create shuffled order starting from current image
+        const indices = Array.from({ length: images.length }, (_, i) => i)
+        const currentImgIdx = displayOrder[currentIndex]
+        const otherIndices = indices.filter((i) => i !== currentImgIdx)
+        const shuffledOthers = shuffleArray(otherIndices)
+        setDisplayOrder([currentImgIdx, ...shuffledOthers])
+        setCurrentIndex(0)
+      } else {
+        // Turn off shuffle: restore original order, find current image position
+        const currentImgIdx = displayOrder[currentIndex]
+        setDisplayOrder(Array.from({ length: images.length }, (_, i) => i))
+        setCurrentIndex(currentImgIdx)
+      }
+      return !prev
+    })
+  }, [images.length, displayOrder, currentIndex])
+
+  // Auto-advance slideshow
   useEffect(() => {
-    if (isPlaying && images.length > 1) {
-      timerRef.current = window.setTimeout(goToNext, interval * 1000)
-    }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [isPlaying, currentIndex, interval, goToNext, images.length])
+    if (!isPlaying || images.length <= 1) return
 
-  // Hide controls after inactivity
-  useEffect(() => {
-    const resetControlsTimer = () => {
-      setShowControls(true)
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current)
-      }
-      controlsTimerRef.current = window.setTimeout(() => {
-        if (!showSettings) {
-          setShowControls(false)
-        }
-      }, 3000)
-    }
+    const timer = window.setInterval(() => {
+      goToNext()
+    }, interval * 1000)
 
-    resetControlsTimer()
-    window.addEventListener('mousemove', resetControlsTimer)
-    window.addEventListener('touchstart', resetControlsTimer)
-
-    return () => {
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current)
-      }
-      window.removeEventListener('mousemove', resetControlsTimer)
-      window.removeEventListener('touchstart', resetControlsTimer)
-    }
-  }, [showSettings])
+    return () => window.clearInterval(timer)
+  }, [isPlaying, interval, goToNext, images.length])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -117,33 +111,56 @@ export default function Slideshow({ images, startIndex = 0, onClose }: Slideshow
           break
         case ' ':
           e.preventDefault()
-          setIsPlaying((prev) => !prev)
+          togglePlay()
+          break
+        case 's':
+        case 'S':
+          toggleShuffle()
           break
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose, goToPrev, goToNext])
+  }, [onClose, goToNext, goToPrev, togglePlay, toggleShuffle])
 
-  const currentImage = images[currentIndex]
+  // Auto-hide controls
+  useEffect(() => {
+    let hideTimer: number
+
+    const resetHideTimer = () => {
+      setShowControls(true)
+      window.clearTimeout(hideTimer)
+      hideTimer = window.setTimeout(() => {
+        if (isPlaying) {
+          setShowControls(false)
+        }
+      }, 3000)
+    }
+
+    resetHideTimer()
+
+    const handleMouseMove = () => resetHideTimer()
+    const handleTouchStart = () => resetHideTimer()
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('touchstart', handleTouchStart)
+
+    return () => {
+      window.clearTimeout(hideTimer)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchstart', handleTouchStart)
+    }
+  }, [isPlaying])
+
   if (!currentImage) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-      onClick={() => {
-        if (!showSettings) {
-          onClose()
-        }
-      }}
-    >
-      {/* Image */}
+    <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      {/* Main image */}
       <img
         src={`/storage/${currentImage.storage_path}`}
-        alt={currentImage.model_name || `Image ${currentIndex + 1} of ${images.length}`}
+        alt=""
         className="max-w-full max-h-full object-contain"
-        onClick={(e) => e.stopPropagation()}
       />
 
       {/* Controls overlay */}
@@ -151,115 +168,114 @@ export default function Slideshow({ images, startIndex = 0, onClose }: Slideshow
         className={`absolute inset-0 transition-opacity duration-300 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4">
+        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent">
           <div className="flex items-center justify-between">
             <div className="text-white text-sm">
               {currentIndex + 1} / {images.length}
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-white hover:text-gray-300 transition-colors"
-              title="Close (Esc)"
-            >
-              <X size={24} />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Shuffle button */}
+              <button
+                onClick={toggleShuffle}
+                className={`p-2 rounded-lg transition-colors ${
+                  isShuffled
+                    ? 'bg-green-500 text-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+                title={isShuffled ? 'シャッフル: オン (S)' : 'シャッフル: オフ (S)'}
+              >
+                <Shuffle size={20} />
+              </button>
+              {/* Interval selector */}
+              <select
+                value={interval}
+                onChange={(e) => setInterval_(Number(e.target.value))}
+                className="bg-white/20 text-white text-sm px-3 py-2 rounded-lg border-none cursor-pointer hover:bg-white/30 transition-colors"
+              >
+                {INTERVAL_OPTIONS.map((sec) => (
+                  <option key={sec} value={sec} className="bg-gray-800 text-white">
+                    {sec}秒
+                  </option>
+                ))}
+              </select>
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="p-2 bg-white/20 text-white hover:bg-white/30 rounded-lg transition-colors"
+                title="閉じる (Esc)"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
           <div className="flex items-center justify-center gap-4">
-            {/* Previous */}
+            {/* Prev button */}
             <button
               onClick={goToPrev}
-              className="p-3 text-white hover:text-gray-300 transition-colors"
-              title="Previous (←)"
+              className="p-3 text-white hover:bg-white/20 rounded-full transition-colors"
+              title="前へ (←)"
             >
               <ChevronLeft size={32} />
             </button>
-
-            {/* Play/Pause */}
+            {/* Play/Pause button */}
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="p-3 text-white hover:text-gray-300 transition-colors"
-              title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              onClick={togglePlay}
+              className="p-4 text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              title={isPlaying ? '一時停止 (Space)' : '再生 (Space)'}
             >
               {isPlaying ? <Pause size={32} /> : <Play size={32} />}
             </button>
-
-            {/* Next */}
+            {/* Next button */}
             <button
               onClick={goToNext}
-              className="p-3 text-white hover:text-gray-300 transition-colors"
-              title="Next (→)"
+              className="p-3 text-white hover:bg-white/20 rounded-full transition-colors"
+              title="次へ (→)"
             >
               <ChevronRight size={32} />
             </button>
-
-            {/* Separator */}
-            <div className="w-px h-8 bg-white/30 mx-2" />
-
-            {/* Random toggle */}
-            <button
-              onClick={() => setIsRandom(!isRandom)}
-              className={`p-3 transition-colors ${
-                isRandom ? 'text-blue-400' : 'text-white hover:text-gray-300'
-              }`}
-              title={isRandom ? 'Random: On' : 'Random: Off'}
-            >
-              {isRandom ? <Shuffle size={24} /> : <List size={24} />}
-            </button>
-
-            {/* Settings */}
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className={`p-3 transition-colors ${
-                showSettings ? 'text-blue-400' : 'text-white hover:text-gray-300'
-              }`}
-              title="Settings"
-            >
-              <Settings size={24} />
-            </button>
           </div>
-
-          {/* Settings panel */}
-          {showSettings && (
-            <div className="mt-4 bg-gray-900/90 rounded-lg p-4 max-w-xs mx-auto">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-white text-sm">Interval</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min={2}
-                    max={15}
-                    value={interval}
-                    onChange={(e) => setInterval_(Number(e.target.value))}
-                    className="w-24 accent-blue-500"
-                  />
-                  <span className="text-white text-sm w-8">{interval}s</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Side navigation areas */}
         <button
           onClick={goToPrev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-16 flex items-center justify-start pl-2 text-white/50 hover:text-white transition-colors"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-20 h-1/2 flex items-center justify-start pl-4 text-white/50 hover:text-white transition-colors"
         >
           <ChevronLeft size={48} />
         </button>
         <button
           onClick={goToNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 h-1/2 w-16 flex items-center justify-end pr-2 text-white/50 hover:text-white transition-colors"
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-20 h-1/2 flex items-center justify-end pr-4 text-white/50 hover:text-white transition-colors"
         >
           <ChevronRight size={48} />
         </button>
       </div>
+
+      {/* Progress bar */}
+      {isPlaying && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+          <div
+            className="h-full bg-white/70"
+            style={{
+              animation: `slideshow-progress ${interval}s linear infinite`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* CSS for progress animation */}
+      <style>{`
+        @keyframes slideshow-progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   )
 }

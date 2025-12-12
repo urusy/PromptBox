@@ -683,6 +683,209 @@
 
 ---
 
+## Showcase API
+
+### GET /api/showcases
+
+Showcase一覧取得（作成日時降順）。
+
+**レスポンス:** `200 OK`
+```json
+[
+  {
+    "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "name": "ベスト作品集",
+    "description": "お気に入りの作品をまとめたShowcase",
+    "icon": null,
+    "cover_image_id": "01936f4e-6c4b-7000-8000-5678efgh9012",
+    "cover_thumbnail_path": "2024/01/15/01936f4e-6c4b-7000-8000-5678efgh9012_thumb.webp",
+    "image_count": 25,
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+]
+```
+
+### POST /api/showcases
+
+Showcase新規作成。
+
+**リクエスト:**
+```json
+{
+  "name": "ベスト作品集",
+  "description": "お気に入りの作品をまとめたShowcase",
+  "icon": null
+}
+```
+
+**レスポンス:** `201 Created`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "ベスト作品集",
+  "description": "お気に入りの作品をまとめたShowcase",
+  "icon": null,
+  "cover_image_id": null,
+  "cover_thumbnail_path": null,
+  "image_count": 0,
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+### POST /api/showcases/check-images
+
+指定した画像がどのShowcaseに含まれているかをチェック。
+
+**リクエスト:**
+```json
+{
+  "image_ids": [
+    "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "01936f4e-6c4b-7000-8000-5678efgh9012"
+  ]
+}
+```
+
+**レスポンス:** `200 OK`
+```json
+[
+  {
+    "showcase_id": "01936f4e-7d5c-7000-8000-9012ijkl3456",
+    "existing_count": 2
+  },
+  {
+    "showcase_id": "01936f4e-8e6d-7000-8000-3456mnop7890",
+    "existing_count": 1
+  }
+]
+```
+
+### GET /api/showcases/{id}
+
+Showcase詳細取得（画像一覧含む）。
+
+**レスポンス:** `200 OK`
+```json
+{
+  "id": "01936f4e-5b3a-7000-8000-1234abcd5678",
+  "name": "ベスト作品集",
+  "description": "お気に入りの作品をまとめたShowcase",
+  "icon": null,
+  "cover_image_id": "01936f4e-6c4b-7000-8000-5678efgh9012",
+  "cover_thumbnail_path": "2024/01/15/01936f4e-6c4b-7000-8000-5678efgh9012_thumb.webp",
+  "image_count": 25,
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z",
+  "images": [
+    {
+      "id": "01936f4e-6c4b-7000-8000-5678efgh9012",
+      "storage_path": "2024/01/15/01936f4e-6c4b-7000-8000-5678efgh9012.png",
+      "thumbnail_path": "2024/01/15/01936f4e-6c4b-7000-8000-5678efgh9012_thumb.webp",
+      "sort_order": 0,
+      "added_at": "2025-01-15T10:35:00Z"
+    }
+  ]
+}
+```
+
+### PUT /api/showcases/{id}
+
+Showcase更新。
+
+**リクエスト:**
+```json
+{
+  "name": "ベスト作品集（更新）",
+  "description": "更新した説明文",
+  "cover_image_id": "01936f4e-6c4b-7000-8000-5678efgh9012"
+}
+```
+
+※ 含まれるフィールドのみ更新
+
+**レスポンス:** `200 OK`
+
+### DELETE /api/showcases/{id}
+
+Showcase削除。
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Showcase deleted successfully"
+}
+```
+
+### POST /api/showcases/{id}/images
+
+Showcaseに画像を追加。
+
+**リクエスト:**
+```json
+{
+  "image_ids": [
+    "01936f4e-5b3a-7000-8000-1234abcd5678",
+    "01936f4e-6c4b-7000-8000-5678efgh9012"
+  ]
+}
+```
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Added 2 images to showcase"
+}
+```
+
+※ 既に追加済みの画像はスキップされる
+
+### DELETE /api/showcases/{id}/images
+
+Showcaseから画像を削除。
+
+**リクエスト:**
+```json
+{
+  "image_ids": [
+    "01936f4e-5b3a-7000-8000-1234abcd5678"
+  ]
+}
+```
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Removed 1 images from showcase"
+}
+```
+
+### PUT /api/showcases/{id}/images/reorder
+
+Showcase内の画像の並び順を変更。
+
+**リクエスト:**
+```json
+{
+  "image_ids": [
+    "01936f4e-6c4b-7000-8000-5678efgh9012",
+    "01936f4e-5b3a-7000-8000-1234abcd5678"
+  ]
+}
+```
+
+※ 新しい順序で画像IDを指定
+
+**レスポンス:** `200 OK`
+```json
+{
+  "message": "Images reordered successfully"
+}
+```
+
+---
+
 ## エラーレスポンス形式
 
 RFC 7807 Problem Details準拠。

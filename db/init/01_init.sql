@@ -86,3 +86,39 @@ CREATE TRIGGER trigger_images_updated_at
     BEFORE UPDATE ON images
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- showcasesテーブル（画像コレクション）
+CREATE TABLE showcases (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(50),
+    cover_image_id UUID REFERENCES images(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE showcases IS '画像のカスタムコレクション';
+COMMENT ON COLUMN showcases.cover_image_id IS 'カバー画像（カード表示用）';
+
+CREATE INDEX idx_showcases_created_at ON showcases(created_at DESC);
+
+CREATE TRIGGER trigger_showcases_updated_at
+    BEFORE UPDATE ON showcases
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- showcase_imagesテーブル（Showcase-Image中間テーブル）
+CREATE TABLE showcase_images (
+    showcase_id UUID NOT NULL REFERENCES showcases(id) ON DELETE CASCADE,
+    image_id UUID NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (showcase_id, image_id)
+);
+
+COMMENT ON TABLE showcase_images IS 'Showcaseと画像の関連（順序付き）';
+COMMENT ON COLUMN showcase_images.sort_order IS '表示順序';
+
+CREATE INDEX idx_showcase_images_showcase ON showcase_images(showcase_id, sort_order);
+CREATE INDEX idx_showcase_images_image ON showcase_images(image_id);

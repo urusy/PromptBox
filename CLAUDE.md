@@ -28,6 +28,7 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 - watchdog（フォルダ監視）
 - uuid-utils（UUID v7）
 - bcrypt
+- cachetools（インメモリキャッシュ）
 
 ### フロントエンド
 
@@ -35,9 +36,11 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 - TypeScript 5+
 - TailwindCSS 3
 - TanStack Query 5
+- TanStack Virtual（仮想スクロール）
 - React Router 6
 - Axios
 - Zustand
+- Recharts（統計グラフ）
 
 ### インフラ
 
@@ -105,6 +108,10 @@ const ImageCard = (props: any) => {
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
 ```
 
+### DBマイグレーション
+
+マイグレーションは、本番環境があることを前提として、バージョンを分けてマイグレーションを行えるようにすること。
+
 ## ディレクトリ構成
 
 ```text
@@ -146,35 +153,29 @@ prompt-box/
 └── storage/                 # 画像ストレージ
 ```
 
-## 実装優先順位
+## 実装状況
 
-### Phase 1: 基盤構築
+### 完了済み
 
-1. Docker環境構築（docker-compose.yml）
-2. バックエンド基盤（FastAPI + DB接続）
-3. DBスキーマ・マイグレーション
-4. 認証機能
-
-### Phase 2: コア機能
-
-1. メタデータパーサー実装
-2. 画像取り込みワーカー（watchdog）
-3. 画像API（CRUD）
-4. フロントエンド基盤（React + ルーティング）
-
-### Phase 3: UI実装
-
-1. ログイン画面
-2. 一覧画面（グリッド表示、ページネーション）
-3. 詳細画面
-4. 検索機能
-
-### Phase 4: 拡張機能
-
-1. 評価・タグ機能
-2. 一括操作
-3. エクスポート機能
-4. ゴミ箱機能
+- Docker環境構築
+- バックエンド基盤（FastAPI + DB接続）
+- DBスキーマ
+- 認証機能（Cookie セッション）
+- メタデータパーサー（ComfyUI / A1111 / Forge / NovelAI）
+- 画像取り込みワーカー（watchdog + 定期スキャン）
+- 画像API（CRUD + 一括操作）
+- フロントエンド（React + TailwindCSS）
+- 一覧画面（グリッド表示、ページネーション、仮想スクロール）
+- 詳細画面（prev/next ナビゲーション）
+- 検索機能（プリセット、スマートフォルダ）
+- 評価・タグ機能
+- 一括操作（評価、タグ、削除）
+- エクスポート機能
+- ゴミ箱機能
+- 重複検出
+- 統計ページ（Recharts）
+- パフォーマンス最適化（キャッシュ、Code Splitting、仮想スクロール）
+- Showcase機能（画像コレクション、スライドショー）
 
 ## 重要な実装ポイント
 
@@ -222,6 +223,33 @@ min-height: 100dvh;
 
 /* Safe Area対応 */
 padding-bottom: env(safe-area-inset-bottom);
+```
+
+### キャッシュ（バックエンド）
+
+```python
+from cachetools import TTLCache
+
+# タグ・統計データ用のインメモリキャッシュ
+cache = TTLCache(maxsize=100, ttl=300)  # 5分
+```
+
+### Code Splitting（フロントエンド）
+
+```tsx
+// 使用頻度の低いページは遅延ロード
+const StatsPage = lazy(() => import('@/pages/StatsPage'))
+
+<Suspense fallback={<PageLoader />}>
+  <Route path="stats" element={<StatsPage />} />
+</Suspense>
+```
+
+### 仮想スクロール（フロントエンド）
+
+```tsx
+// 100件以上の画像表示時に自動適用
+import { useVirtualizer } from '@tanstack/react-virtual'
 ```
 
 ## テスト方針

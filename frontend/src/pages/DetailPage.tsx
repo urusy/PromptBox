@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X, ChevronLeft, ChevronRight, Album, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
+import { showcasesApi } from '@/api/showcases'
 import type { ImageUpdate } from '@/types/image'
+import type { Showcase } from '@/types/showcase'
 import { parseSearchParams } from '@/utils/searchParams'
 import StarRating from '@/components/common/StarRating'
 import TagEditor from '@/components/detail/TagEditor'
@@ -17,6 +19,8 @@ export default function DetailPage() {
   const [urlSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [showShowcaseMenu, setShowShowcaseMenu] = useState(false)
+  const showcaseMenuRef = useRef<HTMLDivElement>(null)
 
   // Parse search params from URL to pass to API
   const searchParams = parseSearchParams(urlSearchParams)
@@ -26,6 +30,54 @@ export default function DetailPage() {
     queryFn: () => imagesApi.get(id!, searchParams),
     enabled: !!id,
   })
+
+  // Showcase queries and mutations
+  const { data: showcases = [] } = useQuery({
+    queryKey: ['showcases'],
+    queryFn: showcasesApi.list,
+    enabled: showShowcaseMenu,
+  })
+
+  // Check which showcases already contain this image
+  const { data: imageCheckResults = [] } = useQuery({
+    queryKey: ['showcase-image-check', id],
+    queryFn: () => showcasesApi.checkImages({ image_ids: [id!] }),
+    enabled: showShowcaseMenu && !!id,
+  })
+
+  // Set of showcase IDs that already contain this image
+  const showcasesWithImage = new Set(
+    imageCheckResults.filter((r) => r.existing_count > 0).map((r) => r.showcase_id)
+  )
+
+  const addToShowcaseMutation = useMutation({
+    mutationFn: ({ showcaseId, imageIds }: { showcaseId: string; imageIds: string[] }) =>
+      showcasesApi.addImages(showcaseId, { image_ids: imageIds }),
+    onSuccess: (_, variables) => {
+      const showcase = showcases.find((s: Showcase) => s.id === variables.showcaseId)
+      toast.success(`${showcase?.name || 'Showcase'}に追加しました`)
+      queryClient.invalidateQueries({ queryKey: ['showcases'] })
+      queryClient.invalidateQueries({ queryKey: ['showcase', variables.showcaseId] })
+      queryClient.invalidateQueries({ queryKey: ['showcase-image-check', id] })
+      setShowShowcaseMenu(false)
+    },
+    onError: () => {
+      toast.error('Showcaseへの追加に失敗しました')
+    },
+  })
+
+  // Close showcase menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showcaseMenuRef.current && !showcaseMenuRef.current.contains(event.target as Node)) {
+        setShowShowcaseMenu(false)
+      }
+    }
+    if (showShowcaseMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showShowcaseMenu])
 
   // Navigate to prev/next image while preserving search params
   const navigateToImage = useCallback((imageId: string) => {
@@ -227,6 +279,71 @@ export default function DetailPage() {
             >
               <Download size={24} />
             </button>
+            {/* Showcase dropdown */}
+            <div className="relative" ref={showcaseMenuRef}>
+              <button
+                onClick={() => setShowShowcaseMenu(!showShowcaseMenu)}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                title="Showcaseに追加"
+              >
+                <Album size={24} />
+              </button>
+              {showShowcaseMenu && (
+                <div className="absolute top-full left-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                  <div className="p-2 border-b border-gray-700">
+                    <span className="text-sm text-gray-400">Showcaseに追加</span>
+                  </div>
+                  {showcases.length === 0 ? (
+                    <div className="p-3 text-sm text-gray-500 text-center">
+                      Showcaseがありません
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto">
+                      {showcases.map((showcase: Showcase) => {
+                        const isAlreadyAdded = showcasesWithImage.has(showcase.id)
+                        return (
+                          <button
+                            key={showcase.id}
+                            onClick={() => !isAlreadyAdded && addToShowcaseMutation.mutate({
+                              showcaseId: showcase.id,
+                              imageIds: [id!],
+                            })}
+                            disabled={addToShowcaseMutation.isPending || isAlreadyAdded}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                              isAlreadyAdded
+                                ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
+                                : 'hover:bg-gray-700 disabled:opacity-50'
+                            }`}
+                          >
+                            <Album size={16} className={isAlreadyAdded ? 'text-gray-500' : 'text-gray-400'} />
+                            <span className="truncate">{showcase.name}</span>
+                            <span className="text-xs ml-auto">
+                              {isAlreadyAdded ? (
+                                <span className="text-green-500">追加済み</span>
+                              ) : (
+                                <span className="text-gray-500">{showcase.image_count}</span>
+                              )}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <div className="border-t border-gray-700">
+                    <button
+                      onClick={() => {
+                        setShowShowcaseMenu(false)
+                        navigate('/showcases')
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-400 hover:bg-gray-700 transition-colors"
+                    >
+                      <Plus size={16} />
+                      新規Showcaseを作成
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => deleteMutation.mutate()}
               className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-600 hover:text-red-500"

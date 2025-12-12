@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from datetime import datetime
@@ -163,7 +164,10 @@ class ImageService:
     async def get_image_with_neighbors(
         self, image_id: UUID, search_params: ImageSearchParams | None = None
     ) -> ImageResponse | None:
-        """Get a single image by ID with prev/next IDs based on search context."""
+        """Get a single image by ID with prev/next IDs based on search context.
+
+        Optimized to run prev/next queries in parallel for better performance.
+        """
         result = await self.db.execute(select(Image).where(Image.id == image_id))
         image = result.scalar_one_or_none()
 
@@ -183,6 +187,7 @@ class ImageService:
         sort_column = getattr(Image, search_params.sort_by, Image.created_at)
         current_sort_value = getattr(image, search_params.sort_by, image.created_at)
 
+        # Build prev/next queries
         # Find prev image (the one that comes before in the sorted order)
         # For desc order: prev has greater sort value
         # For asc order: prev has lesser sort value
@@ -196,11 +201,6 @@ class ImageService:
                 (sort_column > current_sort_value) |
                 ((sort_column == current_sort_value) & (Image.id > image_id))
             ).order_by(sort_column.asc(), Image.id.asc()).limit(1)
-
-        prev_result = await self.db.execute(prev_query)
-        prev_image = prev_result.scalar_one_or_none()
-        if prev_image:
-            response.prev_id = prev_image.id
 
         # Find next image (the one that comes after in the sorted order)
         # For desc order: next has lesser sort value
@@ -216,7 +216,16 @@ class ImageService:
                 ((sort_column == current_sort_value) & (Image.id < image_id))
             ).order_by(sort_column.desc(), Image.id.desc()).limit(1)
 
-        next_result = await self.db.execute(next_query)
+        # Execute prev/next queries in parallel
+        prev_result, next_result = await asyncio.gather(
+            self.db.execute(prev_query),
+            self.db.execute(next_query),
+        )
+
+        prev_image = prev_result.scalar_one_or_none()
+        if prev_image:
+            response.prev_id = prev_image.id
+
         next_image = next_result.scalar_one_or_none()
         if next_image:
             response.next_id = next_image.id

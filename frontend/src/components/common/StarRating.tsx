@@ -1,19 +1,12 @@
 import { Star } from 'lucide-react'
 import clsx from 'clsx'
+import { RATING_LABELS } from '@/constants/rating'
 
 interface StarRatingProps {
   rating: number
   onChange?: (rating: number) => void
   size?: number
   readonly?: boolean
-}
-
-const RATING_LABELS: Record<number, string> = {
-  1: '削除候補',
-  2: 'とりあえず残しておく',
-  3: '普通',
-  4: '良い',
-  5: '最高(壁紙候補)',
 }
 
 export default function StarRating({
@@ -56,5 +49,3 @@ export default function StarRating({
     </div>
   )
 }
-
-export { RATING_LABELS }

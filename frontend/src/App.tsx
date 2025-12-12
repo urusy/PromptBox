@@ -1,14 +1,20 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
+import PageLoader from '@/components/common/PageLoader'
 import MainLayout from '@/components/layout/MainLayout'
 import LoginPage from '@/pages/LoginPage'
 import GalleryPage from '@/pages/GalleryPage'
 import DetailPage from '@/pages/DetailPage'
-import TrashPage from '@/pages/TrashPage'
-import DuplicatesPage from '@/pages/DuplicatesPage'
-import SmartFoldersPage from '@/pages/SmartFoldersPage'
-import StatsPage from '@/pages/StatsPage'
+
+// Lazy load less frequently used pages
+const TrashPage = lazy(() => import('@/pages/TrashPage'))
+const DuplicatesPage = lazy(() => import('@/pages/DuplicatesPage'))
+const SmartFoldersPage = lazy(() => import('@/pages/SmartFoldersPage'))
+const ShowcasesPage = lazy(() => import('@/pages/ShowcasesPage'))
+const ShowcaseDetailPage = lazy(() => import('@/pages/ShowcaseDetailPage'))
+const StatsPage = lazy(() => import('@/pages/StatsPage'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -41,10 +47,54 @@ function App() {
         >
           <Route index element={<GalleryPage />} />
           <Route path="image/:id" element={<DetailPage />} />
-          <Route path="trash" element={<TrashPage />} />
-          <Route path="duplicates" element={<DuplicatesPage />} />
-          <Route path="smart-folders" element={<SmartFoldersPage />} />
-          <Route path="stats" element={<StatsPage />} />
+          <Route
+            path="trash"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <TrashPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="duplicates"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <DuplicatesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="smart-folders"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <SmartFoldersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="showcases"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ShowcasesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="showcase/:id"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ShowcaseDetailPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="stats"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <StatsPage />
+              </Suspense>
+            }
+          />
         </Route>
       </Routes>
     </ErrorBoundary>

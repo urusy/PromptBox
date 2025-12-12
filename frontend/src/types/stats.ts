@@ -30,6 +30,7 @@ export interface StatsResponse {
   by_lora: CountItem[]
   by_rating: RatingDistribution[]
   daily_counts: TimeSeriesItem[]
+  daily_updates: TimeSeriesItem[]
 }
 
 export interface RatingAnalysisItem {

@@ -16,7 +16,7 @@ from app.models.image import Image
 from app.parsers import MetadataParserFactory, read_image_info
 from app.utils.file_utils import ensure_directory, get_storage_path, get_thumbnail_path
 from app.utils.hash_utils import calculate_file_hash
-from app.utils.image_utils import create_thumbnail, get_image_dimensions
+from app.utils.image_utils import create_thumbnail_async, get_image_dimensions_async
 
 # Interval for periodic folder scanning (in seconds)
 PERIODIC_SCAN_INTERVAL = 30
@@ -48,24 +48,37 @@ class ThreadSafeSet:
             return item in self._set
 
 
-def create_watcher_session() -> async_sessionmaker[AsyncSession]:
-    """Create a new engine and session factory for the watcher thread.
+# Global session factory for the watcher (created once per event loop)
+_watcher_session_cache: dict[int, async_sessionmaker[AsyncSession]] = {}
+_watcher_session_lock = threading.Lock()
 
-    This is needed because watchdog runs in a separate thread with its own
-    event loop, and the main app's engine is bound to the FastAPI event loop.
+
+def get_watcher_session() -> async_sessionmaker[AsyncSession]:
+    """Get or create a session factory for the current event loop.
+
+    This caches the session factory per event loop to avoid creating
+    a new engine for every file processed.
     """
-    settings = get_settings()
-    engine = create_async_engine(
-        settings.database_url,
-        echo=False,
-        pool_size=5,
-        max_overflow=10,
-    )
-    return async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
+    loop_id = id(asyncio.get_event_loop())
+
+    with _watcher_session_lock:
+        if loop_id not in _watcher_session_cache:
+            settings = get_settings()
+            engine = create_async_engine(
+                settings.database_url,
+                echo=False,
+                pool_size=5,
+                max_overflow=10,
+                pool_pre_ping=True,  # Check connection health
+            )
+            _watcher_session_cache[loop_id] = async_sessionmaker(
+                engine,
+                class_=AsyncSession,
+                expire_on_commit=False,
+            )
+            logger.debug(f"Created new session factory for event loop {loop_id}")
+
+        return _watcher_session_cache[loop_id]
 
 
 class ImageImportHandler(FileSystemEventHandler):
@@ -114,8 +127,8 @@ class ImageImportHandler(FileSystemEventHandler):
             logger.warning(f"File no longer exists: {file_path}")
             return
 
-        # Create a new session factory for this event loop
-        SessionLocal = create_watcher_session()
+        # Get or create session factory for this event loop
+        SessionLocal = get_watcher_session()
         async with SessionLocal() as db:
             try:
                 await self._import_image(db, file_path)
@@ -180,8 +193,8 @@ class ImageImportHandler(FileSystemEventHandler):
         # Generate UUID v7 for database ID
         image_id = uuid7()
 
-        # Get image dimensions
-        width, height = get_image_dimensions(file_path)
+        # Get image dimensions (async)
+        width, height = await get_image_dimensions_async(file_path)
 
         # Get file size
         file_size = file_path.stat().st_size
@@ -211,8 +224,8 @@ class ImageImportHandler(FileSystemEventHandler):
         # Move file to storage
         shutil.move(str(file_path), str(storage_abs_path))
 
-        # Create thumbnail
-        create_thumbnail(
+        # Create thumbnail (async)
+        await create_thumbnail_async(
             storage_abs_path,
             thumbnail_abs_path,
             size=self.settings.thumbnail_size,

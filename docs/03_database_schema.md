@@ -103,6 +103,45 @@ COMMENT ON COLUMN images.model_params IS 'モデル固有パラメータ（JSONB
 COMMENT ON COLUMN images.deleted_at IS '論理削除日時（NULLは未削除）';
 ```
 
+### showcases テーブル
+
+画像コレクション（Showcase）を管理するテーブル。
+
+```sql
+CREATE TABLE showcases (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(1000),
+    icon VARCHAR(50),
+    cover_image_id UUID REFERENCES images(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE showcases IS '画像コレクション（Showcase）';
+COMMENT ON COLUMN showcases.cover_image_id IS 'カバー画像のID';
+```
+
+### showcase_images テーブル
+
+ShowcaseとImagesの中間テーブル。
+
+```sql
+CREATE TABLE showcase_images (
+    showcase_id UUID NOT NULL REFERENCES showcases(id) ON DELETE CASCADE,
+    image_id UUID NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (showcase_id, image_id)
+);
+
+CREATE INDEX idx_showcase_images_showcase_id ON showcase_images(showcase_id);
+CREATE INDEX idx_showcase_images_image_id ON showcase_images(image_id);
+
+COMMENT ON TABLE showcase_images IS 'Showcaseと画像の関連';
+COMMENT ON COLUMN showcase_images.sort_order IS '表示順序';
+```
+
 ---
 
 ## インデックス定義
