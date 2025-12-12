@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Album, Plus, Pencil, Trash2, Star, Heart, Grid, Sparkles, Image as ImageIcon } from 'lucide-react'
+import { Album, Plus, Pencil, Trash2, Star, Heart, Grid, Sparkles, Image as ImageIcon, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
-import type { Showcase, ShowcaseCreate } from '@/types/showcase'
+import type { Showcase, ShowcaseCreate, ShowcaseUpdate, ShowcaseImageInfo } from '@/types/showcase'
 
 // Available icons for showcases
 const SHOWCASE_ICONS = [
@@ -22,15 +22,17 @@ function getIconComponent(iconName: string | null) {
 
 interface CreateEditModalProps {
   showcase?: Showcase | null
+  showcaseImages?: ShowcaseImageInfo[]
   onClose: () => void
-  onSave: (data: ShowcaseCreate) => void
+  onSave: (data: ShowcaseCreate | ShowcaseUpdate) => void
   isPending: boolean
 }
 
-function CreateEditModal({ showcase, onClose, onSave, isPending }: CreateEditModalProps) {
+function CreateEditModal({ showcase, showcaseImages, onClose, onSave, isPending }: CreateEditModalProps) {
   const [name, setName] = useState(showcase?.name || '')
   const [description, setDescription] = useState(showcase?.description || '')
   const [icon, setIcon] = useState(showcase?.icon || 'album')
+  const [coverImageId, setCoverImageId] = useState<string | null>(showcase?.cover_image_id || null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,11 +40,22 @@ function CreateEditModal({ showcase, onClose, onSave, isPending }: CreateEditMod
       toast.error('名前を入力してください')
       return
     }
-    onSave({
-      name: name.trim(),
-      description: description.trim() || null,
-      icon,
-    })
+    if (showcase) {
+      // Update
+      onSave({
+        name: name.trim(),
+        description: description.trim() || null,
+        icon,
+        cover_image_id: coverImageId,
+      } as ShowcaseUpdate)
+    } else {
+      // Create
+      onSave({
+        name: name.trim(),
+        description: description.trim() || null,
+        icon,
+      } as ShowcaseCreate)
+    }
   }
 
   return (
@@ -51,7 +64,7 @@ function CreateEditModal({ showcase, onClose, onSave, isPending }: CreateEditMod
       onClick={onClose}
     >
       <div
-        className="bg-gray-800 rounded-lg p-6 w-full max-w-lg"
+        className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-semibold text-white mb-4">
@@ -109,6 +122,47 @@ function CreateEditModal({ showcase, onClose, onSave, isPending }: CreateEditMod
             </div>
           </div>
 
+          {/* Cover Image (only when editing and has images) */}
+          {showcase && showcaseImages && showcaseImages.length > 0 && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">カバー画像</label>
+              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                {/* None option */}
+                <button
+                  type="button"
+                  onClick={() => setCoverImageId(null)}
+                  className={`aspect-square rounded-lg flex items-center justify-center transition-all ${
+                    coverImageId === null
+                      ? 'ring-2 ring-blue-500 bg-gray-600'
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`}
+                  title="カバーなし"
+                >
+                  <X size={24} className="text-gray-400" />
+                </button>
+                {/* Image options */}
+                {showcaseImages.map((image) => (
+                  <button
+                    key={image.id}
+                    type="button"
+                    onClick={() => setCoverImageId(image.id)}
+                    className={`aspect-square rounded-lg overflow-hidden transition-all ${
+                      coverImageId === image.id
+                        ? 'ring-2 ring-blue-500'
+                        : 'hover:ring-2 hover:ring-gray-500'
+                    }`}
+                  >
+                    <img
+                      src={`/storage/${image.thumbnail_path}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-2 justify-end pt-4">
             <button
@@ -136,11 +190,18 @@ export default function ShowcasesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
-  const [editingShowcase, setEditingShowcase] = useState<Showcase | null>(null)
+  const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null)
 
   const { data: showcases = [], isLoading } = useQuery({
     queryKey: ['showcases'],
     queryFn: showcasesApi.list,
+  })
+
+  // Fetch showcase detail when editing (to get images for cover selection)
+  const { data: editingShowcaseDetail } = useQuery({
+    queryKey: ['showcase', editingShowcaseId],
+    queryFn: () => showcasesApi.get(editingShowcaseId!),
+    enabled: !!editingShowcaseId,
   })
 
   const createMutation = useMutation({
@@ -156,12 +217,13 @@ export default function ShowcasesPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: ShowcaseCreate }) =>
+    mutationFn: ({ id, data }: { id: string; data: ShowcaseUpdate }) =>
       showcasesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['showcases'] })
+      queryClient.invalidateQueries({ queryKey: ['showcase', editingShowcaseId] })
       toast.success('Showcaseを更新しました')
-      setEditingShowcase(null)
+      setEditingShowcaseId(null)
     },
     onError: () => {
       toast.error('Showcaseの更新に失敗しました')
@@ -185,7 +247,7 @@ export default function ShowcasesPage() {
 
   const handleEdit = (e: React.MouseEvent, showcase: Showcase) => {
     e.stopPropagation()
-    setEditingShowcase(showcase)
+    setEditingShowcaseId(showcase.id)
   }
 
   const handleDelete = (e: React.MouseEvent, showcase: Showcase) => {
@@ -195,17 +257,17 @@ export default function ShowcasesPage() {
     }
   }
 
-  const handleSave = (data: ShowcaseCreate) => {
-    if (editingShowcase) {
-      updateMutation.mutate({ id: editingShowcase.id, data })
+  const handleSave = (data: ShowcaseCreate | ShowcaseUpdate) => {
+    if (editingShowcaseId) {
+      updateMutation.mutate({ id: editingShowcaseId, data: data as ShowcaseUpdate })
     } else {
-      createMutation.mutate(data)
+      createMutation.mutate(data as ShowcaseCreate)
     }
   }
 
   const handleCloseModal = () => {
     setShowModal(false)
-    setEditingShowcase(null)
+    setEditingShowcaseId(null)
   }
 
   return (
@@ -302,9 +364,10 @@ export default function ShowcasesPage() {
       )}
 
       {/* Create/Edit Modal */}
-      {(showModal || editingShowcase) && (
+      {(showModal || editingShowcaseId) && (
         <CreateEditModal
-          showcase={editingShowcase}
+          showcase={editingShowcaseDetail || null}
+          showcaseImages={editingShowcaseDetail?.images}
           onClose={handleCloseModal}
           onSave={handleSave}
           isPending={createMutation.isPending || updateMutation.isPending}

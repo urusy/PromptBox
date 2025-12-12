@@ -253,6 +253,10 @@
 
 ### 最近の更新
 
+- [x] Showcaseカバー画像選択機能
+  - 編集モーダルにカバー画像選択UIを追加
+  - Showcase内の画像から選択可能
+  - 「カバーなし」オプションも選択可能
 - [x] 検索フィルター追加（Sampler / Date Range / Unrated）
   - Sampler: ドロップダウンで選択可能（バックエンドは既存、UIを追加）
   - Date Range: Today / Past 7 Days / Past 30 Days / This Month のクイックフィルター
