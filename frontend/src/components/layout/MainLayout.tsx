@@ -16,7 +16,14 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
-      <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700">
+      <header
+        className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
+      >
         <div className="mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo and Showcase */}
@@ -117,7 +124,14 @@ export default function MainLayout() {
           </div>
         </div>
       </header>
-      <main className="px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+      <main
+        className="px-2 sm:px-4 lg:px-8 py-4 sm:py-8"
+        style={{
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
         <Outlet />
       </main>
     </div>

@@ -30,6 +30,12 @@ const UPSCALE_FILTER_OPTIONS = [
   { value: 'upscaled', label: 'Upscaled Only' },
   { value: 'non-upscaled', label: 'Non-Upscaled Only' },
 ]
+const ORIENTATION_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'landscape', label: 'Landscape' },
+  { value: 'square', label: 'Square' },
+]
 const RATING_MATCH_OPTIONS = [
   { value: 'min', label: '以上' },
   { value: 'exact', label: '同等' },
@@ -110,7 +116,7 @@ const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
   const keys: (keyof SearchFilters)[] = [
     'q', 'source_tool', 'model_type', 'model_name', 'sampler_name',
     'min_rating', 'exact_rating', 'is_favorite', 'needs_improvement',
-    'tags', 'lora_name', 'is_xyz_grid', 'is_upscaled',
+    'tags', 'lora_name', 'is_xyz_grid', 'is_upscaled', 'orientation',
     'min_width', 'min_height', 'date_from', 'sort_by', 'sort_order'
   ]
 
@@ -335,6 +341,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.is_favorite ||
     localParams.is_xyz_grid !== undefined ||
     localParams.is_upscaled !== undefined ||
+    localParams.orientation ||
     localParams.min_width ||
     localParams.min_height ||
     localParams.date_from
@@ -492,7 +499,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
 
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-gray-700 space-y-4">
-          {/* Row 1: Model/Generation filters */}
+          {/* Row 1: Generation Source */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Source Tool</label>
@@ -598,6 +605,25 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
               )}
             </div>
 
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sampler</label>
+              <select
+                value={localParams.sampler_name || ''}
+                onChange={(e) => updateParam('sampler_name', e.target.value || undefined)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All</option>
+                {samplerList?.samplers.map((sampler) => (
+                  <option key={sampler} value={sampler}>
+                    {sampler}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 2: LoRA & Image Attributes */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="relative">
               <label className="block text-sm text-gray-400 mb-1">LoRA</label>
               <div className="relative">
@@ -669,118 +695,15 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Row 2: Sampler & Rating */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Sampler</label>
+              <label className="block text-sm text-gray-400 mb-1">Orientation</label>
               <select
-                value={localParams.sampler_name || ''}
-                onChange={(e) => updateParam('sampler_name', e.target.value || undefined)}
+                value={localParams.orientation || ''}
+                onChange={(e) => updateParam('orientation', e.target.value || undefined)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All</option>
-                {samplerList?.samplers.map((sampler) => (
-                  <option key={sampler} value={sampler}>
-                    {sampler}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Rating</label>
-              <div className="flex gap-2">
-                <select
-                  value={localParams.exact_rating ?? localParams.min_rating ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value ? parseInt(e.target.value) : undefined
-                    const isExactMode = localParams.exact_rating !== undefined
-                    if (isExactMode) {
-                      setLocalParams({ ...localParams, exact_rating: val, min_rating: undefined })
-                    } else {
-                      setLocalParams({ ...localParams, min_rating: val, exact_rating: undefined })
-                    }
-                  }}
-                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Any</option>
-                  <option value="0">★0</option>
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <option key={rating} value={rating}>
-                      ★{rating}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={localParams.exact_rating !== undefined ? 'exact' : 'min'}
-                  onChange={(e) => {
-                    const currentVal = localParams.exact_rating ?? localParams.min_rating
-                    if (e.target.value === 'exact') {
-                      setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
-                    } else {
-                      setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
-                    }
-                  }}
-                  className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {RATING_MATCH_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Favorites</label>
-              <button
-                type="button"
-                onClick={() => updateParam('is_favorite', localParams.is_favorite ? undefined : true)}
-                className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  localParams.is_favorite
-                    ? 'bg-blue-600 border-blue-500 text-white'
-                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
-                }`}
-              >
-                {localParams.is_favorite ? '★ ON' : '☆ OFF'}
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Unrated</label>
-              <button
-                type="button"
-                onClick={() => {
-                  if (localParams.exact_rating === 0) {
-                    setLocalParams({ ...localParams, exact_rating: undefined, min_rating: undefined })
-                  } else {
-                    setLocalParams({ ...localParams, exact_rating: 0, min_rating: undefined })
-                  }
-                }}
-                className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  localParams.exact_rating === 0
-                    ? 'bg-blue-600 border-blue-500 text-white'
-                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
-                }`}
-              >
-                {localParams.exact_rating === 0 ? '☆ ON' : '- OFF'}
-              </button>
-            </div>
-          </div>
-
-          {/* Row 3: Date & Attributes */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Date Range</label>
-              <select
-                value={getDateRangeOption(localParams.date_from)}
-                onChange={(e) => updateParam('date_from', getDateFromValue(e.target.value))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {DATE_RANGE_OPTIONS.map((option) => (
+                {ORIENTATION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -825,7 +748,103 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             </div>
           </div>
 
-          {/* Row 3: Dimensions & Sorting */}
+          {/* Row 3: Rating & Time */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm text-gray-400 mb-1">Rating</label>
+              <div className="flex gap-2">
+                <select
+                  value={localParams.exact_rating ?? localParams.min_rating ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value) : undefined
+                    const isExactMode = localParams.exact_rating !== undefined
+                    if (isExactMode) {
+                      setLocalParams({ ...localParams, exact_rating: val, min_rating: undefined })
+                    } else {
+                      setLocalParams({ ...localParams, min_rating: val, exact_rating: undefined })
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Any</option>
+                  <option value="0">★0</option>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <option key={rating} value={rating}>
+                      ★{rating}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={localParams.exact_rating !== undefined ? 'exact' : 'min'}
+                  onChange={(e) => {
+                    const currentVal = localParams.exact_rating ?? localParams.min_rating
+                    if (e.target.value === 'exact') {
+                      setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
+                    } else {
+                      setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
+                    }
+                  }}
+                  className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {RATING_MATCH_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (localParams.exact_rating === 0) {
+                      setLocalParams({ ...localParams, exact_rating: undefined, min_rating: undefined })
+                    } else {
+                      setLocalParams({ ...localParams, exact_rating: 0, min_rating: undefined })
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${
+                    localParams.exact_rating === 0
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                  }`}
+                  title="未評価のみ表示"
+                >
+                  {localParams.exact_rating === 0 ? '未評価 ON' : '未評価'}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Favorites</label>
+              <button
+                type="button"
+                onClick={() => updateParam('is_favorite', localParams.is_favorite ? undefined : true)}
+                className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  localParams.is_favorite
+                    ? 'bg-blue-600 border-blue-500 text-white'
+                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                {localParams.is_favorite ? '★ Favorites ON' : '☆ Favorites'}
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Date Range</label>
+              <select
+                value={getDateRangeOption(localParams.date_from)}
+                onChange={(e) => updateParam('date_from', getDateFromValue(e.target.value))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {DATE_RANGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 4: Dimensions & Sorting */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2">
               <label className="block text-sm text-gray-400 mb-1">

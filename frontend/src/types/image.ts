@@ -100,6 +100,7 @@ export interface ImageSearchParams {
   lora_name?: string
   is_xyz_grid?: boolean | null  // true = grid only, false = non-grid only, null/undefined = all
   is_upscaled?: boolean | null  // true = upscaled only, false = non-upscaled only
+  orientation?: string  // portrait, landscape, square
   min_width?: number
   min_height?: number
   date_from?: string  // ISO date string (YYYY-MM-DD)

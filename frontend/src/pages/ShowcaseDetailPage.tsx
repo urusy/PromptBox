@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Image as ImageIcon, X, Play } from 'lucide-react'
+import { ArrowLeft, Image as ImageIcon, X, Play, ArrowUpDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
 import Slideshow from '@/components/gallery/Slideshow'
+import SortableImageGrid from '@/components/gallery/SortableImageGrid'
+import type { ShowcaseImageInfo } from '@/types/showcase'
 
 export default function ShowcaseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -12,6 +14,7 @@ export default function ShowcaseDetailPage() {
   const queryClient = useQueryClient()
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [isSelectMode, setIsSelectMode] = useState(false)
+  const [isSortMode, setIsSortMode] = useState(false)
   const [slideshowStartIndex, setSlideshowStartIndex] = useState<number | null>(null)
 
   const { data: showcase, isLoading, error } = useQuery({
@@ -34,6 +37,29 @@ export default function ShowcaseDetailPage() {
       toast.error('画像の削除に失敗しました')
     },
   })
+
+  const reorderImagesMutation = useMutation({
+    mutationFn: (imageIds: string[]) =>
+      showcasesApi.reorderImages(id!, { image_ids: imageIds }),
+    onError: () => {
+      // Revert on error by refetching
+      queryClient.invalidateQueries({ queryKey: ['showcase', id] })
+      toast.error('並び替えの保存に失敗しました')
+    },
+  })
+
+  const handleReorder = (newOrder: ShowcaseImageInfo[]) => {
+    if (!showcase) return
+
+    // Optimistic update
+    queryClient.setQueryData(['showcase', id], {
+      ...showcase,
+      images: newOrder,
+    })
+
+    // Save to server
+    reorderImagesMutation.mutate(newOrder.map((img) => img.id))
+  }
 
   const handleImageClick = (imageId: string) => {
     if (isSelectMode) {
@@ -60,6 +86,13 @@ export default function ShowcaseDetailPage() {
 
   const toggleSelectMode = () => {
     setIsSelectMode(!isSelectMode)
+    setIsSortMode(false)
+    setSelectedImages(new Set())
+  }
+
+  const toggleSortMode = () => {
+    setIsSortMode(!isSortMode)
+    setIsSelectMode(false)
     setSelectedImages(new Set())
   }
 
@@ -102,14 +135,28 @@ export default function ShowcaseDetailPage() {
         <div className="flex items-center gap-2">
           <span className="text-gray-400 text-sm">{showcase.image_count} 枚</span>
           {showcase.images.length > 0 && (
-            <button
-              onClick={() => setSlideshowStartIndex(0)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 rounded-lg text-sm hover:bg-green-700 transition-colors"
-              title="スライドショー"
-            >
-              <Play size={16} />
-              <span className="hidden sm:inline">スライドショー</span>
-            </button>
+            <>
+              <button
+                onClick={() => setSlideshowStartIndex(0)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 rounded-lg text-sm hover:bg-green-700 transition-colors"
+                title="スライドショー"
+              >
+                <Play size={16} />
+                <span className="hidden sm:inline">スライドショー</span>
+              </button>
+              <button
+                onClick={toggleSortMode}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  isSortMode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+                title="並び替え"
+              >
+                <ArrowUpDown size={16} />
+                <span className="hidden sm:inline">{isSortMode ? '完了' : '並び替え'}</span>
+              </button>
+            </>
           )}
           <button
             onClick={toggleSelectMode}
@@ -148,6 +195,8 @@ export default function ShowcaseDetailPage() {
             ギャラリーで画像を選択し、「Showcaseに追加」から追加できます
           </p>
         </div>
+      ) : isSortMode ? (
+        <SortableImageGrid images={showcase.images} onReorder={handleReorder} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10 gap-2">
           {showcase.images.map((image) => (

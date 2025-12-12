@@ -12,6 +12,7 @@ export interface SearchFilters {
   lora_name?: string
   is_xyz_grid?: boolean | null
   is_upscaled?: boolean | null
+  orientation?: string
   min_width?: number
   min_height?: number
   date_from?: string

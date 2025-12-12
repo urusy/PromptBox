@@ -94,6 +94,15 @@ class ImageService:
                     Image.model_params.op("->>")("hires_upscaler").is_(None)
                 )
 
+        # Filter by orientation (portrait, landscape, square)
+        if params.orientation:
+            if params.orientation == "portrait":
+                query = query.where(Image.height > Image.width)
+            elif params.orientation == "landscape":
+                query = query.where(Image.width > Image.height)
+            elif params.orientation == "square":
+                query = query.where(Image.width == Image.height)
+
         # Filter by minimum dimensions
         if params.min_width is not None:
             query = query.where(Image.width >= params.min_width)

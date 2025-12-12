@@ -136,6 +136,7 @@ class ImageSearchParams(BaseModel):
     lora_name: str | None = None
     is_xyz_grid: bool | None = None  # Filter by XYZ grid images
     is_upscaled: bool | None = None  # Filter by upscaled images (hires_upscaler exists)
+    orientation: str | None = None  # portrait, landscape, or square
     min_width: int | None = Field(None, ge=1)
     min_height: int | None = Field(None, ge=1)
     date_from: str | None = None  # ISO format date string (YYYY-MM-DD)
