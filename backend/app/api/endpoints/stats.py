@@ -80,6 +80,10 @@ class ModelListResponse(BaseModel):
     models: list[str]
 
 
+class LoraListResponse(BaseModel):
+    loras: list[str]
+
+
 class ModelRatingDistributionItem(BaseModel):
     model_name: str
     rating_0: int
@@ -301,6 +305,40 @@ async def get_models_for_analysis(
     )
     models = [row[0] for row in result.all()]
     return ModelListResponse(models=models)
+
+
+@router.get("/loras-for-filter", response_model=LoraListResponse)
+async def get_loras_for_filter(
+    db: DbSession,
+    _: CurrentUser,
+    min_count: int = 1,
+) -> LoraListResponse:
+    """Get list of LoRAs for search filter dropdown.
+
+    Returns LoRA names ordered by usage count (most used first).
+    """
+    base_filter = Image.deleted_at.is_(None)
+
+    # Unnest JSONB loras array to get individual LoRA names
+    lora_unnest = (
+        select(
+            func.jsonb_array_elements(Image.loras).op("->>")(
+                "name"
+            ).label("lora_name")
+        )
+        .where(base_filter)
+        .where(func.jsonb_array_length(Image.loras) > 0)
+        .subquery()
+    )
+
+    result = await db.execute(
+        select(lora_unnest.c.lora_name)
+        .group_by(lora_unnest.c.lora_name)
+        .having(func.count() >= min_count)
+        .order_by(func.count().desc())
+    )
+    loras = [row[0] for row in result.all()]
+    return LoraListResponse(loras=loras)
 
 
 @router.get("/rating-analysis", response_model=RatingAnalysisResponse)

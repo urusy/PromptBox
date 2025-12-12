@@ -251,6 +251,10 @@
 
 ### 最近の更新
 
+- [x] 検索条件にLoRAフィルターを追加
+  - LoRA名でフィルタリング可能に
+  - Model Nameと同様のコンボボックス形式（テキスト入力+ドロップダウン）
+  - バックエンド: `/stats/loras-for-filter` APIを追加
 - [x] ESLint設定を追加、コード警告を修正
   - ESLint v9 Flat Config形式で設定ファイル追加
   - 未使用変数の警告を修正

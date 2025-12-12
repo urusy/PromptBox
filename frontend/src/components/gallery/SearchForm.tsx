@@ -103,7 +103,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [showPresetDropdown, setShowPresetDropdown] = useState(false)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const [showLoraDropdown, setShowLoraDropdown] = useState(false)
   const modelInputRef = useRef<HTMLInputElement>(null)
+  const loraInputRef = useRef<HTMLInputElement>(null)
   const saveModalRef = useRef<HTMLDivElement>(null)
 
   const queryClient = useQueryClient()
@@ -118,6 +120,12 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const { data: modelList } = useQuery({
     queryKey: ['models-for-filter'],
     queryFn: () => statsApi.getModelsForAnalysis(1),  // min_count=1 to get all models
+  })
+
+  // Fetch LoRA names for dropdown
+  const { data: loraList } = useQuery({
+    queryKey: ['loras-for-filter'],
+    queryFn: () => statsApi.getLorasForFilter(1),  // min_count=1 to get all LoRAs
   })
 
   // Extract model name (after last backslash), dedupe, sort alphabetically, and filter
@@ -141,6 +149,20 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   // Filter models based on current input
   const filteredModels = processedModels.filter(
     (model) => !localParams.model_name || model.toLowerCase().includes(localParams.model_name.toLowerCase())
+  )
+
+  // Process and filter LoRA names
+  const processedLoras = useMemo(() => {
+    if (!loraList?.loras) return []
+    // Sort alphabetically (case-insensitive)
+    return [...loraList.loras].sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    )
+  }, [loraList?.loras])
+
+  // Filter LoRAs based on current input
+  const filteredLoras = processedLoras.filter(
+    (lora) => !localParams.lora_name || lora.toLowerCase().includes(localParams.lora_name.toLowerCase())
   )
 
   // Sync localParams when params prop changes
@@ -257,6 +279,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.source_tool ||
     localParams.model_type ||
     localParams.model_name ||
+    localParams.lora_name ||
     localParams.min_rating ||
     localParams.exact_rating !== undefined ||
     localParams.is_favorite ||
@@ -503,6 +526,65 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 {filteredModels.length > 20 && (
                   <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
                     他 {filteredModels.length - 20} 件...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <label className="block text-sm text-gray-400 mb-1">LoRA</label>
+            <div className="relative">
+              <input
+                ref={loraInputRef}
+                type="text"
+                placeholder="Filter by LoRA..."
+                value={localParams.lora_name || ''}
+                onChange={(e) => {
+                  updateParam('lora_name', e.target.value || undefined)
+                  setShowLoraDropdown(true)
+                }}
+                onFocus={() => setShowLoraDropdown(true)}
+                onBlur={() => {
+                  // Delay to allow click on dropdown items
+                  setTimeout(() => setShowLoraDropdown(false), 150)
+                }}
+                className="w-full px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLoraDropdown(!showLoraDropdown)
+                  loraInputRef.current?.focus()
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <ChevronDown size={16} className={`transition-transform ${showLoraDropdown ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+            {showLoraDropdown && filteredLoras.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                {filteredLoras.slice(0, 20).map((lora) => (
+                  <button
+                    key={lora}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      updateParam('lora_name', lora)
+                      setShowLoraDropdown(false)
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                      localParams.lora_name === lora
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {lora}
+                  </button>
+                ))}
+                {filteredLoras.length > 20 && (
+                  <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-600">
+                    他 {filteredLoras.length - 20} 件...
                   </div>
                 )}
               </div>

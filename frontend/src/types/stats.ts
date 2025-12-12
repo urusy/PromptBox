@@ -53,6 +53,10 @@ export interface ModelListResponse {
   models: string[]
 }
 
+export interface LoraListResponse {
+  loras: string[]
+}
+
 export interface ModelRatingDistributionItem {
   model_name: string
   rating_0: number
