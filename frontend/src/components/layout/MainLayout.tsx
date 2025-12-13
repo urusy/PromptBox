@@ -20,11 +20,15 @@ export default function MainLayout() {
         className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)',
         }}
       >
-        <div className="mx-auto px-2 sm:px-4 lg:px-8">
+        <div
+          className="mx-auto"
+          style={{
+            paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+            paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+          }}
+        >
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo and Showcase */}
             <div className="flex items-center gap-2 sm:gap-4">
