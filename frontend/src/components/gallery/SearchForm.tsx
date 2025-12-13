@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, X, ChevronDown, ChevronUp, Save, Trash2, Bookmark } from 'lucide-react'
+import { Search, X, ChevronDown, ChevronUp, Save, Trash2, Bookmark, Tag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { ImageSearchParams } from '@/types/image'
 import type { SearchFilters } from '@/types/searchPreset'
 import { searchPresetsApi } from '@/api/searchPresets'
 import { statsApi } from '@/api/stats'
+import { tagsApi } from '@/api/tags'
 
 interface SearchFormProps {
   params: ImageSearchParams
@@ -153,8 +154,11 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [showLoraDropdown, setShowLoraDropdown] = useState(false)
+  const [showTagDropdown, setShowTagDropdown] = useState(false)
+  const [tagSearchQuery, setTagSearchQuery] = useState('')
   const modelInputRef = useRef<HTMLInputElement>(null)
   const loraInputRef = useRef<HTMLInputElement>(null)
+  const tagInputRef = useRef<HTMLInputElement>(null)
   const saveModalRef = useRef<HTMLDivElement>(null)
 
   const queryClient = useQueryClient()
@@ -181,6 +185,12 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const { data: samplerList } = useQuery({
     queryKey: ['samplers-for-filter'],
     queryFn: () => statsApi.getSamplersForFilter(1),  // min_count=1 to get all Samplers
+  })
+
+  // Fetch tags for dropdown
+  const { data: tagList = [] } = useQuery({
+    queryKey: ['tags-for-filter', tagSearchQuery],
+    queryFn: () => tagsApi.list(tagSearchQuery || undefined, 50),
   })
 
   // Extract model name (after last backslash), dedupe, sort alphabetically, and filter
@@ -219,6 +229,12 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const filteredLoras = processedLoras.filter(
     (lora) => !localParams.lora_name || lora.toLowerCase().includes(localParams.lora_name.toLowerCase())
   )
+
+  // Filter tags - exclude already selected tags
+  const filteredTags = useMemo(() => {
+    const selectedTags = localParams.tags || []
+    return tagList.filter((tag) => !selectedTags.includes(tag))
+  }, [tagList, localParams.tags])
 
   // Sync localParams when params prop changes
   useEffect(() => {
@@ -329,6 +345,21 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     setLocalParams({ ...localParams, [key]: value })
   }
 
+  const addTag = (tag: string) => {
+    const currentTags = localParams.tags || []
+    if (!currentTags.includes(tag)) {
+      setLocalParams({ ...localParams, tags: [...currentTags, tag] })
+    }
+    setTagSearchQuery('')
+    setShowTagDropdown(false)
+  }
+
+  const removeTag = (tag: string) => {
+    const currentTags = localParams.tags || []
+    const newTags = currentTags.filter((t) => t !== tag)
+    setLocalParams({ ...localParams, tags: newTags.length > 0 ? newTags : undefined })
+  }
+
   const hasActiveFilters = !!(
     localParams.q ||
     localParams.source_tool ||
@@ -344,7 +375,8 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.orientation ||
     localParams.min_width ||
     localParams.min_height ||
-    localParams.date_from
+    localParams.date_from ||
+    (localParams.tags && localParams.tags.length > 0)
   )
 
   const handleSavePreset = () => {
@@ -745,6 +777,72 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Row 2.5: Tags */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-1 flex items-center gap-1">
+              <Tag size={14} />
+              Tags (AND)
+            </label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(localParams.tags || []).map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600/30 text-blue-300 rounded-lg text-sm"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:text-white"
+                    title="Remove tag"
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative">
+              <input
+                ref={tagInputRef}
+                type="text"
+                placeholder="Add tag..."
+                value={tagSearchQuery}
+                onChange={(e) => {
+                  setTagSearchQuery(e.target.value)
+                  setShowTagDropdown(true)
+                }}
+                onFocus={() => setShowTagDropdown(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowTagDropdown(false), 150)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tagSearchQuery.trim()) {
+                    e.preventDefault()
+                    addTag(tagSearchQuery.trim())
+                  }
+                }}
+                className="w-full md:w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {showTagDropdown && filteredTags.length > 0 && (
+                <div className="absolute top-full left-0 w-full md:w-64 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20 max-h-48 overflow-y-auto">
+                  {filteredTags.slice(0, 15).map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        addTag(tag)
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-600 transition-colors"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

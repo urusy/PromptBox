@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3, Album, Box, Layers } from 'lucide-react'
+import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3, Album, Box, Layers, Sparkles } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -54,6 +54,14 @@ export default function MainLayout() {
               >
                 <Image size={18} />
                 <span className="hidden sm:inline text-sm">Gallery</span>
+              </Link>
+              <Link
+                to="/swipe"
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                title="Quick Rate"
+              >
+                <Sparkles size={18} className="text-yellow-400" />
+                <span className="hidden sm:inline text-sm">Rate</span>
               </Link>
               <Link
                 to="/trash"
