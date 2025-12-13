@@ -7,6 +7,8 @@ from app.api.endpoints import (
     export,
     health,
     images,
+    loras,
+    models,
     search_presets,
     showcases,
     smart_folders,
@@ -27,3 +29,5 @@ api_router.include_router(showcases.router)
 api_router.include_router(smart_folders.router)
 api_router.include_router(stats.router)
 api_router.include_router(tags.router)
+api_router.include_router(models.router)
+api_router.include_router(loras.router)
