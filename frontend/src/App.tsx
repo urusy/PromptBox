@@ -15,6 +15,10 @@ const SmartFoldersPage = lazy(() => import('@/pages/SmartFoldersPage'))
 const ShowcasesPage = lazy(() => import('@/pages/ShowcasesPage'))
 const ShowcaseDetailPage = lazy(() => import('@/pages/ShowcaseDetailPage'))
 const StatsPage = lazy(() => import('@/pages/StatsPage'))
+const ModelsPage = lazy(() => import('@/pages/ModelsPage'))
+const ModelDetailPage = lazy(() => import('@/pages/ModelDetailPage'))
+const LorasPage = lazy(() => import('@/pages/LorasPage'))
+const LoraDetailPage = lazy(() => import('@/pages/LoraDetailPage'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -92,6 +96,38 @@ function App() {
             element={
               <Suspense fallback={<PageLoader />}>
                 <StatsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="models"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ModelsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="models/:name"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ModelDetailPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="loras"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <LorasPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="loras/:name"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <LoraDetailPage />
               </Suspense>
             }
           />
