@@ -126,7 +126,7 @@ function CreateEditModal({ showcase, showcaseImages, onClose, onSave, isPending 
           {showcase && showcaseImages && showcaseImages.length > 0 && (
             <div>
               <label className="block text-sm text-gray-400 mb-2">カバー画像</label>
-              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+              <div className="grid grid-cols-4 auto-rows-min gap-2 max-h-48 overflow-y-auto p-1">
                 {/* None option */}
                 <button
                   type="button"
