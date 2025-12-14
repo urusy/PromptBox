@@ -6,12 +6,10 @@ import tempfile
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 # Set test environment before importing app modules
@@ -19,8 +17,8 @@ os.environ["TESTING"] = "1"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32chars"
 os.environ["ADMIN_USERNAME"] = "testadmin"
 os.environ["ADMIN_PASSWORD_HASH"] = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.S4kiYCb/Xce9BO"  # "testpass"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
-from app.config import Settings
 from app.database import Base
 from app.main import app
 from app.api.deps import get_db
@@ -62,13 +60,13 @@ async def async_engine():
 @pytest.fixture
 async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create a database session for testing."""
-    async_session_factory = sessionmaker(
+    session_factory = async_sessionmaker(
         async_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
 
-    async with async_session_factory() as session:
+    async with session_factory() as session:
         yield session
         await session.rollback()
 
@@ -173,19 +171,3 @@ def sample_png_info_novelai() -> dict[str, Any]:
 def sample_png_info_empty() -> dict[str, Any]:
     """Empty metadata for testing unknown source."""
     return {}
-
-
-@pytest.fixture
-def mock_settings() -> Settings:
-    """Mock settings for testing."""
-    return Settings(
-        debug=True,
-        secret_key="test-secret-key-for-testing-only-32chars",
-        admin_username="testadmin",
-        admin_password_hash="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.S4kiYCb/Xce9BO",
-        db_host="localhost",
-        db_port=5432,
-        db_user="test",
-        db_password="test",
-        db_name="test",
-    )

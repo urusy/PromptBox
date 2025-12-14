@@ -64,6 +64,7 @@ jobs:
       SECRET_KEY: "test-secret-key-for-ci-testing-32chars"
       ADMIN_USERNAME: "testadmin"
       ADMIN_PASSWORD_HASH: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.S4kiYCb/Xce9BO"
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
 
     steps:
       - name: Checkout repository
@@ -87,12 +88,12 @@ jobs:
 
       - name: Run integration tests
         run: |
-          pytest tests/integration -v -m integration --cov=app --cov-append --cov-report=xml --cov-report=term-missing
+          pytest tests/integration -v --cov=app --cov-append --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
         with:
-          files: backend/coverage.xml
+          files: ./coverage.xml
           flags: backend
           fail_ci_if_error: false
 
