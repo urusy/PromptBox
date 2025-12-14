@@ -1,0 +1,24 @@
+# CODEOWNERS - コードオーナー定義
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# デフォルトオーナー（すべてのファイル）
+* @urusy
+
+# バックエンド
+/backend/ @urusy
+
+# フロントエンド
+/frontend/ @urusy
+
+# インフラ・CI/CD
+/.github/ @urusy
+/docker-compose.yml @urusy
+**/Dockerfile @urusy
+
+# ドキュメント
+/docs/ @urusy
+*.md @urusy
+
+# 設定ファイル
+.coderabbit.yaml @urusy
+.pre-commit-config.yaml @urusy
