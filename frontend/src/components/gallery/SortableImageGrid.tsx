@@ -33,14 +33,7 @@ interface SortableImageItemProps {
 }
 
 function SortableImageItem({ image }: SortableImageItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: image.id,
     transition: {
       duration: 200,
@@ -53,7 +46,7 @@ function SortableImageItem({ image }: SortableImageItemProps) {
     transition: transition || 'transform 200ms ease',
     // Use internal isDragging state from useSortable (more reliable)
     opacity: isDragging ? 0 : 1,
-    visibility: isDragging ? 'hidden' as const : 'visible' as const,
+    visibility: isDragging ? ('hidden' as const) : ('visible' as const),
     // Disable iOS magnifier/callout on long press
     WebkitTouchCallout: 'none',
     WebkitUserSelect: 'none',
@@ -122,10 +115,7 @@ export default function SortableImageGrid({ images, onReorder }: SortableImageGr
   )
 
   const itemIds = useMemo(() => images.map((img) => img.id), [images])
-  const activeImage = useMemo(
-    () => images.find((img) => img.id === activeId),
-    [images, activeId]
-  )
+  const activeImage = useMemo(() => images.find((img) => img.id === activeId), [images, activeId])
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
@@ -162,10 +152,7 @@ export default function SortableImageGrid({ images, onReorder }: SortableImageGr
       <SortableContext items={itemIds} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10 gap-2">
           {images.map((image) => (
-            <SortableImageItem
-              key={image.id}
-              image={image}
-            />
+            <SortableImageItem key={image.id} image={image} />
           ))}
         </div>
       </SortableContext>

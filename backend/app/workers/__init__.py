@@ -1,3 +1,3 @@
-from app.workers.watcher import ImageWatcher, ImageImportHandler
+from app.workers.watcher import ImageImportHandler, ImageWatcher
 
-__all__ = ["ImageWatcher", "ImageImportHandler"]
+__all__ = ["ImageImportHandler", "ImageWatcher"]

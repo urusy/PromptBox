@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.image import ImageListResponse, ImageResponse, ImageSearchParams, ImageUpdate
+from app.schemas.image import (
+    ImageListResponse,
+    ImageResponse,
+    ImageSearchParams,
+    ImageUpdate,
+)
 from app.services.image_service import ImageService
 
 router = APIRouter(prefix="/images", tags=["images"])

@@ -17,23 +17,29 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
   const isSelected = selectedIds.has(image.id)
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (isSelectionMode) {
-      e.preventDefault()
-      toggleSelection(image.id)
-    }
-  }, [isSelectionMode, toggleSelection, image.id])
-
-  const handleLongPress = useCallback((e: React.MouseEvent) => {
-    // Enable selection mode on right-click or ctrl+click
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      if (!isSelectionMode) {
-        setSelectionMode(true)
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isSelectionMode) {
+        e.preventDefault()
+        toggleSelection(image.id)
       }
-      toggleSelection(image.id)
-    }
-  }, [isSelectionMode, setSelectionMode, toggleSelection, image.id])
+    },
+    [isSelectionMode, toggleSelection, image.id]
+  )
+
+  const handleLongPress = useCallback(
+    (e: React.MouseEvent) => {
+      // Enable selection mode on right-click or ctrl+click
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        if (!isSelectionMode) {
+          setSelectionMode(true)
+        }
+        toggleSelection(image.id)
+      }
+    },
+    [isSelectionMode, setSelectionMode, toggleSelection, image.id]
+  )
 
   // Prefetch image data and full image on hover (desktop only)
   const handleMouseEnter = useCallback(() => {

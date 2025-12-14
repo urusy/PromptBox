@@ -1,5 +1,12 @@
 import client from './client'
-import type { StatsResponse, RatingAnalysisResponse, ModelListResponse, LoraListResponse, SamplerListResponse, ModelRatingDistributionResponse } from '@/types/stats'
+import type {
+  StatsResponse,
+  RatingAnalysisResponse,
+  ModelListResponse,
+  LoraListResponse,
+  SamplerListResponse,
+  ModelRatingDistributionResponse,
+} from '@/types/stats'
 
 export const statsApi = {
   get: async (days: number = 30): Promise<StatsResponse> => {
@@ -9,7 +16,10 @@ export const statsApi = {
     return response.data
   },
 
-  getRatingAnalysis: async (minCount: number = 5, modelName?: string): Promise<RatingAnalysisResponse> => {
+  getRatingAnalysis: async (
+    minCount: number = 5,
+    modelName?: string
+  ): Promise<RatingAnalysisResponse> => {
     const response = await client.get<RatingAnalysisResponse>('/stats/rating-analysis', {
       params: { min_count: minCount, model_name: modelName },
     })
@@ -37,10 +47,16 @@ export const statsApi = {
     return response.data
   },
 
-  getModelRatingDistribution: async (minCount: number = 10, limit: number = 15): Promise<ModelRatingDistributionResponse> => {
-    const response = await client.get<ModelRatingDistributionResponse>('/stats/model-rating-distribution', {
-      params: { min_count: minCount, limit },
-    })
+  getModelRatingDistribution: async (
+    minCount: number = 10,
+    limit: number = 15
+  ): Promise<ModelRatingDistributionResponse> => {
+    const response = await client.get<ModelRatingDistributionResponse>(
+      '/stats/model-rating-distribution',
+      {
+        params: { min_count: minCount, limit },
+      }
+    )
     return response.data
   },
 }

@@ -43,12 +43,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
           <div className="bg-gray-800 rounded-lg p-8 max-w-md w-full text-center">
             <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">
-              Something went wrong
-            </h2>
-            <p className="text-gray-400 mb-6">
-              An unexpected error occurred. Please try again.
-            </p>
+            <h2 className="text-xl font-semibold text-white mb-2">Something went wrong</h2>
+            <p className="text-gray-400 mb-6">An unexpected error occurred. Please try again.</p>
             {this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">

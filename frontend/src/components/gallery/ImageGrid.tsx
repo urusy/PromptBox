@@ -78,10 +78,7 @@ export default function ImageGrid({ images, size = 'medium' }: ImageGridProps) {
       className="overflow-auto"
       style={{ height: containerHeight, contain: 'strict' }}
     >
-      <div
-        className="relative w-full"
-        style={{ height: rowVirtualizer.getTotalSize() }}
-      >
+      <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {virtualRows.map((virtualRow) => {
           const startIndex = virtualRow.index * columnCount
           const rowImages = images.slice(startIndex, startIndex + columnCount)

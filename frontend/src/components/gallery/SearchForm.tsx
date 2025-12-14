@@ -93,7 +93,10 @@ const paramsToFilters = (params: ImageSearchParams): SearchFilters => {
 }
 
 // Helper function to convert SearchFilters to ImageSearchParams
-const filtersToParams = (filters: SearchFilters, currentParams: ImageSearchParams): ImageSearchParams => {
+const filtersToParams = (
+  filters: SearchFilters,
+  currentParams: ImageSearchParams
+): ImageSearchParams => {
   return {
     ...filters,
     page: 1,
@@ -115,10 +118,25 @@ const filtersHaveActiveConditions = (filters: SearchFilters): boolean => {
 // Helper function to compare filters (ignoring undefined vs not-present)
 const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
   const keys: (keyof SearchFilters)[] = [
-    'q', 'source_tool', 'model_type', 'model_name', 'sampler_name',
-    'min_rating', 'exact_rating', 'is_favorite', 'needs_improvement',
-    'tags', 'lora_name', 'is_xyz_grid', 'is_upscaled', 'orientation',
-    'min_width', 'min_height', 'date_from', 'sort_by', 'sort_order'
+    'q',
+    'source_tool',
+    'model_type',
+    'model_name',
+    'sampler_name',
+    'min_rating',
+    'exact_rating',
+    'is_favorite',
+    'needs_improvement',
+    'tags',
+    'lora_name',
+    'is_xyz_grid',
+    'is_upscaled',
+    'orientation',
+    'min_width',
+    'min_height',
+    'date_from',
+    'sort_by',
+    'sort_order',
   ]
 
   for (const key of keys) {
@@ -172,19 +190,19 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   // Fetch model names for dropdown
   const { data: modelList } = useQuery({
     queryKey: ['models-for-filter'],
-    queryFn: () => statsApi.getModelsForAnalysis(1),  // min_count=1 to get all models
+    queryFn: () => statsApi.getModelsForAnalysis(1), // min_count=1 to get all models
   })
 
   // Fetch LoRA names for dropdown
   const { data: loraList } = useQuery({
     queryKey: ['loras-for-filter'],
-    queryFn: () => statsApi.getLorasForFilter(1),  // min_count=1 to get all LoRAs
+    queryFn: () => statsApi.getLorasForFilter(1), // min_count=1 to get all LoRAs
   })
 
   // Fetch Sampler names for dropdown
   const { data: samplerList } = useQuery({
     queryKey: ['samplers-for-filter'],
-    queryFn: () => statsApi.getSamplersForFilter(1),  // min_count=1 to get all Samplers
+    queryFn: () => statsApi.getSamplersForFilter(1), // min_count=1 to get all Samplers
   })
 
   // Fetch tags for dropdown
@@ -206,28 +224,26 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     })
 
     // Convert to array and sort alphabetically (case-insensitive)
-    return Array.from(modelNames).sort((a, b) =>
-      a.toLowerCase().localeCompare(b.toLowerCase())
-    )
+    return Array.from(modelNames).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
   }, [modelList?.models])
 
   // Filter models based on current input
   const filteredModels = processedModels.filter(
-    (model) => !localParams.model_name || model.toLowerCase().includes(localParams.model_name.toLowerCase())
+    (model) =>
+      !localParams.model_name || model.toLowerCase().includes(localParams.model_name.toLowerCase())
   )
 
   // Process and filter LoRA names
   const processedLoras = useMemo(() => {
     if (!loraList?.loras) return []
     // Sort alphabetically (case-insensitive)
-    return [...loraList.loras].sort((a, b) =>
-      a.toLowerCase().localeCompare(b.toLowerCase())
-    )
+    return [...loraList.loras].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
   }, [loraList?.loras])
 
   // Filter LoRAs based on current input
   const filteredLoras = processedLoras.filter(
-    (lora) => !localParams.lora_name || lora.toLowerCase().includes(localParams.lora_name.toLowerCase())
+    (lora) =>
+      !localParams.lora_name || lora.toLowerCase().includes(localParams.lora_name.toLowerCase())
   )
 
   // Filter tags - exclude already selected tags
@@ -253,9 +269,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
       return
     }
 
-    const matchingPreset = presets.find((preset) =>
-      filtersMatch(currentFilters, preset.filters)
-    )
+    const matchingPreset = presets.find((preset) => filtersMatch(currentFilters, preset.filters))
 
     setSelectedPresetId(matchingPreset?.id ?? null)
   }, [params, presets])
@@ -338,10 +352,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     onSearch(resetParams)
   }
 
-  const updateParam = <K extends keyof ImageSearchParams>(
-    key: K,
-    value: ImageSearchParams[K]
-  ) => {
+  const updateParam = <K extends keyof ImageSearchParams>(key: K, value: ImageSearchParams[K]) => {
     setLocalParams({ ...localParams, [key]: value })
   }
 
@@ -429,7 +440,10 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           >
             <Bookmark size={16} className={selectedPreset ? 'fill-current' : ''} />
             <span className="max-w-32 truncate">{selectedPreset?.name || 'プリセット'}</span>
-            <ChevronDown size={14} className={`transition-transform ${showPresetDropdown ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showPresetDropdown ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {showPresetDropdown && (
@@ -454,9 +468,15 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                       }`}
                       onClick={() => handleSelectPreset(preset.id)}
                     >
-                      <span className={`text-sm truncate flex-1 ${
-                        preset.id === selectedPresetId ? 'text-blue-300 font-medium' : 'text-white'
-                      }`}>{preset.name}</span>
+                      <span
+                        className={`text-sm truncate flex-1 ${
+                          preset.id === selectedPresetId
+                            ? 'text-blue-300 font-medium'
+                            : 'text-white'
+                        }`}
+                      >
+                        {preset.name}
+                      </span>
                       <button
                         type="button"
                         onClick={(e) => handleDeletePreset(e, preset.id)}
@@ -516,9 +536,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
         >
           Filters
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          {hasActiveFilters && (
-            <span className="w-2 h-2 bg-blue-500 rounded-full" />
-          )}
+          {hasActiveFilters && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
         </button>
 
         <button
@@ -605,7 +623,10 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                 >
-                  <ChevronDown size={16} className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`}
+                  />
                 </button>
               </div>
               {showModelDropdown && filteredModels.length > 0 && (
@@ -696,7 +717,10 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                 >
-                  <ChevronDown size={16} className={`transition-transform ${showLoraDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${showLoraDropdown ? 'rotate-180' : ''}`}
+                  />
                 </button>
               </div>
               {showLoraDropdown && filteredLoras.length > 0 && (
@@ -746,10 +770,19 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Grid Filter</label>
               <select
-                value={localParams.is_xyz_grid === true ? 'grid' : localParams.is_xyz_grid === false ? 'non-grid' : ''}
+                value={
+                  localParams.is_xyz_grid === true
+                    ? 'grid'
+                    : localParams.is_xyz_grid === false
+                      ? 'non-grid'
+                      : ''
+                }
                 onChange={(e) => {
                   const val = e.target.value
-                  updateParam('is_xyz_grid', val === 'grid' ? true : val === 'non-grid' ? false : undefined)
+                  updateParam(
+                    'is_xyz_grid',
+                    val === 'grid' ? true : val === 'non-grid' ? false : undefined
+                  )
                 }}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -764,10 +797,19 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Upscale</label>
               <select
-                value={localParams.is_upscaled === true ? 'upscaled' : localParams.is_upscaled === false ? 'non-upscaled' : ''}
+                value={
+                  localParams.is_upscaled === true
+                    ? 'upscaled'
+                    : localParams.is_upscaled === false
+                      ? 'non-upscaled'
+                      : ''
+                }
                 onChange={(e) => {
                   const val = e.target.value
-                  updateParam('is_upscaled', val === 'upscaled' ? true : val === 'non-upscaled' ? false : undefined)
+                  updateParam(
+                    'is_upscaled',
+                    val === 'upscaled' ? true : val === 'non-upscaled' ? false : undefined
+                  )
                 }}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -877,9 +919,17 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   onChange={(e) => {
                     const currentVal = localParams.exact_rating ?? localParams.min_rating
                     if (e.target.value === 'exact') {
-                      setLocalParams({ ...localParams, exact_rating: currentVal, min_rating: undefined })
+                      setLocalParams({
+                        ...localParams,
+                        exact_rating: currentVal,
+                        min_rating: undefined,
+                      })
                     } else {
-                      setLocalParams({ ...localParams, min_rating: currentVal, exact_rating: undefined })
+                      setLocalParams({
+                        ...localParams,
+                        min_rating: currentVal,
+                        exact_rating: undefined,
+                      })
                     }
                   }}
                   className="w-20 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -894,7 +944,11 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                   type="button"
                   onClick={() => {
                     if (localParams.exact_rating === 0) {
-                      setLocalParams({ ...localParams, exact_rating: undefined, min_rating: undefined })
+                      setLocalParams({
+                        ...localParams,
+                        exact_rating: undefined,
+                        min_rating: undefined,
+                      })
                     } else {
                       setLocalParams({ ...localParams, exact_rating: 0, min_rating: undefined })
                     }
@@ -915,7 +969,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
               <label className="block text-sm text-gray-400 mb-1">Favorites</label>
               <button
                 type="button"
-                onClick={() => updateParam('is_favorite', localParams.is_favorite ? undefined : true)}
+                onClick={() =>
+                  updateParam('is_favorite', localParams.is_favorite ? undefined : true)
+                }
                 className={`w-full px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   localParams.is_favorite
                     ? 'bg-blue-600 border-blue-500 text-white'
@@ -946,7 +1002,8 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2">
               <label className="block text-sm text-gray-400 mb-1">
-                Min Size: {localParams.min_width || localParams.min_height
+                Min Size:{' '}
+                {localParams.min_width || localParams.min_height
                   ? `${localParams.min_width || 0} × ${localParams.min_height || 0}px`
                   : 'Any'}
               </label>
@@ -958,7 +1015,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                     max="5000"
                     step="100"
                     value={localParams.min_width || 0}
-                    onChange={(e) => updateParam('min_width', parseInt(e.target.value) || undefined)}
+                    onChange={(e) =>
+                      updateParam('min_width', parseInt(e.target.value) || undefined)
+                    }
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     title={`Width: ${localParams.min_width || 0}px`}
                   />
@@ -972,7 +1031,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                     max="5000"
                     step="100"
                     value={localParams.min_height || 0}
-                    onChange={(e) => updateParam('min_height', parseInt(e.target.value) || undefined)}
+                    onChange={(e) =>
+                      updateParam('min_height', parseInt(e.target.value) || undefined)
+                    }
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     title={`Height: ${localParams.min_height || 0}px`}
                   />
@@ -1026,7 +1087,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
             className="bg-gray-800 rounded-lg p-6 w-full max-w-sm mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="save-preset-title" className="text-lg font-semibold text-white mb-4">検索条件を保存</h3>
+            <h3 id="save-preset-title" className="text-lg font-semibold text-white mb-4">
+              検索条件を保存
+            </h3>
             <input
               type="text"
               placeholder="プリセット名"

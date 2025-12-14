@@ -87,9 +87,7 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (filteredSuggestions.length > 0) {
-        setSelectedIndex((prev) =>
-          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
-        )
+        setSelectedIndex((prev) => (prev < filteredSuggestions.length - 1 ? prev + 1 : prev))
       }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()

@@ -66,7 +66,9 @@ function getColumnCount(width: number, size: GridSize): number {
 
 export function useColumnCount(size: GridSize): number {
   const [columnCount, setColumnCount] = useState(() =>
-    typeof window !== 'undefined' ? getColumnCount(window.innerWidth, size) : COLUMN_COUNTS[size].base
+    typeof window !== 'undefined'
+      ? getColumnCount(window.innerWidth, size)
+      : COLUMN_COUNTS[size].base
   )
 
   useEffect(() => {

@@ -1,12 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  X,
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
-  Shuffle,
-} from 'lucide-react'
+import { X, Play, Pause, ChevronLeft, ChevronRight, Shuffle } from 'lucide-react'
 
 // Slideshow interval options (in seconds)
 const INTERVAL_OPTIONS = [3, 5, 10, 15, 30]

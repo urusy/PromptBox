@@ -366,7 +366,9 @@ async def remove_images_from_showcase(
     showcase.updated_at = datetime.utcnow()
 
     await db.commit()
-    return MessageResponse(message=f"Removed {delete_result.rowcount} images from showcase")
+    return MessageResponse(
+        message=f"Removed {delete_result.rowcount} images from showcase"
+    )
 
 
 @router.put("/{showcase_id}/images/reorder", response_model=MessageResponse)

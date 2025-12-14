@@ -3,9 +3,9 @@ from typing import Any
 
 from loguru import logger
 
+from app.parsers.a1111 import A1111Parser
 from app.parsers.base import MetadataParser, ParsedMetadata, SourceTool
 from app.parsers.comfyui import ComfyUIParser
-from app.parsers.a1111 import A1111Parser
 from app.parsers.novelai import NovelAIParser
 
 

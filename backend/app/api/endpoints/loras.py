@@ -5,15 +5,15 @@ from typing import Literal
 
 from fastapi import APIRouter, Query
 from loguru import logger
-from sqlalchemy import func, select, case
+from sqlalchemy import case, func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
 from app.schemas.model import (
+    CivitaiInfoResponse,
+    LoraDetail,
     LoraListItem,
     LoraListResponse,
-    LoraDetail,
-    CivitaiInfoResponse,
 )
 from app.services.civitai_service import civitai_service
 
@@ -40,8 +40,12 @@ async def get_loras(
     _: CurrentUser,
     q: str | None = Query(None, description="Search query for LoRA name"),
     min_count: int = Query(1, ge=1, description="Minimum image count"),
-    min_rating: float | None = Query(None, ge=0, le=5, description="Minimum average rating"),
-    sort_by: Literal["count", "rating", "name"] = Query("count", description="Sort field"),
+    min_rating: float | None = Query(
+        None, ge=0, le=5, description="Minimum average rating"
+    ),
+    sort_by: Literal["count", "rating", "name"] = Query(
+        "count", description="Sort field"
+    ),
     sort_order: Literal["asc", "desc"] = Query("desc", description="Sort order"),
     limit: int = Query(100, ge=1, le=500, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
@@ -65,19 +69,12 @@ async def get_loras(
     )
 
     # Extract name and hash from JSONB object
-    lora_data = (
-        select(
-            lora_unnest.c.id,
-            lora_unnest.c.rating,
-            lora_unnest.c.lora_obj.op("->>")(
-                "name"
-            ).label("lora_name"),
-            lora_unnest.c.lora_obj.op("->>")(
-                "hash"
-            ).label("lora_hash"),
-        )
-        .subquery()
-    )
+    lora_data = select(
+        lora_unnest.c.id,
+        lora_unnest.c.rating,
+        lora_unnest.c.lora_obj.op("->>")("name").label("lora_name"),
+        lora_unnest.c.lora_obj.op("->>")("hash").label("lora_hash"),
+    ).subquery()
 
     # Build aggregation query
     query = (
@@ -86,7 +83,9 @@ async def get_loras(
             func.max(lora_data.c.lora_hash).label("hash"),  # Take any non-null hash
             func.count().label("image_count"),
             func.count(case((lora_data.c.rating > 0, 1))).label("rated_count"),
-            func.avg(case((lora_data.c.rating > 0, lora_data.c.rating))).label("avg_rating"),
+            func.avg(case((lora_data.c.rating > 0, lora_data.c.rating))).label(
+                "avg_rating"
+            ),
             func.count(case((lora_data.c.rating >= 4, 1))).label("high_rated_count"),
         )
         .group_by(lora_data.c.lora_name)
@@ -98,7 +97,9 @@ async def get_loras(
         query = query.having(func.lower(lora_data.c.lora_name).contains(q.lower()))
 
     if min_rating is not None:
-        query = query.having(func.avg(case((lora_data.c.rating > 0, lora_data.c.rating))) >= min_rating)
+        query = query.having(
+            func.avg(case((lora_data.c.rating > 0, lora_data.c.rating))) >= min_rating
+        )
 
     # Apply sorting
     if sort_by == "count":
@@ -171,19 +172,13 @@ async def get_lora_detail(
             lora_unnest.c.rating,
             lora_unnest.c.model_name,
             lora_unnest.c.sampler_name,
-            lora_unnest.c.lora_obj.op("->>")(
-                "name"
-            ).label("lora_name"),
-            lora_unnest.c.lora_obj.op("->>")(
-                "hash"
-            ).label("lora_hash"),
-            lora_unnest.c.lora_obj.op("->>")(
-                "weight"
-            ).cast(func.numeric()).label("lora_weight"),
+            lora_unnest.c.lora_obj.op("->>")("name").label("lora_name"),
+            lora_unnest.c.lora_obj.op("->>")("hash").label("lora_hash"),
+            lora_unnest.c.lora_obj.op("->>")("weight")
+            .cast(func.numeric())
+            .label("lora_weight"),
         )
-        .where(lora_unnest.c.lora_obj.op("->>")(
-            "name"
-        ) == lora_name)
+        .where(lora_unnest.c.lora_obj.op("->>")("name") == lora_name)
         .subquery()
     )
 
@@ -193,8 +188,12 @@ async def get_lora_detail(
             func.max(lora_filtered.c.lora_hash).label("hash"),
             func.count().label("image_count"),
             func.count(case((lora_filtered.c.rating > 0, 1))).label("rated_count"),
-            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label("avg_rating"),
-            func.count(case((lora_filtered.c.rating >= 4, 1))).label("high_rated_count"),
+            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label(
+                "avg_rating"
+            ),
+            func.count(case((lora_filtered.c.rating >= 4, 1))).label(
+                "high_rated_count"
+            ),
             func.avg(lora_filtered.c.lora_weight).label("avg_weight"),
         )
     )
@@ -209,7 +208,7 @@ async def get_lora_detail(
             rated_count=0,
             avg_rating=None,
             high_rated_count=0,
-            rating_distribution={i: 0 for i in range(6)},
+            rating_distribution=dict.fromkeys(range(6), 0),
             avg_weight=None,
             top_models=[],
             top_samplers=[],
@@ -217,10 +216,11 @@ async def get_lora_detail(
 
     # Rating distribution
     rating_dist_result = await db.execute(
-        select(lora_filtered.c.rating, func.count().label("count"))
-        .group_by(lora_filtered.c.rating)
+        select(lora_filtered.c.rating, func.count().label("count")).group_by(
+            lora_filtered.c.rating
+        )
     )
-    rating_distribution = {i: 0 for i in range(6)}
+    rating_distribution = dict.fromkeys(range(6), 0)
     for row in rating_dist_result.all():
         rating_distribution[row.rating] = row.count
 
@@ -229,7 +229,9 @@ async def get_lora_detail(
         select(
             lora_filtered.c.model_name,
             func.count().label("count"),
-            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label("avg_rating"),
+            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label(
+                "avg_rating"
+            ),
         )
         .where(lora_filtered.c.model_name.isnot(None))
         .group_by(lora_filtered.c.model_name)
@@ -250,7 +252,9 @@ async def get_lora_detail(
         select(
             lora_filtered.c.sampler_name,
             func.count().label("count"),
-            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label("avg_rating"),
+            func.avg(case((lora_filtered.c.rating > 0, lora_filtered.c.rating))).label(
+                "avg_rating"
+            ),
         )
         .where(lora_filtered.c.sampler_name.isnot(None))
         .group_by(lora_filtered.c.sampler_name)
@@ -272,10 +276,14 @@ async def get_lora_detail(
         hash=stats_row.hash,
         image_count=stats_row.image_count,
         rated_count=stats_row.rated_count,
-        avg_rating=round(float(stats_row.avg_rating), 2) if stats_row.avg_rating else None,
+        avg_rating=(
+            round(float(stats_row.avg_rating), 2) if stats_row.avg_rating else None
+        ),
         high_rated_count=stats_row.high_rated_count,
         rating_distribution=rating_distribution,
-        avg_weight=round(float(stats_row.avg_weight), 2) if stats_row.avg_weight else None,
+        avg_weight=(
+            round(float(stats_row.avg_weight), 2) if stats_row.avg_weight else None
+        ),
         top_models=top_models,
         top_samplers=top_samplers,
     )
@@ -307,16 +315,10 @@ async def get_lora_civitai_info(
 
     hash_result = await db.execute(
         select(
-            lora_unnest.c.lora_obj.op("->>")(
-                "hash"
-            ).label("hash"),
+            lora_unnest.c.lora_obj.op("->>")("hash").label("hash"),
         )
-        .where(lora_unnest.c.lora_obj.op("->>")(
-            "name"
-        ) == lora_name)
-        .where(lora_unnest.c.lora_obj.op("->>")(
-            "hash"
-        ).isnot(None))
+        .where(lora_unnest.c.lora_obj.op("->>")("name") == lora_name)
+        .where(lora_unnest.c.lora_obj.op("->>")("hash").isnot(None))
         .limit(1)
     )
     hash_row = hash_result.first()
@@ -330,7 +332,9 @@ async def get_lora_civitai_info(
 
     # Fall back to name search
     display_name = extract_display_name(lora_name)
-    search_name = re.sub(r"\.(safetensors|ckpt|pt)$", "", display_name, flags=re.IGNORECASE)
+    search_name = re.sub(
+        r"\.(safetensors|ckpt|pt)$", "", display_name, flags=re.IGNORECASE
+    )
 
     info = await civitai_service.get_model_info(search_name, model_type="LORA")
 

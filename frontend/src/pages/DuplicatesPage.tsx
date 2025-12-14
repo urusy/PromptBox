@@ -14,7 +14,9 @@ export default function DuplicatesPage() {
   const deleteAllMutation = useMutation({
     mutationFn: duplicatesApi.deleteAll,
     onSuccess: (result) => {
-      toast.success(`Deleted ${result.deleted_count} files (${formatFileSize(result.freed_bytes)} freed)`)
+      toast.success(
+        `Deleted ${result.deleted_count} files (${formatFileSize(result.freed_bytes)} freed)`
+      )
       queryClient.invalidateQueries({ queryKey: ['duplicates'] })
     },
     onError: () => {
@@ -40,7 +42,11 @@ export default function DuplicatesPage() {
   }
 
   const handleDeleteAll = () => {
-    if (window.confirm(`Are you sure you want to delete all ${data?.count} duplicate files? This cannot be undone.`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete all ${data?.count} duplicate files? This cannot be undone.`
+      )
+    ) {
       deleteAllMutation.mutate()
     }
   }
@@ -60,11 +66,7 @@ export default function DuplicatesPage() {
   }
 
   if (error) {
-    return (
-      <div className="text-center text-red-500 py-8">
-        Failed to load duplicates info
-      </div>
-    )
+    return <div className="text-center text-red-500 py-8">Failed to load duplicates info</div>
   }
 
   return (
@@ -111,7 +113,10 @@ export default function DuplicatesPage() {
         <div className="text-center py-12 text-gray-500">
           <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
           <p>No duplicate files found</p>
-          <p className="text-sm mt-2">Duplicate files will appear here when importing images that already exist in the gallery.</p>
+          <p className="text-sm mt-2">
+            Duplicate files will appear here when importing images that already exist in the
+            gallery.
+          </p>
         </div>
       )}
 
@@ -127,7 +132,10 @@ export default function DuplicatesPage() {
             </thead>
             <tbody>
               {data.files.map((filename) => (
-                <tr key={filename} className="border-b border-gray-700 last:border-0 hover:bg-gray-750">
+                <tr
+                  key={filename}
+                  className="border-b border-gray-700 last:border-0 hover:bg-gray-750"
+                >
                   <td className="px-4 py-3 font-mono text-sm">{filename}</td>
                   <td className="px-4 py-3 text-right">
                     <button

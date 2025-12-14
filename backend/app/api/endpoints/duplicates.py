@@ -1,4 +1,4 @@
-import shutil
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 from app.api.deps import CurrentUser
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/duplicates", tags=["duplicates"])
 
@@ -70,8 +72,8 @@ async def delete_all_duplicates(current_user: CurrentUser) -> DeleteResult:
                 freed_bytes += file_path.stat().st_size
                 file_path.unlink()
                 deleted_count += 1
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to delete duplicate file {file_path}: {e}")
 
     return DeleteResult(deleted_count=deleted_count, freed_bytes=freed_bytes)
 
@@ -87,8 +89,8 @@ async def delete_duplicate_file(filename: str, current_user: CurrentUser) -> dic
     try:
         resolved_file = file_path.resolve()
         resolved_file.relative_to(resolved_dir)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid filename")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid filename") from e
 
     if not resolved_file.exists():
         raise HTTPException(status_code=404, detail="File not found")
@@ -97,7 +99,7 @@ async def delete_duplicate_file(filename: str, current_user: CurrentUser) -> dic
         file_size = resolved_file.stat().st_size
         resolved_file.unlink()
         return {"deleted": filename, "freed_bytes": file_size}
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    except OSError:
-        raise HTTPException(status_code=500, detail="Failed to delete file")
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail="Permission denied") from e
+    except OSError as e:
+        raise HTTPException(status_code=500, detail="Failed to delete file") from e

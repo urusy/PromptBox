@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { GridSize } from '@/components/gallery/ImageGrid'
 
 export const PER_PAGE_OPTIONS = [24, 48, 72, 96, 120] as const
-export type PerPageOption = typeof PER_PAGE_OPTIONS[number]
+export type PerPageOption = (typeof PER_PAGE_OPTIONS)[number]
 
 interface GallerySettingsState {
   perPage: PerPageOption

@@ -7,8 +7,8 @@ from cachetools import TTLCache
 from loguru import logger
 
 from app.schemas.model import (
-    CivitaiModelInfo,
     CivitaiImage,
+    CivitaiModelInfo,
     CivitaiRecommendedSettings,
 )
 
@@ -17,7 +17,9 @@ CIVITAI_API_BASE = "https://civitai.com/api/v1"
 
 # In-memory cache (TTL: 24 hours)
 # Key: "model:{name}" or "hash:{hash}"
-_civitai_cache: TTLCache[str, CivitaiModelInfo | None] = TTLCache(maxsize=1000, ttl=86400)
+_civitai_cache: TTLCache[str, CivitaiModelInfo | None] = TTLCache(
+    maxsize=1000, ttl=86400
+)
 
 
 class CivitaiService:

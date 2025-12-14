@@ -42,8 +42,8 @@ def safe_path_join(base: str | Path, *paths: str) -> Path:
     # Use is_relative_to for robust containment check (Python 3.9+)
     try:
         resolved.relative_to(base_path)
-    except ValueError:
-        raise ValueError("Path traversal detected")
+    except ValueError as e:
+        raise ValueError("Path traversal detected") from e
 
     return resolved
 

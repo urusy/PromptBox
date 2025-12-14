@@ -1,7 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Album, Plus, Pencil, Trash2, Star, Heart, Grid, Sparkles, Image as ImageIcon, X } from 'lucide-react'
+import {
+  Album,
+  Plus,
+  Pencil,
+  Trash2,
+  Star,
+  Heart,
+  Grid,
+  Sparkles,
+  Image as ImageIcon,
+  X,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
 import type { Showcase, ShowcaseCreate, ShowcaseUpdate, ShowcaseImageInfo } from '@/types/showcase'
@@ -28,7 +39,13 @@ interface CreateEditModalProps {
   isPending: boolean
 }
 
-function CreateEditModal({ showcase, showcaseImages, onClose, onSave, isPending }: CreateEditModalProps) {
+function CreateEditModal({
+  showcase,
+  showcaseImages,
+  onClose,
+  onSave,
+  isPending,
+}: CreateEditModalProps) {
   const [name, setName] = useState(showcase?.name || '')
   const [description, setDescription] = useState(showcase?.description || '')
   const [icon, setIcon] = useState(showcase?.icon || 'album')

@@ -1,5 +1,11 @@
 import client from './client'
-import type { Image, ImageListItem, ImageSearchParams, ImageUpdate, PaginatedResponse } from '@/types/image'
+import type {
+  Image,
+  ImageListItem,
+  ImageSearchParams,
+  ImageUpdate,
+  PaginatedResponse,
+} from '@/types/image'
 import { toApiParams } from '@/utils/searchParams'
 
 export const imagesApi = {

@@ -36,7 +36,11 @@ export default function LoraDetailPage() {
   const navigate = useNavigate()
   const decodedName = name ? decodeURIComponent(name) : ''
 
-  const { data: detail, isLoading: detailLoading, error: detailError } = useQuery({
+  const {
+    data: detail,
+    isLoading: detailLoading,
+    error: detailError,
+  } = useQuery({
     queryKey: ['lora-detail', decodedName],
     queryFn: () => lorasApi.getDetail(decodedName),
     enabled: !!decodedName,
@@ -134,9 +138,7 @@ export default function LoraDetailPage() {
           <div className="text-2xl font-bold">{detail.high_rated_count.toLocaleString()}</div>
         </div>
         <div className="bg-gray-800 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-            Avg Weight
-          </div>
+          <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">Avg Weight</div>
           <div className="text-2xl font-bold">
             {detail.avg_weight !== null ? detail.avg_weight.toFixed(2) : '-'}
           </div>
@@ -156,9 +158,7 @@ export default function LoraDetailPage() {
           )}
         </h2>
 
-        {civitaiLoading && (
-          <div className="text-gray-400 py-4">Loading CivitAI information...</div>
-        )}
+        {civitaiLoading && <div className="text-gray-400 py-4">Loading CivitAI information...</div>}
 
         {civitai && !civitai.found && (
           <div className="text-gray-400 py-4">
@@ -241,13 +241,17 @@ export default function LoraDetailPage() {
                   {civitai.info.recommended_settings.strength && (
                     <div>
                       <span className="text-gray-400">Weight:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.strength}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.strength}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.clip_skip && (
                     <div>
                       <span className="text-gray-400">Clip Skip:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.clip_skip}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.clip_skip}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.steps && (
@@ -259,13 +263,17 @@ export default function LoraDetailPage() {
                   {civitai.info.recommended_settings.cfg_scale && (
                     <div>
                       <span className="text-gray-400">CFG:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.cfg_scale}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.cfg_scale}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.sampler && (
                     <div>
                       <span className="text-gray-400">Sampler:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.sampler}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.sampler}
+                      </span>
                     </div>
                   )}
                 </div>

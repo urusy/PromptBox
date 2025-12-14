@@ -30,7 +30,9 @@ async def list_smart_folders(
     return [SmartFolderResponse.model_validate(f) for f in folders]
 
 
-@router.post("", response_model=SmartFolderResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=SmartFolderResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_smart_folder(
     db: DbSession,
     _: CurrentUser,

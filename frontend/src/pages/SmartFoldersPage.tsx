@@ -140,7 +140,9 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
             >
               <option value="">Model Type: All</option>
               {['sd15', 'sdxl', 'pony', 'illustrious', 'flux', 'qwen'].map((t) => (
-                <option key={t} value={t}>{t.toUpperCase()}</option>
+                <option key={t} value={t}>
+                  {t.toUpperCase()}
+                </option>
               ))}
             </select>
 
@@ -152,7 +154,9 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
             >
               <option value="">Source Tool: All</option>
               {['comfyui', 'a1111', 'forge', 'novelai'].map((t) => (
-                <option key={t} value={t}>{t.toUpperCase()}</option>
+                <option key={t} value={t}>
+                  {t.toUpperCase()}
+                </option>
               ))}
             </select>
 
@@ -174,7 +178,9 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
                 <option value="">Rating: Any</option>
                 <option value="0">★0</option>
                 {[1, 2, 3, 4, 5].map((r) => (
-                  <option key={r} value={r}>★{r}</option>
+                  <option key={r} value={r}>
+                    ★{r}
+                  </option>
                 ))}
               </select>
               <select
@@ -200,7 +206,9 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
                 <input
                   type="checkbox"
                   checked={filters.is_favorite === true}
-                  onChange={(e) => setFilters({ ...filters, is_favorite: e.target.checked ? true : undefined })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, is_favorite: e.target.checked ? true : undefined })
+                  }
                   className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-300">Favorites</span>
@@ -209,7 +217,9 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
                 <input
                   type="checkbox"
                   checked={filters.is_upscaled === true}
-                  onChange={(e) => setFilters({ ...filters, is_upscaled: e.target.checked ? true : undefined })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, is_upscaled: e.target.checked ? true : undefined })
+                  }
                   className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-300">Upscaled</span>

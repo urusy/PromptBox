@@ -4,7 +4,8 @@
  */
 
 // Valid image path pattern: XX/YY/UUID.ext or XX/YY/UUID_thumb.webp
-const VALID_PATH_PATTERN = /^[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f-]+(?:_thumb)?\.(?:png|jpg|jpeg|webp|gif)$/i
+const VALID_PATH_PATTERN =
+  /^[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f-]+(?:_thumb)?\.(?:png|jpg|jpeg|webp|gif)$/i
 
 /**
  * Validates that an image path follows the expected format.

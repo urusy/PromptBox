@@ -65,10 +65,12 @@ class TestNovelAIParser:
     def test_parse_sampler_name_strip_prefix(self, parser: NovelAIParser) -> None:
         """Test that k_ prefix is stripped from sampler name."""
         png_info = {
-            "Comment": json.dumps({
-                "prompt": "test",
-                "sampler": "k_euler_ancestral",
-            })
+            "Comment": json.dumps(
+                {
+                    "prompt": "test",
+                    "sampler": "k_euler_ancestral",
+                }
+            )
         }
         result = parser.parse(png_info)
 
@@ -77,10 +79,12 @@ class TestNovelAIParser:
     def test_parse_sampler_without_prefix(self, parser: NovelAIParser) -> None:
         """Test sampler name without k_ prefix."""
         png_info = {
-            "Comment": json.dumps({
-                "prompt": "test",
-                "sampler": "ddim",
-            })
+            "Comment": json.dumps(
+                {
+                    "prompt": "test",
+                    "sampler": "ddim",
+                }
+            )
         }
         result = parser.parse(png_info)
 
@@ -89,14 +93,16 @@ class TestNovelAIParser:
     def test_parse_additional_params(self, parser: NovelAIParser) -> None:
         """Test extraction of additional NovelAI parameters."""
         png_info = {
-            "Comment": json.dumps({
-                "prompt": "test",
-                "width": 1024,
-                "height": 1536,
-                "n_samples": 4,
-                "ucPreset": 2,
-                "qualityToggle": True,
-            })
+            "Comment": json.dumps(
+                {
+                    "prompt": "test",
+                    "width": 1024,
+                    "height": 1536,
+                    "n_samples": 4,
+                    "ucPreset": 2,
+                    "qualityToggle": True,
+                }
+            )
         }
         result = parser.parse(png_info)
 
@@ -123,12 +129,14 @@ class TestNovelAIParser:
     def test_parse_invalid_numeric_values(self, parser: NovelAIParser) -> None:
         """Test handling of invalid numeric values."""
         png_info = {
-            "Comment": json.dumps({
-                "prompt": "test",
-                "steps": "not a number",
-                "scale": "invalid",
-                "seed": "abc",
-            })
+            "Comment": json.dumps(
+                {
+                    "prompt": "test",
+                    "steps": "not a number",
+                    "scale": "invalid",
+                    "seed": "abc",
+                }
+            )
         }
         result = parser.parse(png_info)
 

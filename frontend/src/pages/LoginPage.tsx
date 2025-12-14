@@ -21,9 +21,7 @@ export default function LoginPage() {
     if (!url.startsWith('/') || url.startsWith('//')) return '/'
 
     // Check against whitelist
-    const isAllowed = allowedPrefixes.some(prefix =>
-      url === prefix || url.startsWith(prefix)
-    )
+    const isAllowed = allowedPrefixes.some((prefix) => url === prefix || url.startsWith(prefix))
 
     return isAllowed ? url : '/'
   }
@@ -48,12 +46,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="max-w-md w-full space-y-8 p-8 bg-gray-800 rounded-lg shadow-lg">
         <div>
-          <h2 className="text-center text-3xl font-bold text-white">
-            Prompt Box
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Sign in to your account
-          </p>
+          <h2 className="text-center text-3xl font-bold text-white">Prompt Box</h2>
+          <p className="mt-2 text-center text-sm text-gray-400">Sign in to your account</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">

@@ -58,9 +58,7 @@ export const lorasApi = {
   },
 
   getDetail: async (loraName: string): Promise<LoraDetail> => {
-    const response = await client.get<LoraDetail>(
-      `/loras/${encodeURIComponent(loraName)}/detail`
-    )
+    const response = await client.get<LoraDetail>(`/loras/${encodeURIComponent(loraName)}/detail`)
     return response.data
   },
 

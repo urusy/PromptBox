@@ -2,13 +2,14 @@ import asyncio
 import shutil
 import threading
 from pathlib import Path
+from typing import ClassVar
 from uuid import UUID
 
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from uuid_utils import uuid7
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent
+from watchdog.events import FileCreatedEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from app.config import get_settings
@@ -84,7 +85,7 @@ def get_watcher_session() -> async_sessionmaker[AsyncSession]:
 class ImageImportHandler(FileSystemEventHandler):
     """Handler for file system events in the import folder."""
 
-    SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".png", ".jpg", ".jpeg", ".webp"}
 
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -109,7 +110,7 @@ class ImageImportHandler(FileSystemEventHandler):
         # Process in a new event loop (watchdog runs in a separate thread)
         try:
             asyncio.run(self._process_file(file_path))
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.error(f"I/O error processing {file_path}: {e}")
         except RuntimeError as e:
             logger.error(f"Runtime error processing {file_path}: {e}")
@@ -128,8 +129,8 @@ class ImageImportHandler(FileSystemEventHandler):
             return
 
         # Get or create session factory for this event loop
-        SessionLocal = get_watcher_session()
-        async with SessionLocal() as db:
+        session_factory = get_watcher_session()
+        async with session_factory() as db:
             try:
                 await self._import_image(db, file_path)
                 await db.commit()
@@ -167,9 +168,7 @@ class ImageImportHandler(FileSystemEventHandler):
         file_hash = calculate_file_hash(file_path)
 
         # Check for duplicates
-        result = await db.execute(
-            select(Image).where(Image.file_hash == file_hash)
-        )
+        result = await db.execute(select(Image).where(Image.file_hash == file_hash))
         existing = result.scalar_one_or_none()
 
         if existing:
@@ -330,25 +329,34 @@ class ImageWatcher:
 
         unprocessed_files = []
         for file_path in import_path.iterdir():
-            if file_path.is_file():
-                ext = file_path.suffix.lower()
-                if ext in ImageImportHandler.SUPPORTED_EXTENSIONS:
-                    # Skip files currently being processed
-                    if str(file_path) not in self.handler._processing:
-                        unprocessed_files.append(file_path)
+            if not file_path.is_file():
+                continue
+            ext = file_path.suffix.lower()
+            # Skip unsupported extensions or files currently being processed
+            if (
+                ext in ImageImportHandler.SUPPORTED_EXTENSIONS
+                and str(file_path) not in self.handler._processing
+            ):
+                unprocessed_files.append(file_path)
 
         if unprocessed_files:
-            logger.info(f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)")
+            logger.info(
+                f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)"
+            )
             for file_path in unprocessed_files:
                 # Atomic check-and-add to avoid duplicate processing
                 if not self.handler._processing.add(str(file_path)):
                     continue
                 try:
                     asyncio.run(self.handler._process_file(file_path))
-                except (OSError, IOError) as e:
-                    logger.error(f"I/O error processing {file_path} in periodic scan: {e}")
+                except OSError as e:
+                    logger.error(
+                        f"I/O error processing {file_path} in periodic scan: {e}"
+                    )
                 except RuntimeError as e:
-                    logger.error(f"Runtime error processing {file_path} in periodic scan: {e}")
+                    logger.error(
+                        f"Runtime error processing {file_path} in periodic scan: {e}"
+                    )
                 finally:
                     self.handler._processing.discard(str(file_path))
 
@@ -363,7 +371,7 @@ class ImageWatcher:
                     logger.info(f"Processing existing file: {file_path}")
                     try:
                         asyncio.run(self.handler._process_file(file_path))
-                    except (OSError, IOError) as e:
+                    except OSError as e:
                         logger.error(f"I/O error processing {file_path}: {e}")
                     except RuntimeError as e:
                         logger.error(f"Runtime error processing {file_path}: {e}")

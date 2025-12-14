@@ -49,11 +49,13 @@ export default function SwipePage() {
     isDragging: false,
   })
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null)
-  const [recentActions, setRecentActions] = useState<Array<{
-    imageId: string
-    action: 'favorite' | 'rating' | 'skip' | 'improve'
-    value?: number
-  }>>([])
+  const [recentActions, setRecentActions] = useState<
+    Array<{
+      imageId: string
+      action: 'favorite' | 'rating' | 'skip' | 'improve'
+      value?: number
+    }>
+  >([])
 
   // Fetch images
   const { data, isLoading, error, refetch } = useQuery({
@@ -66,8 +68,13 @@ export default function SwipePage() {
 
   // Mutation for updating images
   const updateMutation = useMutation({
-    mutationFn: ({ id, update }: { id: string; update: { rating?: number; is_favorite?: boolean; needs_improvement?: boolean } }) =>
-      imagesApi.update(id, update),
+    mutationFn: ({
+      id,
+      update,
+    }: {
+      id: string
+      update: { rating?: number; is_favorite?: boolean; needs_improvement?: boolean }
+    }) => imagesApi.update(id, update),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['swipe-images'] })
       queryClient.invalidateQueries({ queryKey: ['images'] })
@@ -88,21 +95,33 @@ export default function SwipePage() {
   }, [currentIndex])
 
   // Actions
-  const handleRating = useCallback((rating: number) => {
-    if (!currentImage) return
-    updateMutation.mutate({ id: currentImage.id, update: { rating } })
-    setRecentActions((prev) => [...prev.slice(-9), { imageId: currentImage.id, action: 'rating', value: rating }])
-    setSwipeDirection('right')
-    setTimeout(() => {
-      setSwipeDirection(null)
-      goNext()
-    }, 300)
-  }, [currentImage, updateMutation, goNext])
+  const handleRating = useCallback(
+    (rating: number) => {
+      if (!currentImage) return
+      updateMutation.mutate({ id: currentImage.id, update: { rating } })
+      setRecentActions((prev) => [
+        ...prev.slice(-9),
+        { imageId: currentImage.id, action: 'rating', value: rating },
+      ])
+      setSwipeDirection('right')
+      setTimeout(() => {
+        setSwipeDirection(null)
+        goNext()
+      }, 300)
+    },
+    [currentImage, updateMutation, goNext]
+  )
 
   const handleFavorite = useCallback(() => {
     if (!currentImage) return
-    updateMutation.mutate({ id: currentImage.id, update: { is_favorite: true, rating: currentImage.rating || 5 } })
-    setRecentActions((prev) => [...prev.slice(-9), { imageId: currentImage.id, action: 'favorite' }])
+    updateMutation.mutate({
+      id: currentImage.id,
+      update: { is_favorite: true, rating: currentImage.rating || 5 },
+    })
+    setRecentActions((prev) => [
+      ...prev.slice(-9),
+      { imageId: currentImage.id, action: 'favorite' },
+    ])
     setSwipeDirection('right')
     setTimeout(() => {
       setSwipeDirection(null)
@@ -325,14 +344,30 @@ export default function SwipePage() {
         <div className="bg-gray-800 rounded-lg p-4 mb-4">
           <h3 className="text-sm font-semibold mb-2">Keyboard Shortcuts</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-400">
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">1-5</kbd> Rate</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">F</kbd> Favorite</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">S</kbd> Skip</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">I</kbd> Needs Improvement</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">←</kbd> Skip</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">→</kbd> Favorite</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">↑/↓</kbd> Navigate</div>
-            <div><kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Z</kbd> Undo</div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">1-5</kbd> Rate
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">F</kbd> Favorite
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">S</kbd> Skip
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">I</kbd> Needs Improvement
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">←</kbd> Skip
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">→</kbd> Favorite
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">↑/↓</kbd> Navigate
+            </div>
+            <div>
+              <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Z</kbd> Undo
+            </div>
           </div>
         </div>
       )}
@@ -348,11 +383,16 @@ export default function SwipePage() {
         {currentImage && (
           <div
             className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ${
-              swipeDirection === 'left' ? '-translate-x-full opacity-0' :
-              swipeDirection === 'right' ? 'translate-x-full opacity-0' : ''
+              swipeDirection === 'left'
+                ? '-translate-x-full opacity-0'
+                : swipeDirection === 'right'
+                  ? 'translate-x-full opacity-0'
+                  : ''
             }`}
             style={{
-              transform: swipeState.isDragging ? `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.02}deg)` : undefined,
+              transform: swipeState.isDragging
+                ? `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.02}deg)`
+                : undefined,
             }}
           >
             <div className="relative max-w-full max-h-full">

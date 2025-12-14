@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Response, status
 
+from app.api.deps import CurrentUser
 from app.config import get_settings
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.common import MessageResponse
 from app.services.auth_service import AuthService
-from app.api.deps import CurrentUser
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

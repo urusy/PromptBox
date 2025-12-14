@@ -78,9 +78,7 @@ class TestMetadataParserFactory:
         assert result.source_tool == SourceTool.UNKNOWN
         assert result.has_metadata is False
 
-    def test_parse_invalid_json_metadata(
-        self, factory: MetadataParserFactory
-    ) -> None:
+    def test_parse_invalid_json_metadata(self, factory: MetadataParserFactory) -> None:
         """Test parsing invalid JSON in metadata."""
         invalid_metadata = {"prompt": "not valid json {{{"}
         result = factory.parse(invalid_metadata)
@@ -89,9 +87,7 @@ class TestMetadataParserFactory:
         assert result.source_tool == SourceTool.UNKNOWN
         assert result.has_metadata is False
 
-    def test_factory_parser_priority(
-        self, factory: MetadataParserFactory
-    ) -> None:
+    def test_factory_parser_priority(self, factory: MetadataParserFactory) -> None:
         """Test that factory has correct parser priority."""
         # ComfyUIParser should come first
         from app.parsers.comfyui import ComfyUIParser
