@@ -3,7 +3,6 @@
 ## 未着手
 
 - [ ] 画像を取り込む際に、ファイルの作成日を生成日として扱う
-- [ ] バックエンドやDBのリソースの増強を検討する
 
 ## AI提案機能(未精査)
 
@@ -46,6 +45,13 @@
 
 ### 最近の更新
 
+- [x] バックエンドやDBのリソース増強
+  - PostgreSQL: shared_buffers 128MB→256MB, effective_cache_size 256MB→512MB
+  - PostgreSQL: work_mem 16MB→32MB, maintenance_work_mem 64MB→128MB
+  - PostgreSQL: max_connections 50→100, wal_buffers追加, random_page_cost最適化
+  - バックエンド接続プール: pool_size 5→10, max_overflow 10→20
+  - pool_pre_ping, pool_recycle追加（接続の健全性チェック）
+  - Dockerリソース制限: バックエンド最大1GB, DB最大1GB
 - [x] Playwright MCP E2Eテスト環境構築
   - E2Eテスト設計書（docs/07_e2e_testing.md）
   - 15カテゴリ、約50テストシナリオを定義

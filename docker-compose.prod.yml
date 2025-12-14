@@ -37,6 +37,14 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     networks:
       - app-network
 
@@ -58,13 +66,24 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     command: >
       postgres
-      -c shared_buffers=128MB
-      -c effective_cache_size=256MB
-      -c work_mem=16MB
-      -c maintenance_work_mem=64MB
-      -c max_connections=20
+      -c shared_buffers=256MB
+      -c effective_cache_size=512MB
+      -c work_mem=32MB
+      -c maintenance_work_mem=128MB
+      -c max_connections=100
+      -c random_page_cost=1.1
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
       -c logging_collector=on
       -c log_statement=none
     networks:
