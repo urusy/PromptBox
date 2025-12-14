@@ -1,6 +1,19 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Image, Trash2, Copy, FolderSearch, User, ChevronDown, BarChart3, Album, Box, Layers, Sparkles } from 'lucide-react'
+import {
+  LogOut,
+  Image,
+  Trash2,
+  Copy,
+  FolderSearch,
+  User,
+  ChevronDown,
+  BarChart3,
+  Album,
+  Box,
+  Layers,
+  Sparkles,
+} from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
@@ -124,15 +137,15 @@ export default function MainLayout() {
                 >
                   <User size={18} />
                   <span className="hidden sm:inline text-sm text-gray-300">{username}</span>
-                  <ChevronDown size={14} className={`hidden sm:block text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    size={14}
+                    className={`hidden sm:block text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 {showUserMenu && (
                   <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowUserMenu(false)}
-                    />
+                    <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
                     <div className="absolute right-0 top-full mt-1 w-48 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20">
                       <div className="px-3 py-2 border-b border-gray-600 sm:hidden">
                         <span className="text-sm text-gray-300">{username}</span>

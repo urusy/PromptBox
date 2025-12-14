@@ -30,7 +30,9 @@ async def list_search_presets(
     return [SearchPresetResponse.model_validate(p) for p in presets]
 
 
-@router.post("", response_model=SearchPresetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=SearchPresetResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_search_preset(
     db: DbSession,
     _: CurrentUser,

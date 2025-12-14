@@ -36,7 +36,9 @@ class ShowcaseImageRemove(BaseModel):
 class ShowcaseImageReorder(BaseModel):
     """Schema for reordering images in a showcase."""
 
-    image_ids: list[UUID] = Field(..., min_length=1, description="Image IDs in new order")
+    image_ids: list[UUID] = Field(
+        ..., min_length=1, description="Image IDs in new order"
+    )
 
 
 class ShowcaseImageInfo(BaseModel):

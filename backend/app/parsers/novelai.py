@@ -1,3 +1,4 @@
+import contextlib
 import json
 from typing import Any
 
@@ -19,10 +20,7 @@ class NovelAIParser(MetadataParser):
 
         try:
             comment = png_info["Comment"]
-            if isinstance(comment, str):
-                data = json.loads(comment)
-            else:
-                data = comment
+            data = json.loads(comment) if isinstance(comment, str) else comment
 
             # Check for NovelAI-specific keys
             return isinstance(data, dict) and ("uc" in data or "prompt" in data)
@@ -50,22 +48,16 @@ class NovelAIParser(MetadataParser):
 
         # Extract parameters
         if "steps" in data:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 metadata.steps = int(data["steps"])
-            except (ValueError, TypeError):
-                pass
 
         if "scale" in data:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 metadata.cfg_scale = float(data["scale"])
-            except (ValueError, TypeError):
-                pass
 
         if "seed" in data:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 metadata.seed = int(data["seed"])
-            except (ValueError, TypeError):
-                pass
 
         if "sampler" in data:
             # NovelAI uses k_ prefix for samplers

@@ -28,9 +28,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     // Preserve the current path and search params as returnUrl
     const returnUrl = location.pathname + location.search
-    const loginUrl = returnUrl !== '/'
-      ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
-      : '/login'
+    const loginUrl =
+      returnUrl !== '/' ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login'
     return <Navigate to={loginUrl} replace />
   }
 

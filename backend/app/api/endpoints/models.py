@@ -5,15 +5,15 @@ from typing import Literal
 
 from fastapi import APIRouter, Query
 from loguru import logger
-from sqlalchemy import func, select, case
+from sqlalchemy import case, func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
 from app.schemas.model import (
+    CivitaiInfoResponse,
+    ModelDetail,
     ModelListItem,
     ModelListResponse,
-    ModelDetail,
-    CivitaiInfoResponse,
 )
 from app.services.civitai_service import civitai_service
 
@@ -44,14 +44,20 @@ async def get_models(
     q: str | None = Query(None, description="Search query for model name"),
     model_type: str | None = Query(None, description="Filter by model type"),
     min_count: int = Query(1, ge=1, description="Minimum image count"),
-    min_rating: float | None = Query(None, ge=0, le=5, description="Minimum average rating"),
-    sort_by: Literal["count", "rating", "name"] = Query("count", description="Sort field"),
+    min_rating: float | None = Query(
+        None, ge=0, le=5, description="Minimum average rating"
+    ),
+    sort_by: Literal["count", "rating", "name"] = Query(
+        "count", description="Sort field"
+    ),
     sort_order: Literal["asc", "desc"] = Query("desc", description="Sort order"),
     limit: int = Query(100, ge=1, le=500, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
 ) -> ModelListResponse:
     """Get list of models with usage statistics."""
-    logger.debug(f"Getting models list: q={q}, model_type={model_type}, min_count={min_count}")
+    logger.debug(
+        f"Getting models list: q={q}, model_type={model_type}, min_count={min_count}"
+    )
 
     base_filter = Image.deleted_at.is_(None)
 
@@ -79,7 +85,9 @@ async def get_models(
         query = query.having(Image.model_type == model_type)
 
     if min_rating is not None:
-        query = query.having(func.avg(case((Image.rating > 0, Image.rating))) >= min_rating)
+        query = query.having(
+            func.avg(case((Image.rating > 0, Image.rating))) >= min_rating
+        )
 
     # Apply sorting
     if sort_by == "count":
@@ -158,7 +166,7 @@ async def get_model_detail(
             rated_count=0,
             avg_rating=None,
             high_rated_count=0,
-            rating_distribution={i: 0 for i in range(6)},
+            rating_distribution=dict.fromkeys(range(6), 0),
             top_samplers=[],
             top_loras=[],
         )
@@ -170,7 +178,7 @@ async def get_model_detail(
         .where(model_filter)
         .group_by(Image.rating)
     )
-    rating_distribution = {i: 0 for i in range(6)}
+    rating_distribution = dict.fromkeys(range(6), 0)
     for row in rating_dist_result.all():
         rating_distribution[row.rating] = row.count
 
@@ -202,9 +210,7 @@ async def get_model_detail(
         select(
             Image.id,
             Image.rating,
-            func.jsonb_array_elements(Image.loras).op("->>")(
-                "name"
-            ).label("lora_name"),
+            func.jsonb_array_elements(Image.loras).op("->>")("name").label("lora_name"),
         )
         .where(base_filter)
         .where(model_filter)
@@ -215,7 +221,9 @@ async def get_model_detail(
         select(
             lora_unnest.c.lora_name,
             func.count().label("count"),
-            func.avg(case((lora_unnest.c.rating > 0, lora_unnest.c.rating))).label("avg_rating"),
+            func.avg(case((lora_unnest.c.rating > 0, lora_unnest.c.rating))).label(
+                "avg_rating"
+            ),
         )
         .group_by(lora_unnest.c.lora_name)
         .order_by(func.count().desc())
@@ -236,7 +244,9 @@ async def get_model_detail(
         model_type=stats_row.model_type,
         image_count=stats_row.image_count,
         rated_count=stats_row.rated_count,
-        avg_rating=round(float(stats_row.avg_rating), 2) if stats_row.avg_rating else None,
+        avg_rating=(
+            round(float(stats_row.avg_rating), 2) if stats_row.avg_rating else None
+        ),
         high_rated_count=stats_row.high_rated_count,
         rating_distribution=rating_distribution,
         top_samplers=top_samplers,
@@ -254,7 +264,9 @@ async def get_model_civitai_info(
 
     display_name = extract_display_name(model_name)
     # Remove extension for search
-    search_name = re.sub(r"\.(safetensors|ckpt|pt)$", "", display_name, flags=re.IGNORECASE)
+    search_name = re.sub(
+        r"\.(safetensors|ckpt|pt)$", "", display_name, flags=re.IGNORECASE
+    )
 
     info = await civitai_service.get_model_info(search_name, model_type="Checkpoint")
 

@@ -46,9 +46,7 @@ export default function TrashPage() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500 py-8">
-        Failed to load trash. Please try again.
-      </div>
+      <div className="text-center text-red-500 py-8">Failed to load trash. Please try again.</div>
     )
   }
 
@@ -66,10 +64,7 @@ export default function TrashPage() {
       <h1 className="text-2xl font-bold mb-6">Trash</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 5xl:grid-cols-12 gap-4">
         {data.items.map((image) => (
-          <div
-            key={image.id}
-            className="group relative bg-gray-800 rounded-lg overflow-hidden"
-          >
+          <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
             <div className="aspect-square opacity-60">
               <img
                 src={`/storage/${image.thumbnail_path}`}

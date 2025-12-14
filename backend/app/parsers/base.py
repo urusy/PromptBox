@@ -112,4 +112,5 @@ class MetadataParser(ABC):
 
 class ParserError(Exception):
     """Parser-specific error."""
+
     pass

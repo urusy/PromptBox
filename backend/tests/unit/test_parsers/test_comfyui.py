@@ -74,26 +74,28 @@ class TestComfyUIParser:
     def test_parse_lora_extraction(self, parser: ComfyUIParser) -> None:
         """Test LoRA extraction from workflow."""
         png_info = {
-            "prompt": json.dumps({
-                "1": {
-                    "class_type": "LoraLoader",
-                    "inputs": {
-                        "lora_name": "detail_slider.safetensors",
-                        "strength_model": 0.8,
-                        "strength_clip": 0.5,
+            "prompt": json.dumps(
+                {
+                    "1": {
+                        "class_type": "LoraLoader",
+                        "inputs": {
+                            "lora_name": "detail_slider.safetensors",
+                            "strength_model": 0.8,
+                            "strength_clip": 0.5,
+                        },
                     },
-                },
-                "2": {
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "seed": 1,
-                        "steps": 20,
-                        "cfg": 7,
-                        "sampler_name": "euler",
-                        "scheduler": "normal",
+                    "2": {
+                        "class_type": "KSampler",
+                        "inputs": {
+                            "seed": 1,
+                            "steps": 20,
+                            "cfg": 7,
+                            "sampler_name": "euler",
+                            "scheduler": "normal",
+                        },
                     },
-                },
-            })
+                }
+            )
         }
         result = parser.parse(png_info)
 
@@ -105,31 +107,33 @@ class TestComfyUIParser:
     def test_parse_controlnet_extraction(self, parser: ComfyUIParser) -> None:
         """Test ControlNet extraction from workflow."""
         png_info = {
-            "prompt": json.dumps({
-                "1": {
-                    "class_type": "ControlNetLoader",
-                    "inputs": {"control_net_name": "canny.safetensors"},
-                },
-                "2": {
-                    "class_type": "ControlNetApplyAdvanced",
-                    "inputs": {
-                        "control_net": ["1", 0],
-                        "strength": 0.7,
-                        "start_percent": 0.0,
-                        "end_percent": 0.8,
+            "prompt": json.dumps(
+                {
+                    "1": {
+                        "class_type": "ControlNetLoader",
+                        "inputs": {"control_net_name": "canny.safetensors"},
                     },
-                },
-                "3": {
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "seed": 1,
-                        "steps": 20,
-                        "cfg": 7,
-                        "sampler_name": "euler",
-                        "scheduler": "normal",
+                    "2": {
+                        "class_type": "ControlNetApplyAdvanced",
+                        "inputs": {
+                            "control_net": ["1", 0],
+                            "strength": 0.7,
+                            "start_percent": 0.0,
+                            "end_percent": 0.8,
+                        },
                     },
-                },
-            })
+                    "3": {
+                        "class_type": "KSampler",
+                        "inputs": {
+                            "seed": 1,
+                            "steps": 20,
+                            "cfg": 7,
+                            "sampler_name": "euler",
+                            "scheduler": "normal",
+                        },
+                    },
+                }
+            )
         }
         result = parser.parse(png_info)
 
@@ -141,25 +145,27 @@ class TestComfyUIParser:
     def test_parse_upscale_info(self, parser: ComfyUIParser) -> None:
         """Test upscale information extraction."""
         png_info = {
-            "prompt": json.dumps({
-                "1": {
-                    "class_type": "LatentUpscaleBy",
-                    "inputs": {
-                        "upscale_method": "bilinear",
-                        "scale_by": 2.0,
+            "prompt": json.dumps(
+                {
+                    "1": {
+                        "class_type": "LatentUpscaleBy",
+                        "inputs": {
+                            "upscale_method": "bilinear",
+                            "scale_by": 2.0,
+                        },
                     },
-                },
-                "2": {
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "seed": 1,
-                        "steps": 20,
-                        "cfg": 7,
-                        "sampler_name": "euler",
-                        "scheduler": "normal",
+                    "2": {
+                        "class_type": "KSampler",
+                        "inputs": {
+                            "seed": 1,
+                            "steps": 20,
+                            "cfg": 7,
+                            "sampler_name": "euler",
+                            "scheduler": "normal",
+                        },
                     },
-                },
-            })
+                }
+            )
         }
         result = parser.parse(png_info)
 

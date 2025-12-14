@@ -1,14 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowLeft,
-  Star,
-  Image,
-  ExternalLink,
-  AlertTriangle,
-  Box,
-  Layers,
-} from 'lucide-react'
+import { ArrowLeft, Star, Image, ExternalLink, AlertTriangle, Box, Layers } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -35,7 +27,11 @@ export default function ModelDetailPage() {
   const navigate = useNavigate()
   const decodedName = name ? decodeURIComponent(name) : ''
 
-  const { data: detail, isLoading: detailLoading, error: detailError } = useQuery({
+  const {
+    data: detail,
+    isLoading: detailLoading,
+    error: detailError,
+  } = useQuery({
     queryKey: ['model-detail', decodedName],
     queryFn: () => modelsApi.getDetail(decodedName),
     enabled: !!decodedName,
@@ -146,9 +142,7 @@ export default function ModelDetailPage() {
           )}
         </h2>
 
-        {civitaiLoading && (
-          <div className="text-gray-400 py-4">Loading CivitAI information...</div>
-        )}
+        {civitaiLoading && <div className="text-gray-400 py-4">Loading CivitAI information...</div>}
 
         {civitai && !civitai.found && (
           <div className="text-gray-400 py-4">
@@ -214,7 +208,9 @@ export default function ModelDetailPage() {
                   {civitai.info.recommended_settings.clip_skip && (
                     <div>
                       <span className="text-gray-400">Clip Skip:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.clip_skip}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.clip_skip}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.steps && (
@@ -226,13 +222,17 @@ export default function ModelDetailPage() {
                   {civitai.info.recommended_settings.cfg_scale && (
                     <div>
                       <span className="text-gray-400">CFG:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.cfg_scale}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.cfg_scale}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.sampler && (
                     <div>
                       <span className="text-gray-400">Sampler:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.sampler}</span>
+                      <span className="font-medium">
+                        {civitai.info.recommended_settings.sampler}
+                      </span>
                     </div>
                   )}
                   {civitai.info.recommended_settings.vae && (

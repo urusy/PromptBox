@@ -1,7 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X, Star, Heart, Trash2, Tag, CheckSquare, Square, Download, Album, Plus } from 'lucide-react'
+import {
+  X,
+  Star,
+  Heart,
+  Trash2,
+  Tag,
+  CheckSquare,
+  Square,
+  Download,
+  Album,
+  Plus,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { batchApi } from '@/api/batch'
 import { tagsApi } from '@/api/tags'
@@ -17,7 +28,12 @@ interface SelectionToolbarProps {
   onExitSelectionMode: () => void
 }
 
-export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, onExitSelectionMode }: SelectionToolbarProps) {
+export default function SelectionToolbar({
+  totalCount,
+  allIds,
+  isSelectionMode,
+  onExitSelectionMode,
+}: SelectionToolbarProps) {
   const { selectedIds, clearSelection, selectAll } = useSelectionStore()
   const [showTagInput, setShowTagInput] = useState(false)
   const [tagInput, setTagInput] = useState('')
@@ -56,9 +72,7 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
   })
 
   // Create a map of showcase_id -> existing_count
-  const existingCountMap = new Map(
-    imageCheckResults.map((r) => [r.showcase_id, r.existing_count])
-  )
+  const existingCountMap = new Map(imageCheckResults.map((r) => [r.showcase_id, r.existing_count]))
 
   // Add to showcase mutation
   const addToShowcaseMutation = useMutation({
@@ -109,7 +123,9 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
   }, [showTagInput])
 
   // Calculate dropdown position
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(
+    null
+  )
 
   const updateDropdownPosition = useCallback(() => {
     if (tagInputRef.current && showSuggestions) {
@@ -194,9 +210,7 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (filteredSuggestions.length > 0) {
-        setSelectedIndex((prev) =>
-          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
-        )
+        setSelectedIndex((prev) => (prev < filteredSuggestions.length - 1 ? prev + 1 : prev))
       }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
@@ -332,7 +346,10 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
                             : 'text-gray-300 hover:bg-gray-700 disabled:opacity-50'
                         }`}
                       >
-                        <Album size={14} className={allAlreadyAdded ? 'text-gray-500' : 'text-purple-400'} />
+                        <Album
+                          size={14}
+                          className={allAlreadyAdded ? 'text-gray-500' : 'text-purple-400'}
+                        />
                         <span className="truncate">{showcase.name}</span>
                         <span className="text-xs ml-auto shrink-0 flex items-center gap-1">
                           {allAlreadyAdded ? (
@@ -409,40 +426,43 @@ export default function SelectionToolbar({ totalCount, allIds, isSelectionMode, 
               className="w-28 sm:w-32 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             {/* Tag suggestions dropdown - rendered via Portal */}
-            {showSuggestions && filteredSuggestions.length > 0 && dropdownPosition && createPortal(
-              <div
-                ref={suggestionsRef}
-                style={{
-                  position: 'fixed',
-                  top: dropdownPosition.top,
-                  left: dropdownPosition.left,
-                  transform: 'translateY(-100%)',
-                }}
-                className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
-              >
-                <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
-                  {tagInput ? '検索結果' : '最近使用したタグ'}
-                </div>
-                {filteredSuggestions.map((tag, index) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      handleAddTag(tag)
-                    }}
-                    className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
-                      index === selectedIndex
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>,
-              document.body
-            )}
+            {showSuggestions &&
+              filteredSuggestions.length > 0 &&
+              dropdownPosition &&
+              createPortal(
+                <div
+                  ref={suggestionsRef}
+                  style={{
+                    position: 'fixed',
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    transform: 'translateY(-100%)',
+                  }}
+                  className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
+                >
+                  <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
+                    {tagInput ? '検索結果' : '最近使用したタグ'}
+                  </div>
+                  {filteredSuggestions.map((tag, index) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        handleAddTag(tag)
+                      }}
+                      className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
+                        index === selectedIndex
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>,
+                document.body
+              )}
             <button
               onClick={() => handleAddTag()}
               disabled={!hasSelection}

@@ -43,9 +43,12 @@ export default function GalleryPage() {
   }, [clearSelection])
 
   // Sync URL when params change
-  const updateUrl = useCallback((newParams: ImageSearchParams) => {
-    setSearchParams(toSearchParams(newParams), { replace: true })
-  }, [setSearchParams])
+  const updateUrl = useCallback(
+    (newParams: ImageSearchParams) => {
+      setSearchParams(toSearchParams(newParams), { replace: true })
+    },
+    [setSearchParams]
+  )
 
   const handleSearch = (newParams: ImageSearchParams) => {
     setParams(newParams)
@@ -85,9 +88,7 @@ export default function GalleryPage() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500 py-8">
-        Failed to load images. Please try again.
-      </div>
+      <div className="text-center text-red-500 py-8">Failed to load images. Please try again.</div>
     )
   }
 
@@ -201,10 +202,7 @@ export default function GalleryPage() {
 
       {/* Slideshow */}
       {showSlideshow && data?.items.length && (
-        <Slideshow
-          images={data.items}
-          onClose={() => setShowSlideshow(false)}
-        />
+        <Slideshow images={data.items} onClose={() => setShowSlideshow(false)} />
       )}
     </div>
   )

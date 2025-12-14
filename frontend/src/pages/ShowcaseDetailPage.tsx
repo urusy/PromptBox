@@ -17,15 +17,18 @@ export default function ShowcaseDetailPage() {
   const [isSortMode, setIsSortMode] = useState(false)
   const [slideshowStartIndex, setSlideshowStartIndex] = useState<number | null>(null)
 
-  const { data: showcase, isLoading, error } = useQuery({
+  const {
+    data: showcase,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['showcase', id],
     queryFn: () => showcasesApi.get(id!),
     enabled: !!id,
   })
 
   const removeImagesMutation = useMutation({
-    mutationFn: (imageIds: string[]) =>
-      showcasesApi.removeImages(id!, { image_ids: imageIds }),
+    mutationFn: (imageIds: string[]) => showcasesApi.removeImages(id!, { image_ids: imageIds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['showcase', id] })
       queryClient.invalidateQueries({ queryKey: ['showcases'] })
@@ -39,8 +42,7 @@ export default function ShowcaseDetailPage() {
   })
 
   const reorderImagesMutation = useMutation({
-    mutationFn: (imageIds: string[]) =>
-      showcasesApi.reorderImages(id!, { image_ids: imageIds }),
+    mutationFn: (imageIds: string[]) => showcasesApi.reorderImages(id!, { image_ids: imageIds }),
     onError: () => {
       // Revert on error by refetching
       queryClient.invalidateQueries({ queryKey: ['showcase', id] })
@@ -79,7 +81,11 @@ export default function ShowcaseDetailPage() {
 
   const handleRemoveSelected = () => {
     if (selectedImages.size === 0) return
-    if (confirm(`選択した ${selectedImages.size} 枚の画像をShowcaseから削除しますか？\n画像自体は削除されません。`)) {
+    if (
+      confirm(
+        `選択した ${selectedImages.size} 枚の画像をShowcaseから削除しますか？\n画像自体は削除されません。`
+      )
+    ) {
       removeImagesMutation.mutate(Array.from(selectedImages))
     }
   }
@@ -204,9 +210,7 @@ export default function ShowcaseDetailPage() {
               key={image.id}
               onClick={() => handleImageClick(image.id)}
               className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden group ${
-                isSelectMode && selectedImages.has(image.id)
-                  ? 'ring-2 ring-blue-500'
-                  : ''
+                isSelectMode && selectedImages.has(image.id) ? 'ring-2 ring-blue-500' : ''
               }`}
             >
               <img

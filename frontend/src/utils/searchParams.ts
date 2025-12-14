@@ -96,15 +96,19 @@ export function toSearchParams(params: ImageSearchParams): URLSearchParams {
   if (params.min_width) searchParams.set('min_width', params.min_width.toString())
   if (params.min_height) searchParams.set('min_height', params.min_height.toString())
   if (params.page && params.page !== 1) searchParams.set('page', params.page.toString())
-  if (params.per_page && params.per_page !== 24) searchParams.set('per_page', params.per_page.toString())
+  if (params.per_page && params.per_page !== 24)
+    searchParams.set('per_page', params.per_page.toString())
   if (params.sort_by && params.sort_by !== 'created_at') searchParams.set('sort_by', params.sort_by)
-  if (params.sort_order && params.sort_order !== 'desc') searchParams.set('sort_order', params.sort_order)
+  if (params.sort_order && params.sort_order !== 'desc')
+    searchParams.set('sort_order', params.sort_order)
 
   return searchParams
 }
 
 // Convert ImageSearchParams to API query params (without pagination for detail page)
-export function toApiParams(params: ImageSearchParams): Record<string, string | number | boolean | undefined> {
+export function toApiParams(
+  params: ImageSearchParams
+): Record<string, string | number | boolean | undefined> {
   const apiParams: Record<string, string | number | boolean | undefined> = {}
 
   if (params.q) apiParams.q = params.q
@@ -117,8 +121,10 @@ export function toApiParams(params: ImageSearchParams): Record<string, string | 
   if (params.is_favorite !== undefined) apiParams.is_favorite = params.is_favorite
   if (params.needs_improvement !== undefined) apiParams.needs_improvement = params.needs_improvement
   if (params.lora_name) apiParams.lora_name = params.lora_name
-  if (params.is_xyz_grid !== undefined && params.is_xyz_grid !== null) apiParams.is_xyz_grid = params.is_xyz_grid
-  if (params.is_upscaled !== undefined && params.is_upscaled !== null) apiParams.is_upscaled = params.is_upscaled
+  if (params.is_xyz_grid !== undefined && params.is_xyz_grid !== null)
+    apiParams.is_xyz_grid = params.is_xyz_grid
+  if (params.is_upscaled !== undefined && params.is_upscaled !== null)
+    apiParams.is_upscaled = params.is_upscaled
   if (params.min_width !== undefined) apiParams.min_width = params.min_width
   if (params.min_height !== undefined) apiParams.min_height = params.min_height
   if (params.include_deleted) apiParams.include_deleted = params.include_deleted

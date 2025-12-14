@@ -1,3 +1,4 @@
+import contextlib
 import re
 from typing import Any
 
@@ -92,7 +93,7 @@ class A1111Parser(MetadataParser):
             if line.startswith("Negative prompt:"):
                 in_negative = True
                 # Get the part after "Negative prompt:"
-                neg_text = line[len("Negative prompt:"):].strip()
+                neg_text = line[len("Negative prompt:") :].strip()
                 if neg_text:
                     negative_parts.append(neg_text)
             elif in_negative:
@@ -125,31 +126,23 @@ class A1111Parser(MetadataParser):
 
             # Map to metadata fields
             if key == "Steps":
-                try:
+                with contextlib.suppress(ValueError):
                     metadata.steps = int(value)
-                except ValueError:
-                    pass
             elif key == "Sampler":
                 metadata.sampler_name = value
             elif key == "CFG scale":
-                try:
+                with contextlib.suppress(ValueError):
                     metadata.cfg_scale = float(value)
-                except ValueError:
-                    pass
             elif key == "Seed":
-                try:
+                with contextlib.suppress(ValueError):
                     metadata.seed = int(value)
-                except ValueError:
-                    pass
             elif key == "Model":
                 metadata.model_name = value
             elif key == "Scheduler":
                 metadata.scheduler = value
             elif key == "Clip skip":
-                try:
+                with contextlib.suppress(ValueError):
                     model_params["clip_skip"] = int(value)
-                except ValueError:
-                    pass
             elif key == "VAE":
                 model_params["vae"] = value
             elif key == "Model hash":
@@ -158,22 +151,16 @@ class A1111Parser(MetadataParser):
                 model_params["size"] = value
             # Hires upscaler parameters
             elif key == "Hires upscale":
-                try:
+                with contextlib.suppress(ValueError):
                     model_params["hires_upscale"] = float(value)
-                except ValueError:
-                    pass
             elif key == "Hires upscaler":
                 model_params["hires_upscaler"] = value
             elif key == "Hires steps":
-                try:
+                with contextlib.suppress(ValueError):
                     model_params["hires_steps"] = int(value)
-                except ValueError:
-                    pass
             elif key == "Denoising strength":
-                try:
+                with contextlib.suppress(ValueError):
                     model_params["denoising_strength"] = float(value)
-                except ValueError:
-                    pass
             # XYZ grid parameters
             elif key == "Script" and value == "X/Y/Z plot":
                 model_params["is_xyz_grid"] = True

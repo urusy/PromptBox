@@ -4,8 +4,8 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
-    Boolean,
     BigInteger,
+    Boolean,
     DateTime,
     Integer,
     Numeric,
@@ -13,7 +13,8 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -50,11 +51,21 @@ class Image(Base):
     seed: Mapped[int | None] = mapped_column(BigInteger)
 
     # Extended data (JSONB)
-    loras: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    controlnets: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    embeddings: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    model_params: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
-    workflow_extras: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    loras: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    controlnets: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    embeddings: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    model_params: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, nullable=False
+    )
+    workflow_extras: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, nullable=False
+    )
 
     # Raw metadata
     raw_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -62,7 +73,9 @@ class Image(Base):
     # User data
     rating: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    needs_improvement: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    needs_improvement: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     user_tags: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     user_memo: Mapped[str | None] = mapped_column(Text)
 

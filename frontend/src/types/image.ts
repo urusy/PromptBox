@@ -93,17 +93,17 @@ export interface ImageSearchParams {
   model_name?: string
   sampler_name?: string
   min_rating?: number
-  exact_rating?: number  // Exact rating match (0-5)
+  exact_rating?: number // Exact rating match (0-5)
   is_favorite?: boolean
   needs_improvement?: boolean
   tags?: string[]
   lora_name?: string
-  is_xyz_grid?: boolean | null  // true = grid only, false = non-grid only, null/undefined = all
-  is_upscaled?: boolean | null  // true = upscaled only, false = non-upscaled only
-  orientation?: string  // portrait, landscape, square
+  is_xyz_grid?: boolean | null // true = grid only, false = non-grid only, null/undefined = all
+  is_upscaled?: boolean | null // true = upscaled only, false = non-upscaled only
+  orientation?: string // portrait, landscape, square
   min_width?: number
   min_height?: number
-  date_from?: string  // ISO date string (YYYY-MM-DD)
+  date_from?: string // ISO date string (YYYY-MM-DD)
   include_deleted?: boolean
   page?: number
   per_page?: number

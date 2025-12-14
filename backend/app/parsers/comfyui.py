@@ -1,11 +1,10 @@
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 from app.parsers.base import (
     ControlNetInfo,
     LoraInfo,
     MetadataParser,
-    ModelType,
     ParsedMetadata,
     SourceTool,
 )
@@ -16,13 +15,30 @@ class ComfyUIParser(MetadataParser):
     """Parser for ComfyUI metadata format."""
 
     # Node types to extract data from
-    SAMPLER_NODES = {"KSampler", "KSamplerAdvanced", "SamplerCustom"}
-    CHECKPOINT_NODES = {"CheckpointLoaderSimple", "CheckpointLoader", "UNETLoader"}
-    PROMPT_NODES = {"CLIPTextEncode", "CLIPTextEncodeSDXL"}
-    LORA_NODES = {"LoraLoader", "LoraLoaderModelOnly"}
-    CONTROLNET_NODES = {"ControlNetLoader", "ControlNetApply", "ControlNetApplyAdvanced"}
-    UPSCALE_MODEL_NODES = {"UpscaleModelLoader"}
-    UPSCALE_NODES = {"ImageUpscaleWithModel", "LatentUpscale", "LatentUpscaleBy", "ImageScaleBy"}
+    SAMPLER_NODES: ClassVar[set[str]] = {
+        "KSampler",
+        "KSamplerAdvanced",
+        "SamplerCustom",
+    }
+    CHECKPOINT_NODES: ClassVar[set[str]] = {
+        "CheckpointLoaderSimple",
+        "CheckpointLoader",
+        "UNETLoader",
+    }
+    PROMPT_NODES: ClassVar[set[str]] = {"CLIPTextEncode", "CLIPTextEncodeSDXL"}
+    LORA_NODES: ClassVar[set[str]] = {"LoraLoader", "LoraLoaderModelOnly"}
+    CONTROLNET_NODES: ClassVar[set[str]] = {
+        "ControlNetLoader",
+        "ControlNetApply",
+        "ControlNetApplyAdvanced",
+    }
+    UPSCALE_MODEL_NODES: ClassVar[set[str]] = {"UpscaleModelLoader"}
+    UPSCALE_NODES: ClassVar[set[str]] = {
+        "ImageUpscaleWithModel",
+        "LatentUpscale",
+        "LatentUpscaleBy",
+        "ImageScaleBy",
+    }
 
     def can_parse(self, png_info: dict[str, Any]) -> bool:
         """Check if the PNG info contains ComfyUI metadata."""
@@ -52,8 +68,12 @@ class ComfyUIParser(MetadataParser):
         prompt_str = png_info.get("prompt", "{}")
         workflow_str = png_info.get("workflow", "{}")
 
-        prompt_data = json.loads(prompt_str) if isinstance(prompt_str, str) else prompt_str
-        workflow_data = json.loads(workflow_str) if isinstance(workflow_str, str) else workflow_str
+        prompt_data = (
+            json.loads(prompt_str) if isinstance(prompt_str, str) else prompt_str
+        )
+        workflow_data = (
+            json.loads(workflow_str) if isinstance(workflow_str, str) else workflow_str
+        )
 
         metadata = ParsedMetadata(
             source_tool=SourceTool.COMFYUI,
@@ -223,8 +243,14 @@ class ComfyUIParser(MetadataParser):
                 if isinstance(lora_name, str):
                     lora_info = LoraInfo(
                         name=lora_name.rsplit(".", 1)[0],
-                        weight=float(weight) if isinstance(weight, (int, float)) else 1.0,
-                        weight_clip=float(weight_clip) if isinstance(weight_clip, (int, float)) else None,
+                        weight=(
+                            float(weight) if isinstance(weight, (int, float)) else 1.0
+                        ),
+                        weight_clip=(
+                            float(weight_clip)
+                            if isinstance(weight_clip, (int, float))
+                            else None
+                        ),
                     )
                     metadata.loras.append(lora_info)
 
@@ -322,14 +348,18 @@ class ComfyUIParser(MetadataParser):
                 method = inputs.get("upscale_method", "nearest-exact")
                 scale = inputs.get("scale_by", 1.0)
                 metadata.model_params["hires_upscaler"] = f"Latent ({method})"
-                metadata.model_params["hires_upscale"] = float(scale) if isinstance(scale, (int, float)) else 1.0
+                metadata.model_params["hires_upscale"] = (
+                    float(scale) if isinstance(scale, (int, float)) else 1.0
+                )
                 metadata.model_params["upscale_method"] = "latent"
 
             elif class_type == "ImageScaleBy":
                 method = inputs.get("upscale_method", "nearest-exact")
                 scale = inputs.get("scale_by", 1.0)
                 metadata.model_params["hires_upscaler"] = f"Image ({method})"
-                metadata.model_params["hires_upscale"] = float(scale) if isinstance(scale, (int, float)) else 1.0
+                metadata.model_params["hires_upscale"] = (
+                    float(scale) if isinstance(scale, (int, float)) else 1.0
+                )
                 metadata.model_params["upscale_method"] = "image"
 
     def _extract_workflow_extras(

@@ -16,13 +16,14 @@ from sqlalchemy.pool import StaticPool
 os.environ["TESTING"] = "1"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32chars"
 os.environ["ADMIN_USERNAME"] = "testadmin"
-os.environ["ADMIN_PASSWORD_HASH"] = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.S4kiYCb/Xce9BO"  # "testpass"
+os.environ["ADMIN_PASSWORD_HASH"] = (
+    "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.S4kiYCb/Xce9BO"  # "testpass"
+)
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
+from app.api.deps import get_db
 from app.database import Base
 from app.main import app
-from app.api.deps import get_db
-
 
 # Test database URL (in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

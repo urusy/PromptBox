@@ -10,15 +10,20 @@ export default function LorasPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Parse search params
-  const params: LoraSearchParams = useMemo(() => ({
-    q: searchParams.get('q') || undefined,
-    min_count: searchParams.get('min_count') ? parseInt(searchParams.get('min_count')!) : 1,
-    min_rating: searchParams.get('min_rating') ? parseFloat(searchParams.get('min_rating')!) : undefined,
-    sort_by: (searchParams.get('sort_by') as 'count' | 'rating' | 'name') || 'count',
-    sort_order: (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc',
-    limit: 50,
-    offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
-  }), [searchParams])
+  const params: LoraSearchParams = useMemo(
+    () => ({
+      q: searchParams.get('q') || undefined,
+      min_count: searchParams.get('min_count') ? parseInt(searchParams.get('min_count')!) : 1,
+      min_rating: searchParams.get('min_rating')
+        ? parseFloat(searchParams.get('min_rating')!)
+        : undefined,
+      sort_by: (searchParams.get('sort_by') as 'count' | 'rating' | 'name') || 'count',
+      sort_order: (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc',
+      limit: 50,
+      offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
+    }),
+    [searchParams]
+  )
 
   // Local state for form inputs
   const [searchQuery, setSearchQuery] = useState(params.q || '')
@@ -68,9 +73,7 @@ export default function LorasPage() {
       <div className="flex items-center gap-3">
         <Layers size={28} className="text-orange-400" />
         <h1 className="text-2xl font-bold">LoRAs</h1>
-        {data && (
-          <span className="text-gray-400 text-sm">({data.total} LoRAs)</span>
-        )}
+        {data && <span className="text-gray-400 text-sm">({data.total} LoRAs)</span>}
       </div>
 
       {/* Search & Filters */}
@@ -114,7 +117,11 @@ export default function LorasPage() {
             <label className="text-sm text-gray-400">Min rating:</label>
             <select
               value={params.min_rating ?? ''}
-              onChange={(e) => updateParams({ min_rating: e.target.value ? parseFloat(e.target.value) : undefined })}
+              onChange={(e) =>
+                updateParams({
+                  min_rating: e.target.value ? parseFloat(e.target.value) : undefined,
+                })
+              }
               className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm"
             >
               <option value="">Any</option>
@@ -196,7 +203,10 @@ export default function LorasPage() {
 
               {/* Hash indicator */}
               {lora.hash && (
-                <span className="inline-block px-2 py-0.5 bg-green-600/20 text-green-400 text-xs rounded mb-3" title={lora.hash}>
+                <span
+                  className="inline-block px-2 py-0.5 bg-green-600/20 text-green-400 text-xs rounded mb-3"
+                  title={lora.hash}
+                >
                   Has hash
                 </span>
               )}
@@ -214,9 +224,7 @@ export default function LorasPage() {
                   </div>
                 )}
                 {lora.high_rated_count > 0 && (
-                  <div className="text-green-400">
-                    {lora.high_rated_count} high
-                  </div>
+                  <div className="text-green-400">{lora.high_rated_count} high</div>
                 )}
               </div>
             </div>
@@ -236,14 +244,17 @@ export default function LorasPage() {
       {data && data.total > (params.limit || 50) && (
         <div className="flex items-center justify-center gap-4">
           <button
-            onClick={() => updateParams({ offset: Math.max(0, (params.offset || 0) - (params.limit || 50)) })}
+            onClick={() =>
+              updateParams({ offset: Math.max(0, (params.offset || 0) - (params.limit || 50)) })
+            }
             disabled={(params.offset || 0) === 0}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             Previous
           </button>
           <span className="text-gray-400">
-            {Math.floor((params.offset || 0) / (params.limit || 50)) + 1} / {Math.ceil(data.total / (params.limit || 50))}
+            {Math.floor((params.offset || 0) / (params.limit || 50)) + 1} /{' '}
+            {Math.ceil(data.total / (params.limit || 50))}
           </span>
           <button
             onClick={() => updateParams({ offset: (params.offset || 0) + (params.limit || 50) })}

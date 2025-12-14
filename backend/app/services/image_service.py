@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.image import Image
 from app.schemas.common import PaginatedResponse
-from app.schemas.image import ImageListResponse, ImageResponse, ImageSearchParams, ImageUpdate
+from app.schemas.image import (
+    ImageListResponse,
+    ImageResponse,
+    ImageSearchParams,
+    ImageUpdate,
+)
 
 
 def escape_like_pattern(value: str) -> str:
@@ -40,7 +45,9 @@ class ImageService:
 
         if params.model_name:
             escaped_name = escape_like_pattern(params.model_name)
-            query = query.where(Image.model_name.ilike(f"%{escaped_name}%", escape="\\"))
+            query = query.where(
+                Image.model_name.ilike(f"%{escaped_name}%", escape="\\")
+            )
 
         if params.sampler_name:
             query = query.where(Image.sampler_name == params.sampler_name)
@@ -63,9 +70,7 @@ class ImageService:
         if params.lora_name:
             # Use type_coerce to properly pass Python dict as JSONB
             lora_filter = [{"name": params.lora_name}]
-            query = query.where(
-                Image.loras.op("@>")(type_coerce(lora_filter, JSONB))
-            )
+            query = query.where(Image.loras.op("@>")(type_coerce(lora_filter, JSONB)))
 
         # Filter by XYZ grid
         if params.is_xyz_grid is not None:
@@ -77,8 +82,8 @@ class ImageService:
             else:
                 # Non-grid images only (is_xyz_grid is null or false)
                 query = query.where(
-                    (Image.model_params.op("->>")("is_xyz_grid").is_(None)) |
-                    (Image.model_params.op("->>")("is_xyz_grid") != "true")
+                    (Image.model_params.op("->>")("is_xyz_grid").is_(None))
+                    | (Image.model_params.op("->>")("is_xyz_grid") != "true")
                 )
 
         # Filter by upscaled (hires_upscaler exists in model_params)
@@ -122,9 +127,9 @@ class ImageService:
         if params.q:
             search_terms = params.q.replace(" ", " & ")
             query = query.where(
-                func.to_tsvector("english", func.coalesce(Image.positive_prompt, "")).op("@@")(
-                    func.to_tsquery("english", search_terms)
-                )
+                func.to_tsvector(
+                    "english", func.coalesce(Image.positive_prompt, "")
+                ).op("@@")(func.to_tsquery("english", search_terms))
             )
 
         return query
@@ -208,29 +213,45 @@ class ImageService:
         # For desc order: prev has greater sort value
         # For asc order: prev has lesser sort value
         if search_params.sort_order == "asc":
-            prev_query = base_query.where(
-                (sort_column < current_sort_value) |
-                ((sort_column == current_sort_value) & (Image.id < image_id))
-            ).order_by(sort_column.desc(), Image.id.desc()).limit(1)
+            prev_query = (
+                base_query.where(
+                    (sort_column < current_sort_value)
+                    | ((sort_column == current_sort_value) & (Image.id < image_id))
+                )
+                .order_by(sort_column.desc(), Image.id.desc())
+                .limit(1)
+            )
         else:
-            prev_query = base_query.where(
-                (sort_column > current_sort_value) |
-                ((sort_column == current_sort_value) & (Image.id > image_id))
-            ).order_by(sort_column.asc(), Image.id.asc()).limit(1)
+            prev_query = (
+                base_query.where(
+                    (sort_column > current_sort_value)
+                    | ((sort_column == current_sort_value) & (Image.id > image_id))
+                )
+                .order_by(sort_column.asc(), Image.id.asc())
+                .limit(1)
+            )
 
         # Find next image (the one that comes after in the sorted order)
         # For desc order: next has lesser sort value
         # For asc order: next has greater sort value
         if search_params.sort_order == "asc":
-            next_query = base_query.where(
-                (sort_column > current_sort_value) |
-                ((sort_column == current_sort_value) & (Image.id > image_id))
-            ).order_by(sort_column.asc(), Image.id.asc()).limit(1)
+            next_query = (
+                base_query.where(
+                    (sort_column > current_sort_value)
+                    | ((sort_column == current_sort_value) & (Image.id > image_id))
+                )
+                .order_by(sort_column.asc(), Image.id.asc())
+                .limit(1)
+            )
         else:
-            next_query = base_query.where(
-                (sort_column < current_sort_value) |
-                ((sort_column == current_sort_value) & (Image.id < image_id))
-            ).order_by(sort_column.desc(), Image.id.desc()).limit(1)
+            next_query = (
+                base_query.where(
+                    (sort_column < current_sort_value)
+                    | ((sort_column == current_sort_value) & (Image.id < image_id))
+                )
+                .order_by(sort_column.desc(), Image.id.desc())
+                .limit(1)
+            )
 
         # Execute prev/next queries in parallel
         prev_result, next_result = await asyncio.gather(

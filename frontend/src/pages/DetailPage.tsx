@@ -1,7 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Heart, Trash2, Copy, AlertTriangle, Download, X, ChevronLeft, ChevronRight, Album, Plus } from 'lucide-react'
+import {
+  ArrowLeft,
+  Heart,
+  Trash2,
+  Copy,
+  AlertTriangle,
+  Download,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Album,
+  Plus,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import { showcasesApi } from '@/api/showcases'
@@ -25,7 +37,11 @@ export default function DetailPage() {
   // Parse search params from URL to pass to API
   const searchParams = parseSearchParams(urlSearchParams)
 
-  const { data: image, isLoading, error } = useQuery({
+  const {
+    data: image,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['image', id, urlSearchParams.toString()],
     queryFn: () => imagesApi.get(id!, searchParams),
     enabled: !!id,
@@ -80,9 +96,12 @@ export default function DetailPage() {
   }, [showShowcaseMenu])
 
   // Navigate to prev/next image while preserving search params
-  const navigateToImage = useCallback((imageId: string) => {
-    navigate(`/image/${imageId}${location.search}`)
-  }, [navigate, location.search])
+  const navigateToImage = useCallback(
+    (imageId: string) => {
+      navigate(`/image/${imageId}${location.search}`)
+    },
+    [navigate, location.search]
+  )
 
   const updateMutation = useMutation({
     mutationFn: (data: ImageUpdate) => imagesApi.update(id!, data),
@@ -93,9 +112,12 @@ export default function DetailPage() {
   })
 
   // Handle rating change
-  const handleRatingChange = useCallback((rating: number) => {
-    updateMutation.mutate({ rating })
-  }, [updateMutation])
+  const handleRatingChange = useCallback(
+    (rating: number) => {
+      updateMutation.mutate({ rating })
+    },
+    [updateMutation]
+  )
 
   // Keyboard navigation handler
   useEffect(() => {
@@ -182,11 +204,7 @@ export default function DetailPage() {
   }
 
   if (error || !image) {
-    return (
-      <div className="text-center text-red-500 py-8">
-        Image not found
-      </div>
-    )
+    return <div className="text-center text-red-500 py-8">Image not found</div>
   }
 
   return (
@@ -304,10 +322,13 @@ export default function DetailPage() {
                         return (
                           <button
                             key={showcase.id}
-                            onClick={() => !isAlreadyAdded && addToShowcaseMutation.mutate({
-                              showcaseId: showcase.id,
-                              imageIds: [id!],
-                            })}
+                            onClick={() =>
+                              !isAlreadyAdded &&
+                              addToShowcaseMutation.mutate({
+                                showcaseId: showcase.id,
+                                imageIds: [id!],
+                              })
+                            }
                             disabled={addToShowcaseMutation.isPending || isAlreadyAdded}
                             className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
                               isAlreadyAdded
@@ -315,7 +336,10 @@ export default function DetailPage() {
                                 : 'hover:bg-gray-700 disabled:opacity-50'
                             }`}
                           >
-                            <Album size={16} className={isAlreadyAdded ? 'text-gray-500' : 'text-gray-400'} />
+                            <Album
+                              size={16}
+                              className={isAlreadyAdded ? 'text-gray-500' : 'text-gray-400'}
+                            />
                             <span className="truncate">{showcase.name}</span>
                             <span className="text-xs ml-auto">
                               {isAlreadyAdded ? (
@@ -366,10 +390,22 @@ export default function DetailPage() {
             <InfoRow label="CFG Scale" value={image.cfg_scale?.toString()} />
             <InfoRow label="Seed" value={image.seed?.toString()} />
             {/* Hires/Upscale Info */}
-            <InfoRow label="Hires Upscaler" value={image.model_params?.hires_upscaler as string | undefined} />
-            <InfoRow label="Hires Scale" value={(image.model_params?.hires_upscale as number | undefined)?.toString()} />
-            <InfoRow label="Hires Steps" value={(image.model_params?.hires_steps as number | undefined)?.toString()} />
-            <InfoRow label="Denoising" value={(image.model_params?.denoising_strength as number | undefined)?.toString()} />
+            <InfoRow
+              label="Hires Upscaler"
+              value={image.model_params?.hires_upscaler as string | undefined}
+            />
+            <InfoRow
+              label="Hires Scale"
+              value={(image.model_params?.hires_upscale as number | undefined)?.toString()}
+            />
+            <InfoRow
+              label="Hires Steps"
+              value={(image.model_params?.hires_steps as number | undefined)?.toString()}
+            />
+            <InfoRow
+              label="Denoising"
+              value={(image.model_params?.denoising_strength as number | undefined)?.toString()}
+            />
           </div>
 
           {/* XYZ Grid Info */}
@@ -381,9 +417,13 @@ export default function DetailPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-400 font-medium min-w-16">X Axis:</span>
                     <div>
-                      <span className="text-blue-400">{String(image.model_params?.xyz_x_type)}</span>
+                      <span className="text-blue-400">
+                        {String(image.model_params?.xyz_x_type)}
+                      </span>
                       {Boolean(image.model_params?.xyz_x_values) && (
-                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_x_values)}</p>
+                        <p className="text-sm text-gray-300 mt-1 font-mono">
+                          {String(image.model_params?.xyz_x_values)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -392,9 +432,13 @@ export default function DetailPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-400 font-medium min-w-16">Y Axis:</span>
                     <div>
-                      <span className="text-green-400">{String(image.model_params?.xyz_y_type)}</span>
+                      <span className="text-green-400">
+                        {String(image.model_params?.xyz_y_type)}
+                      </span>
                       {Boolean(image.model_params?.xyz_y_values) && (
-                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_y_values)}</p>
+                        <p className="text-sm text-gray-300 mt-1 font-mono">
+                          {String(image.model_params?.xyz_y_values)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -403,9 +447,13 @@ export default function DetailPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-400 font-medium min-w-16">Z Axis:</span>
                     <div>
-                      <span className="text-yellow-400">{String(image.model_params?.xyz_z_type)}</span>
+                      <span className="text-yellow-400">
+                        {String(image.model_params?.xyz_z_type)}
+                      </span>
                       {Boolean(image.model_params?.xyz_z_values) && (
-                        <p className="text-sm text-gray-300 mt-1 font-mono">{String(image.model_params?.xyz_z_values)}</p>
+                        <p className="text-sm text-gray-300 mt-1 font-mono">
+                          {String(image.model_params?.xyz_z_values)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -458,7 +506,10 @@ export default function DetailPage() {
               <h3 className="text-lg font-medium text-white mb-2">LoRAs</h3>
               <div className="space-y-2">
                 {image.loras.map((lora, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-800 px-3 py-2 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-800 px-3 py-2 rounded-lg"
+                  >
                     <span className="text-gray-200">{lora.name}</span>
                     <span className="text-gray-400 text-sm">
                       {lora.weight}

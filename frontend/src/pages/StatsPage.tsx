@@ -19,7 +19,18 @@ import { Image, Star, Heart, TrendingUp, Sparkles, BarChart2, RefreshCw } from '
 import { statsApi } from '@/api/stats'
 import type { RatingAnalysisItem } from '@/types/stats'
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
+const COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+  '#6366f1',
+  '#84cc16',
+]
 
 const RATING_COLORS: Record<number, string> = {
   0: '#6b7280', // gray
@@ -34,7 +45,7 @@ const RATING_COLORS: Record<number, string> = {
 function RatingAnalysisChart({
   data,
   title,
-  color
+  color,
 }: {
   data: RatingAnalysisItem[]
   title: string
@@ -55,7 +66,7 @@ function RatingAnalysisChart({
             stroke="#9ca3af"
             fontSize={10}
             width={100}
-            tickFormatter={(value) => value.length > 12 ? value.slice(0, 12) + '...' : value}
+            tickFormatter={(value) => (value.length > 12 ? value.slice(0, 12) + '...' : value)}
           />
           <Tooltip
             contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
@@ -71,7 +82,9 @@ function RatingAnalysisChart({
       <div className="mt-2 text-xs text-gray-400 space-y-1">
         {data.slice(0, 3).map((item, i) => (
           <div key={i} className="flex justify-between">
-            <span className="truncate mr-2">{i + 1}. {item.name}</span>
+            <span className="truncate mr-2">
+              {i + 1}. {item.name}
+            </span>
             <span className="shrink-0">
               ★{item.avg_rating.toFixed(2)} ({item.count}枚, 高評価{item.high_rated_count}枚)
             </span>
@@ -86,14 +99,22 @@ export default function StatsPage() {
   const [analysisTab, setAnalysisTab] = useState<'overall' | 'by-model'>('overall')
   const [selectedModel, setSelectedModel] = useState<string>('')
 
-  const { data: stats, isLoading, error } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['stats'],
     queryFn: () => statsApi.get(30),
   })
 
   const { data: ratingAnalysis } = useQuery({
     queryKey: ['rating-analysis', analysisTab === 'by-model' ? selectedModel : undefined],
-    queryFn: () => statsApi.getRatingAnalysis(3, analysisTab === 'by-model' && selectedModel ? selectedModel : undefined),
+    queryFn: () =>
+      statsApi.getRatingAnalysis(
+        3,
+        analysisTab === 'by-model' && selectedModel ? selectedModel : undefined
+      ),
   })
 
   const { data: modelList } = useQuery({
@@ -134,7 +155,9 @@ export default function StatsPage() {
               <Image size={24} className="text-blue-400" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats.overview.total_images.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.overview.total_images.toLocaleString()}
+              </div>
               <div className="text-sm text-gray-400">Total Images</div>
             </div>
           </div>
@@ -146,7 +169,9 @@ export default function StatsPage() {
               <Heart size={24} className="text-red-400" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats.overview.total_favorites.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.overview.total_favorites.toLocaleString()}
+              </div>
               <div className="text-sm text-gray-400">Favorites</div>
             </div>
           </div>
@@ -158,7 +183,9 @@ export default function StatsPage() {
               <Star size={24} className="text-yellow-400" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats.overview.total_rated.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.overview.total_rated.toLocaleString()}
+              </div>
               <div className="text-sm text-gray-400">Rated</div>
             </div>
           </div>
@@ -170,7 +197,9 @@ export default function StatsPage() {
               <Star size={24} className="text-gray-400" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats.overview.total_unrated.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.overview.total_unrated.toLocaleString()}
+              </div>
               <div className="text-sm text-gray-400">Unrated</div>
             </div>
           </div>
@@ -361,7 +390,9 @@ export default function StatsPage() {
                   stroke="#9ca3af"
                   fontSize={11}
                   width={120}
-                  tickFormatter={(value) => value.length > 15 ? value.slice(0, 15) + '...' : value}
+                  tickFormatter={(value) =>
+                    value.length > 15 ? value.slice(0, 15) + '...' : value
+                  }
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
@@ -386,7 +417,9 @@ export default function StatsPage() {
                   stroke="#9ca3af"
                   fontSize={11}
                   width={120}
-                  tickFormatter={(value) => value.length > 15 ? value.slice(0, 15) + '...' : value}
+                  tickFormatter={(value) =>
+                    value.length > 15 ? value.slice(0, 15) + '...' : value
+                  }
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
@@ -411,7 +444,9 @@ export default function StatsPage() {
                   stroke="#9ca3af"
                   fontSize={11}
                   width={120}
-                  tickFormatter={(value) => value.length > 15 ? value.slice(0, 15) + '...' : value}
+                  tickFormatter={(value) =>
+                    value.length > 15 ? value.slice(0, 15) + '...' : value
+                  }
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
@@ -429,16 +464,24 @@ export default function StatsPage() {
           <div className="flex items-center gap-2 mt-8">
             <BarChart2 size={24} className="text-cyan-400" />
             <h2 className="text-xl font-bold">Model Rating Distribution</h2>
-            <span className="text-sm text-gray-400 hidden sm:inline">- Average rating by model</span>
+            <span className="text-sm text-gray-400 hidden sm:inline">
+              - Average rating by model
+            </span>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4">
-            <ResponsiveContainer width="100%" height={Math.max(300, modelRatingDistribution.items.length * 35)}>
+            <ResponsiveContainer
+              width="100%"
+              height={Math.max(300, modelRatingDistribution.items.length * 35)}
+            >
               <BarChart
                 data={[...modelRatingDistribution.items]
                   .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0))
-                  .map(item => ({
-                    name: item.model_name.length > 20 ? item.model_name.slice(0, 20) + '...' : item.model_name,
+                  .map((item) => ({
+                    name:
+                      item.model_name.length > 20
+                        ? item.model_name.slice(0, 20) + '...'
+                        : item.model_name,
                     fullName: item.model_name,
                     avg_rating: item.avg_rating || 0,
                     total: item.total,
@@ -455,13 +498,7 @@ export default function StatsPage() {
                   ticks={[0, 1, 2, 3, 4, 5]}
                   tickFormatter={(value) => `★${value}`}
                 />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  stroke="#9ca3af"
-                  fontSize={11}
-                  width={150}
-                />
+                <YAxis type="category" dataKey="name" stroke="#9ca3af" fontSize={11} width={150} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
                   formatter={(value: number) => [`★${value.toFixed(2)}`, 'Avg Rating']}
@@ -486,7 +523,9 @@ export default function StatsPage() {
           <div className="flex items-center gap-2 mt-8">
             <Sparkles size={24} className="text-purple-400" />
             <h2 className="text-xl font-bold">Rating Analysis</h2>
-            <span className="text-sm text-gray-400 hidden sm:inline">- Which settings get higher ratings?</span>
+            <span className="text-sm text-gray-400 hidden sm:inline">
+              - Which settings get higher ratings?
+            </span>
           </div>
 
           {/* Tab Buttons: Overall + Model Names */}

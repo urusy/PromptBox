@@ -15,7 +15,7 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 class ExportRequest(BaseModel):
     ids: list[UUID] | None = None
-    format: str = Field("json", pattern="^(json|csv)$")
+    export_format: str = Field("json", pattern="^(json|csv)$")
 
 
 @router.get("/metadata")
@@ -23,13 +23,13 @@ async def export_metadata(
     db: DbSession,
     _: CurrentUser,
     ids: list[UUID] | None = Query(None),
-    format: str = Query("json", pattern="^(json|csv)$"),
+    export_format: str = Query("json", pattern="^(json|csv)$"),
 ) -> StreamingResponse:
     """Export image metadata as JSON or CSV."""
     service = ExportService(db)
     data = await service.get_export_data(ids)
 
-    if format == "csv":
+    if export_format == "csv":
         output = io.StringIO()
         if data:
             writer = csv.DictWriter(output, fieldnames=data[0].keys())

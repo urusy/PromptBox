@@ -1,7 +1,10 @@
+import logging
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 def read_png_info(file_path: str | Path) -> dict[str, Any]:
@@ -48,11 +51,6 @@ def read_jpeg_info(file_path: str | Path) -> dict[str, Any]:
 
             # EXIF tag 37510 is UserComment where A1111 stores parameters
             # We can also check tag 0x9286 (UserComment in IFD)
-            from PIL.ExifTags import TAGS
-
-            # Try to get UserComment from IFD
-            for ifd_id in exif.get_ifd(0x8769) if 0x8769 in exif else []:
-                pass
 
             # The UserComment (0x9286) is in the Exif IFD
             exif_ifd = exif.get_ifd(0x8769)
@@ -75,9 +73,9 @@ def read_jpeg_info(file_path: str | Path) -> dict[str, Any]:
                     if text and ("Steps:" in text or "Sampler:" in text):
                         jpeg_info["parameters"] = text.strip()
 
-        except Exception:
+        except Exception as e:
             # If EXIF parsing fails, return empty dict
-            pass
+            logger.debug(f"Failed to parse EXIF data from {file_path}: {e}")
 
         return jpeg_info
 

@@ -4,8 +4,7 @@ from cachetools import TTLCache
 from fastapi import APIRouter
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy import func, select, case, extract
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import case, func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
@@ -14,8 +13,12 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 
 # In-memory cache for stats (TTL: 10 minutes)
 _stats_cache: TTLCache[str, "StatsResponse"] = TTLCache(maxsize=10, ttl=600)
-_rating_analysis_cache: TTLCache[str, "RatingAnalysisResponse"] = TTLCache(maxsize=50, ttl=600)
-_model_rating_dist_cache: TTLCache[str, "ModelRatingDistributionResponse"] = TTLCache(maxsize=10, ttl=600)
+_rating_analysis_cache: TTLCache[str, "RatingAnalysisResponse"] = TTLCache(
+    maxsize=50, ttl=600
+)
+_model_rating_dist_cache: TTLCache[str, "ModelRatingDistributionResponse"] = TTLCache(
+    maxsize=10, ttl=600
+)
 
 
 def invalidate_stats_cache() -> None:
@@ -57,7 +60,9 @@ class StatsResponse(BaseModel):
     by_lora: list[CountItem]
     by_rating: list[RatingDistribution]
     daily_counts: list[TimeSeriesItem]
-    daily_updates: list[TimeSeriesItem]  # Daily count of updated images (rating, favorite, tags, etc.)
+    daily_updates: list[
+        TimeSeriesItem
+    ]  # Daily count of updated images (rating, favorite, tags, etc.)
 
 
 class RatingAnalysisItem(BaseModel):
@@ -126,7 +131,7 @@ async def get_stats(
     overview_result = await db.execute(
         select(
             func.count(Image.id).label("total"),
-            func.count(case((Image.is_favorite == True, 1))).label("favorites"),  # noqa: E712
+            func.count(case((Image.is_favorite.is_(True), 1))).label("favorites"),
             func.count(case((Image.rating > 0, 1))).label("rated"),
             func.count(case((Image.rating == 0, 1))).label("unrated"),
             func.avg(case((Image.rating > 0, Image.rating))).label("avg_rating"),
@@ -138,7 +143,11 @@ async def get_stats(
         total_favorites=overview_row.favorites or 0,
         total_rated=overview_row.rated or 0,
         total_unrated=overview_row.unrated or 0,
-        avg_rating=round(float(overview_row.avg_rating), 2) if overview_row.avg_rating else None,
+        avg_rating=(
+            round(float(overview_row.avg_rating), 2)
+            if overview_row.avg_rating
+            else None
+        ),
     )
 
     # By model type
@@ -199,9 +208,7 @@ async def get_stats(
     # loras is JSONB array like [{"name": "lora1", "weight": 0.8}, ...]
     lora_unnest = (
         select(
-            func.jsonb_array_elements(Image.loras).op("->>")(
-                "name"
-            ).label("lora_name")
+            func.jsonb_array_elements(Image.loras).op("->>")("name").label("lora_name")
         )
         .where(base_filter)
         .where(func.jsonb_array_length(Image.loras) > 0)
@@ -214,8 +221,7 @@ async def get_stats(
         .limit(10)
     )
     by_lora = [
-        CountItem(name=row.lora_name, count=row.count)
-        for row in lora_result.all()
+        CountItem(name=row.lora_name, count=row.count) for row in lora_result.all()
     ]
 
     # Rating distribution
@@ -258,7 +264,9 @@ async def get_stats(
         )
         .where(base_filter)
         .where(Image.updated_at >= start_date)
-        .where(Image.updated_at > Image.created_at)  # Only count actual updates, not initial imports
+        .where(
+            Image.updated_at > Image.created_at
+        )  # Only count actual updates, not initial imports
         .group_by(day_trunc_updated)
         .order_by(day_trunc_updated)
     )
@@ -326,9 +334,7 @@ async def get_loras_for_filter(
     # Unnest JSONB loras array to get individual LoRA names
     lora_unnest = (
         select(
-            func.jsonb_array_elements(Image.loras).op("->>")(
-                "name"
-            ).label("lora_name")
+            func.jsonb_array_elements(Image.loras).op("->>")("name").label("lora_name")
         )
         .where(base_filter)
         .where(func.jsonb_array_length(Image.loras) > 0)
@@ -453,9 +459,7 @@ async def get_rating_analysis(
         select(
             Image.id,
             Image.rating,
-            func.jsonb_array_elements(Image.loras).op("->>")(
-                "name"
-            ).label("lora_name"),
+            func.jsonb_array_elements(Image.loras).op("->>")("name").label("lora_name"),
         )
         .where(base_filter)
         .where(rated_filter)
@@ -566,7 +570,9 @@ async def get_rating_analysis(
     return result
 
 
-@router.get("/model-rating-distribution", response_model=ModelRatingDistributionResponse)
+@router.get(
+    "/model-rating-distribution", response_model=ModelRatingDistributionResponse
+)
 async def get_model_rating_distribution(
     db: DbSession,
     _: CurrentUser,
