@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   LogOut,
   Image,
@@ -13,19 +13,37 @@ import {
   Box,
   Layers,
   Sparkles,
+  Menu,
+  X,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function MainLayout() {
   const { username, logout } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const handleLogout = async () => {
     setShowUserMenu(false)
+    setShowMobileMenu(false)
     await logout()
     navigate('/login')
   }
+
+  const navItems = [
+    { to: '/', icon: Image, label: 'Gallery', color: '' },
+    { to: '/swipe', icon: Sparkles, label: 'Quick Rate', color: 'text-yellow-400' },
+    { to: '/trash', icon: Trash2, label: 'Trash', color: '' },
+    { to: '/duplicates', icon: Copy, label: 'Duplicates', color: '' },
+    { to: '/smart-folders', icon: FolderSearch, label: 'Smart Folders', color: '' },
+    { to: '/stats', icon: BarChart3, label: 'Stats', color: '' },
+    { to: '/models', icon: Box, label: 'Models', color: 'text-blue-400' },
+    { to: '/loras', icon: Layers, label: 'LoRAs', color: 'text-orange-400' },
+  ]
+
+  const isActive = (path: string) => location.pathname === path
 
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
@@ -43,14 +61,15 @@ export default function MainLayout() {
           }}
         >
           <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Logo and Showcase */}
+            {/* Logo */}
             <div className="flex items-center gap-2 sm:gap-4">
               <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
                 Prompt Box
               </Link>
+              {/* Showcase - visible on tablet and up */}
               <Link
                 to="/showcases"
-                className="flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
                 title="Showcases"
               >
                 <Album size={16} />
@@ -58,88 +77,37 @@ export default function MainLayout() {
               </Link>
             </div>
 
-            {/* Navigation - Icons only on mobile */}
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <Link
-                to="/"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Gallery"
-              >
-                <Image size={18} />
-                <span className="hidden sm:inline text-sm">Gallery</span>
-              </Link>
-              <Link
-                to="/swipe"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Quick Rate"
-              >
-                <Sparkles size={18} className="text-yellow-400" />
-                <span className="hidden sm:inline text-sm">Rate</span>
-              </Link>
-              <Link
-                to="/trash"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Trash"
-              >
-                <Trash2 size={18} />
-                <span className="hidden sm:inline text-sm">Trash</span>
-              </Link>
-              <Link
-                to="/duplicates"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Duplicates"
-              >
-                <Copy size={18} />
-                <span className="hidden md:inline text-sm">Duplicates</span>
-              </Link>
-              <Link
-                to="/smart-folders"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Smart Folders"
-              >
-                <FolderSearch size={18} />
-                <span className="hidden md:inline text-sm">Smart</span>
-              </Link>
-              <Link
-                to="/stats"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Statistics"
-              >
-                <BarChart3 size={18} />
-                <span className="hidden md:inline text-sm">Stats</span>
-              </Link>
-              <Link
-                to="/models"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="Models"
-              >
-                <Box size={18} className="text-blue-400" />
-                <span className="hidden lg:inline text-sm">Models</span>
-              </Link>
-              <Link
-                to="/loras"
-                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
-                title="LoRAs"
-              >
-                <Layers size={18} className="text-orange-400" />
-                <span className="hidden lg:inline text-sm">LoRAs</span>
-              </Link>
+            {/* Desktop Navigation - hidden on mobile */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                    isActive(item.to) ? 'bg-gray-700' : 'hover:bg-gray-700'
+                  }`}
+                  title={item.label}
+                >
+                  <item.icon size={18} className={item.color} />
+                  <span className="hidden lg:inline text-sm">{item.label}</span>
+                </Link>
+              ))}
 
               {/* Divider */}
-              <div className="w-px h-6 bg-gray-600 mx-1 sm:mx-2" />
+              <div className="w-px h-6 bg-gray-600 mx-2" />
 
               {/* User menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-md hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
                   title={username || undefined}
                 >
                   <User size={18} />
-                  <span className="hidden sm:inline text-sm text-gray-300">{username}</span>
+                  <span className="text-sm text-gray-300">{username}</span>
                   <ChevronDown
                     size={14}
-                    className={`hidden sm:block text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                    className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
                   />
                 </button>
 
@@ -147,12 +115,9 @@ export default function MainLayout() {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
                     <div className="absolute right-0 top-full mt-1 w-48 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-20">
-                      <div className="px-3 py-2 border-b border-gray-600 sm:hidden">
-                        <span className="text-sm text-gray-300">{username}</span>
-                      </div>
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white transition-colors rounded-b-lg"
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white transition-colors rounded-lg"
                       >
                         <LogOut size={16} />
                         Logout
@@ -162,7 +127,66 @@ export default function MainLayout() {
                 )}
               </div>
             </nav>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 rounded-md hover:bg-gray-700 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {showMobileMenu && (
+            <div className="md:hidden border-t border-gray-700 py-2">
+              <nav className="flex flex-col">
+                {/* Showcase */}
+                <Link
+                  to="/showcases"
+                  onClick={() => setShowMobileMenu(false)}
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                    isActive('/showcases') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                  }`}
+                >
+                  <Album size={20} />
+                  <span>Showcase</span>
+                </Link>
+
+                {/* Nav items */}
+                {navItems.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setShowMobileMenu(false)}
+                    className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                      isActive(item.to) ? 'bg-gray-700' : 'hover:bg-gray-700'
+                    }`}
+                  >
+                    <item.icon size={20} className={item.color} />
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+
+                {/* Divider */}
+                <div className="h-px bg-gray-700 my-2" />
+
+                {/* User info and logout */}
+                <div className="px-4 py-2 text-sm text-gray-400">
+                  <User size={16} className="inline mr-2" />
+                  {username}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-700 transition-colors text-red-400"
+                >
+                  <LogOut size={20} />
+                  <span>Logout</span>
+                </button>
+              </nav>
+            </div>
+          )}
         </div>
       </header>
       <main

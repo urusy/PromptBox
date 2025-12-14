@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Start the image watcher
     _watcher = ImageWatcher()
-    _watcher.process_existing()  # Process any files already in import folder
+    await _watcher.process_existing()  # Process any files already in import folder
     _watcher.start()
 
     yield

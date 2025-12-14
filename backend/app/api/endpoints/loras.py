@@ -5,7 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Query
 from loguru import logger
-from sqlalchemy import case, func, select
+from sqlalchemy import Numeric, case, func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.image import Image
@@ -175,7 +175,7 @@ async def get_lora_detail(
             lora_unnest.c.lora_obj.op("->>")("name").label("lora_name"),
             lora_unnest.c.lora_obj.op("->>")("hash").label("lora_hash"),
             lora_unnest.c.lora_obj.op("->>")("weight")
-            .cast(func.numeric())
+            .cast(Numeric)
             .label("lora_weight"),
         )
         .where(lora_unnest.c.lora_obj.op("->>")("name") == lora_name)

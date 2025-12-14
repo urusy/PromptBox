@@ -68,7 +68,7 @@ services:
       -c effective_cache_size=256MB
       -c work_mem=16MB
       -c maintenance_work_mem=64MB
-      -c max_connections=20
+      -c max_connections=50
       -c logging_collector=on
       -c log_statement=none
     networks:

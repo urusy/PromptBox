@@ -49,37 +49,38 @@ class ThreadSafeSet:
             return item in self._set
 
 
-# Global session factory for the watcher (created once per event loop)
-_watcher_session_cache: dict[int, async_sessionmaker[AsyncSession]] = {}
+# Global session factory for the watcher (single instance)
+_watcher_engine: "create_async_engine | None" = None
+_watcher_session_factory: async_sessionmaker[AsyncSession] | None = None
 _watcher_session_lock = threading.Lock()
 
 
 def get_watcher_session() -> async_sessionmaker[AsyncSession]:
-    """Get or create a session factory for the current event loop.
+    """Get or create a session factory for the watcher.
 
-    This caches the session factory per event loop to avoid creating
-    a new engine for every file processed.
+    Uses a single shared engine to avoid connection pool exhaustion.
     """
-    loop_id = id(asyncio.get_event_loop())
+    global _watcher_engine, _watcher_session_factory
 
     with _watcher_session_lock:
-        if loop_id not in _watcher_session_cache:
+        if _watcher_session_factory is None:
             settings = get_settings()
-            engine = create_async_engine(
+            _watcher_engine = create_async_engine(
                 settings.database_url,
                 echo=False,
-                pool_size=5,
-                max_overflow=10,
-                pool_pre_ping=True,  # Check connection health
+                pool_size=3,
+                max_overflow=2,
+                pool_pre_ping=True,
+                pool_recycle=300,  # Recycle connections every 5 minutes
             )
-            _watcher_session_cache[loop_id] = async_sessionmaker(
-                engine,
+            _watcher_session_factory = async_sessionmaker(
+                _watcher_engine,
                 class_=AsyncSession,
                 expire_on_commit=False,
             )
-            logger.debug(f"Created new session factory for event loop {loop_id}")
+            logger.debug("Created watcher session factory")
 
-        return _watcher_session_cache[loop_id]
+        return _watcher_session_factory
 
 
 class ImageImportHandler(FileSystemEventHandler):
@@ -343,35 +344,39 @@ class ImageWatcher:
             logger.info(
                 f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)"
             )
-            for file_path in unprocessed_files:
-                # Atomic check-and-add to avoid duplicate processing
-                if not self.handler._processing.add(str(file_path)):
-                    continue
-                try:
-                    asyncio.run(self.handler._process_file(file_path))
-                except OSError as e:
-                    logger.error(
-                        f"I/O error processing {file_path} in periodic scan: {e}"
-                    )
-                except RuntimeError as e:
-                    logger.error(
-                        f"Runtime error processing {file_path} in periodic scan: {e}"
-                    )
-                finally:
-                    self.handler._processing.discard(str(file_path))
+            # Process all files in a single event loop to reuse DB connections
+            asyncio.run(self._process_files_batch(unprocessed_files))
 
-    def process_existing(self) -> None:
+    async def _process_files_batch(self, files: list[Path]) -> None:
+        """Process multiple files in a single async context."""
+        for file_path in files:
+            # Atomic check-and-add to avoid duplicate processing
+            if not self.handler._processing.add(str(file_path)):
+                continue
+            try:
+                await self.handler._process_file(file_path)
+            except OSError as e:
+                logger.error(
+                    f"I/O error processing {file_path} in periodic scan: {e}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Error processing {file_path} in periodic scan: {e}"
+                )
+            finally:
+                self.handler._processing.discard(str(file_path))
+
+    async def process_existing(self) -> None:
         """Process any existing files in the import folder."""
         import_path = Path(self.settings.import_path)
 
+        existing_files = []
         for file_path in import_path.iterdir():
             if file_path.is_file():
                 ext = file_path.suffix.lower()
                 if ext in ImageImportHandler.SUPPORTED_EXTENSIONS:
-                    logger.info(f"Processing existing file: {file_path}")
-                    try:
-                        asyncio.run(self.handler._process_file(file_path))
-                    except OSError as e:
-                        logger.error(f"I/O error processing {file_path}: {e}")
-                    except RuntimeError as e:
-                        logger.error(f"Runtime error processing {file_path}: {e}")
+                    existing_files.append(file_path)
+
+        if existing_files:
+            logger.info(f"Processing {len(existing_files)} existing file(s)")
+            await self._process_files_batch(existing_files)
