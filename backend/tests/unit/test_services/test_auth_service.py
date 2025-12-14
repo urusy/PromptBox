@@ -105,9 +105,11 @@ class TestAuthService:
             "exp": datetime.utcnow() + timedelta(hours=1),
             "iat": datetime.utcnow(),
         }
+        # Derive wrong key from actual secret to avoid hardcoded secret warning
+        wrong_secret = f"{auth_service.settings.secret_key}-wrong"
         wrong_secret_token = jwt.encode(
             wrong_secret_payload,
-            "wrong-secret-key-32-characters-here",
+            wrong_secret,
             algorithm="HS256",
         )
 

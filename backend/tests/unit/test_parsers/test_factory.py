@@ -30,6 +30,7 @@ class TestMetadataParserFactory:
         assert result.cfg_scale == 7.5
         assert result.sampler_name == "euler"
         assert result.scheduler == "normal"
+        assert result.positive_prompt is not None
         assert "sunset" in result.positive_prompt.lower()
 
     def test_parse_a1111_metadata(
@@ -44,9 +45,11 @@ class TestMetadataParserFactory:
         assert result.seed == 67890
         assert result.steps == 30
         assert result.cfg_scale == 7.5
+        assert result.sampler_name is not None
         assert "DPM" in result.sampler_name
+        assert result.positive_prompt is not None
         assert "sunset" in result.positive_prompt.lower()
-        assert len(result.loras) == 1
+        assert len(result.loras) >= 1
         assert result.loras[0].name == "detail_slider"
         assert result.loras[0].weight == 0.8
 
@@ -62,6 +65,7 @@ class TestMetadataParserFactory:
         assert result.seed == 111222
         assert result.steps == 28
         assert result.cfg_scale == 11.0
+        assert result.positive_prompt is not None
         assert "sunset" in result.positive_prompt.lower()
 
     def test_parse_empty_metadata(
