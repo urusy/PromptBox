@@ -180,7 +180,10 @@ prompt-box/
 - 統計ページ（Recharts）
 - パフォーマンス最適化（キャッシュ、Code Splitting、仮想スクロール）
 - Showcase機能（画像コレクション、スライドショー、カバー画像選択）
-- 検索フィルター拡張（LoRA、Sampler、日付範囲、未評価のみ）
+- 検索フィルター拡張（LoRA、Sampler、日付範囲、未評価のみ、タグ複数AND条件、Orientation）
+- Model/LoRA一覧・詳細ページ（CivitAI連携、推奨設定表示）
+- Quick Rate機能（Tinder風スワイプUI、キーボードショートカット）
+- E2Eテスト環境（Playwright MCP）
 
 ## 重要な実装ポイント
 
