@@ -1,5 +1,87 @@
+# CodeRabbit Configuration
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: "ja-JP"
+
+early_access: false
+
 reviews:
   auto_review:
     enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Request changes for high-severity issues
+  request_changes_workflow: true
+
+  # Review profile: assertive for thorough reviews
+  profile: assertive
+
+  # Path filters
   path_filters:
-    - "!**/*.md"  # マークダウンは除外
+    - "!**/*.md"
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/coverage/**"
+    - "!**/.venv/**"
+    - "!**/node_modules/**"
+
+  # Path-specific instructions
+  path_instructions:
+    - path: "backend/**/*.py"
+      instructions: |
+        Pythonコードレビューのポイント：
+        - 型ヒントが適切に使用されているか
+        - async/awaitが正しく使用されているか
+        - Pydanticスキーマでバリデーションが適切か
+        - SQLインジェクション等のセキュリティリスクがないか
+        - 例外処理が適切か
+
+    - path: "frontend/**/*.{ts,tsx}"
+      instructions: |
+        TypeScript/Reactコードレビューのポイント：
+        - 厳格な型定義がされているか（anyの使用を避ける）
+        - React Hooksの依存配列が正しいか
+        - メモ化（useMemo, useCallback）が適切か
+        - コンポーネントの責務が明確か
+        - アクセシビリティ（a11y）への配慮があるか
+
+    - path: "**/*.sql"
+      instructions: |
+        SQLレビューのポイント：
+        - インデックスが適切に設計されているか
+        - N+1クエリの問題がないか
+        - パラメータ化クエリを使用しているか
+
+    - path: ".github/workflows/**"
+      instructions: |
+        GitHub Actionsレビューのポイント：
+        - シークレットが適切に管理されているか
+        - 不要な権限がないか
+        - キャッシュが効果的に使用されているか
+
+# Chat auto-reply settings
+chat:
+  auto_reply: true
+
+# Enable knowledge base features
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []
+
+# Tone instructions for review comments
+tone_instructions: |
+  レビューコメントは日本語で作成してください。
+  建設的で具体的な改善提案を心がけてください。
+  コードの良い点も指摘してください。
