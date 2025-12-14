@@ -1,6 +1,7 @@
 import asyncio
 import shutil
 import threading
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar
 from uuid import UUID
@@ -196,8 +197,18 @@ class ImageImportHandler(FileSystemEventHandler):
         # Get image dimensions (async)
         width, height = await get_image_dimensions_async(file_path)
 
-        # Get file size
-        file_size = file_path.stat().st_size
+        # Get file stats (before moving the file)
+        file_stat = file_path.stat()
+        file_size = file_stat.st_size
+
+        # Get file creation/modification time for created_at
+        # Use birthtime (creation time) if available, otherwise fall back to mtime
+        try:
+            file_timestamp = file_stat.st_birthtime
+        except AttributeError:
+            # st_birthtime is not available on Linux
+            file_timestamp = file_stat.st_mtime
+        file_created_at = datetime.fromtimestamp(file_timestamp, tz=timezone.utc)
 
         # Parse metadata (supports PNG and JPEG)
         image_info = read_image_info(file_path)
@@ -259,6 +270,8 @@ class ImageImportHandler(FileSystemEventHandler):
             model_params=metadata.model_params,
             workflow_extras=metadata.workflow_extras,
             raw_metadata=metadata.raw_metadata,
+            created_at=file_created_at,
+            updated_at=file_created_at,
         )
 
         db.add(image)

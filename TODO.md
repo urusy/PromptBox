@@ -2,7 +2,7 @@
 
 ## 未着手
 
-- [ ] 画像を取り込む際に、ファイルの作成日を生成日として扱う
+（なし）
 
 ## AI提案機能(未精査)
 
@@ -45,6 +45,9 @@
 
 ### 最近の更新
 
+- [x] 画像取り込み時にファイルの作成日を生成日として使用
+  - ファイルの作成日時（birthtime）を`created_at`に設定
+  - birthtimeが利用不可の場合は更新日時（mtime）にフォールバック
 - [x] バックエンドやDBのリソース増強
   - PostgreSQL: shared_buffers 128MB→256MB, effective_cache_size 256MB→512MB
   - PostgreSQL: work_mem 16MB→32MB, maintenance_work_mem 64MB→128MB
