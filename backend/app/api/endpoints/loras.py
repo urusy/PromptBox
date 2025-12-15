@@ -106,8 +106,11 @@ async def get_loras(
         order_col = func.count()
     elif sort_by == "rating":
         order_col = func.avg(case((lora_data.c.rating > 0, lora_data.c.rating)))
-    else:  # name
-        order_col = lora_data.c.lora_name
+    else:  # name - sort by display name (filename only, not full path)
+        # Extract filename from path using regex: match everything after last / or \
+        order_col = func.lower(
+            func.regexp_replace(lora_data.c.lora_name, r"^.*[/\\]", "", "g")
+        )
 
     if sort_order == "desc":
         query = query.order_by(order_col.desc().nulls_last())

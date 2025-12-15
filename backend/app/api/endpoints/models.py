@@ -94,8 +94,11 @@ async def get_models(
         order_col = func.count(Image.id)
     elif sort_by == "rating":
         order_col = func.avg(case((Image.rating > 0, Image.rating)))
-    else:  # name
-        order_col = Image.model_name
+    else:  # name - sort by display name (filename only, not full path)
+        # Extract filename from path using regex: match everything after last / or \
+        order_col = func.lower(
+            func.regexp_replace(Image.model_name, r"^.*[/\\]", "", "g")
+        )
 
     if sort_order == "desc":
         query = query.order_by(order_col.desc().nulls_last())
