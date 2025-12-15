@@ -185,6 +185,10 @@ prompt-box/
 - Model/LoRA一覧・詳細ページ（CivitAI連携、推奨設定表示）
 - Quick Rate機能（Tinder風スワイプUI、キーボードショートカット）
 - E2Eテスト環境（Playwright MCP）
+- iOS Safari対応（モーダルのbody scroll lock、Escキー対応、カスタム確認ダイアログ）
+- CivitAI検索改善（モデル名正規化、あいまいマッチング改善）
+- CivitAI情報のバージョンタブ表示（モデル/LoRA詳細ページ）
+- モデル一覧のバージョングループ化（`_v80`等のサフィックス除去、統計集計）
 
 ## 重要な実装ポイント
 
