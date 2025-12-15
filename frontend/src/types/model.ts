@@ -1,13 +1,14 @@
 // Types for Model and LoRA resources
 
 export interface ModelListItem {
-  name: string
+  name: string // Base model name (version removed)
   display_name: string
   model_type: string | null
   image_count: number
   rated_count: number
   avg_rating: number | null
   high_rated_count: number
+  version_count: number // Number of versions for this base model
 }
 
 export interface ModelListResponse {
@@ -15,11 +16,21 @@ export interface ModelListResponse {
   total: number
 }
 
+export interface ModelVersionStats {
+  name: string // Full model name with version
+  display_name: string // Display name with version
+  image_count: number
+  rated_count: number
+  avg_rating: number | null
+  high_rated_count: number
+  rating_distribution: Record<number, number>
+}
+
 export interface ModelDetail {
-  name: string
+  name: string // Base model name (version removed)
   display_name: string
   model_type: string | null
-  image_count: number
+  image_count: number // Total across all versions
   rated_count: number
   avg_rating: number | null
   high_rated_count: number
@@ -34,6 +45,7 @@ export interface ModelDetail {
     count: number
     avg_rating: number | null
   }>
+  versions: ModelVersionStats[] // Per-version statistics
 }
 
 export interface LoraListItem {

@@ -52,7 +52,8 @@ export default function ModelDetailPage() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
   const decodedName = name ? decodeURIComponent(name) : ''
-  const [selectedVersionIndex, setSelectedVersionIndex] = useState(0)
+  const [selectedCivitaiVersionIndex, setSelectedCivitaiVersionIndex] = useState(0)
+  const [selectedLocalVersionIndex, setSelectedLocalVersionIndex] = useState<number | null>(null) // null = show all
 
   const {
     data: detail,
@@ -223,9 +224,9 @@ export default function ModelDetailPage() {
                   {civitai.info.versions.map((version, idx) => (
                     <button
                       key={version.version_id}
-                      onClick={() => setSelectedVersionIndex(idx)}
+                      onClick={() => setSelectedCivitaiVersionIndex(idx)}
                       className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
-                        selectedVersionIndex === idx
+                        selectedCivitaiVersionIndex === idx
                           ? 'bg-cyan-600 text-white'
                           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
@@ -240,7 +241,7 @@ export default function ModelDetailPage() {
 
                 {/* Selected Version Content */}
                 {(() => {
-                  const version = civitai.info.versions[selectedVersionIndex]
+                  const version = civitai.info.versions[selectedCivitaiVersionIndex]
                   if (!version) return null
 
                   return (
@@ -400,9 +401,142 @@ export default function ModelDetailPage() {
         )}
       </div>
 
+      {/* Local Versions */}
+      {detail.versions && detail.versions.length > 1 && (
+        <div className="bg-gray-800 rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Layers size={20} className="text-purple-400" />
+            Local Versions ({detail.versions.length})
+          </h2>
+
+          {/* Version Tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-2 mb-4">
+            <button
+              onClick={() => setSelectedLocalVersionIndex(null)}
+              className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                selectedLocalVersionIndex === null
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              All Versions
+            </button>
+            {detail.versions.map((version, idx) => (
+              <button
+                key={version.name}
+                onClick={() => setSelectedLocalVersionIndex(idx)}
+                className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                  selectedLocalVersionIndex === idx
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {version.display_name}
+              </button>
+            ))}
+          </div>
+
+          {/* Version Stats */}
+          {selectedLocalVersionIndex === null ? (
+            // Show all versions summary
+            <div className="space-y-2">
+              {detail.versions.map((version) => (
+                <div
+                  key={version.name}
+                  className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0"
+                >
+                  <span className="truncate font-medium">{version.display_name}</span>
+                  <div className="flex items-center gap-4 text-sm text-gray-400 shrink-0">
+                    <span>{version.image_count} images</span>
+                    {version.avg_rating !== null && (
+                      <span className="text-yellow-400">★{version.avg_rating.toFixed(2)}</span>
+                    )}
+                    <span className="text-green-400">{version.high_rated_count} high</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Show selected version details
+            (() => {
+              const version = detail.versions[selectedLocalVersionIndex]
+              if (!version) return null
+
+              const versionRatingData = Object.entries(version.rating_distribution).map(
+                ([rating, count]) => ({
+                  rating: parseInt(rating),
+                  count,
+                })
+              )
+
+              return (
+                <div className="space-y-4">
+                  {/* Version Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gray-700/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Images</div>
+                      <div className="text-xl font-bold">{version.image_count.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Rated</div>
+                      <div className="text-xl font-bold">{version.rated_count.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Avg Rating</div>
+                      <div className="text-xl font-bold">
+                        {version.avg_rating !== null ? `★${version.avg_rating.toFixed(2)}` : '-'}
+                      </div>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">High Rated</div>
+                      <div className="text-xl font-bold">{version.high_rated_count.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Version Rating Distribution */}
+                  <div>
+                    <div className="text-gray-400 text-sm mb-2">Rating Distribution</div>
+                    <ResponsiveContainer width="100%" height={150}>
+                      <BarChart data={versionRatingData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis
+                          dataKey="rating"
+                          stroke="#9ca3af"
+                          fontSize={12}
+                          tickFormatter={(value) => `★${value}`}
+                        />
+                        <YAxis stroke="#9ca3af" fontSize={12} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                          labelFormatter={(value) => `Rating: ★${value}`}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {versionRatingData.map((entry) => (
+                            <Cell key={entry.rating} fill={RATING_COLORS[entry.rating] || '#6b7280'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* View Images Link */}
+                  <Link
+                    to={`/?model_name=${encodeURIComponent(version.name)}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm"
+                  >
+                    <Image size={16} />
+                    View {version.image_count} images with this version
+                  </Link>
+                </div>
+              )
+            })()
+          )}
+        </div>
+      )}
+
       {/* Rating Distribution */}
       <div className="bg-gray-800 rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-4">Rating Distribution</h2>
+        <h2 className="text-lg font-semibold mb-4">Rating Distribution (All Versions)</h2>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={ratingData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

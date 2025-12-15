@@ -221,12 +221,19 @@ export default function ModelsPage() {
                 {model.display_name}
               </h3>
 
-              {/* Model Type Badge */}
-              {model.model_type && (
-                <span className="inline-block px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs rounded mb-3">
-                  {model.model_type.toUpperCase()}
-                </span>
-              )}
+              {/* Badges */}
+              <div className="flex items-center gap-2 mb-3">
+                {model.model_type && (
+                  <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs rounded">
+                    {model.model_type.toUpperCase()}
+                  </span>
+                )}
+                {model.version_count > 1 && (
+                  <span className="px-2 py-0.5 bg-purple-600/20 text-purple-400 text-xs rounded">
+                    {model.version_count} versions
+                  </span>
+                )}
+              </div>
 
               {/* Stats */}
               <div className="flex items-center gap-4 text-sm text-gray-400">

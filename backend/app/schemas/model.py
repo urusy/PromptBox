@@ -6,13 +6,14 @@ from pydantic import BaseModel
 class ModelListItem(BaseModel):
     """Model item in list view."""
 
-    name: str
+    name: str  # Base model name (version removed)
     display_name: str  # Name without path (after last \ or /)
     model_type: str | None
     image_count: int
     rated_count: int
     avg_rating: float | None
     high_rated_count: int  # Rating >= 4
+    version_count: int = 1  # Number of versions for this base model
 
 
 class ModelListResponse(BaseModel):
@@ -22,19 +23,32 @@ class ModelListResponse(BaseModel):
     total: int
 
 
+class ModelVersionStats(BaseModel):
+    """Statistics for a specific model version."""
+
+    name: str  # Full model name with version
+    display_name: str  # Display name with version
+    image_count: int
+    rated_count: int
+    avg_rating: float | None
+    high_rated_count: int
+    rating_distribution: dict[int, int]
+
+
 class ModelDetail(BaseModel):
     """Model detail with statistics."""
 
-    name: str
-    display_name: str
+    name: str  # Base model name (version removed)
+    display_name: str  # Base display name
     model_type: str | None
-    image_count: int
+    image_count: int  # Total across all versions
     rated_count: int
     avg_rating: float | None
     high_rated_count: int
     rating_distribution: dict[int, int]  # {0: count, 1: count, ...}
     top_samplers: list[dict]  # [{name, count, avg_rating}]
     top_loras: list[dict]  # [{name, count, avg_rating}]
+    versions: list[ModelVersionStats] = []  # Per-version statistics
 
 
 class LoraListItem(BaseModel):
