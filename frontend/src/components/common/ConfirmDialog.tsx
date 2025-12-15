@@ -24,7 +24,6 @@ export default function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
-  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Focus confirm button when dialog opens
   useEffect(() => {
@@ -81,18 +80,20 @@ export default function ConfirmDialog({
 
   const styles = variantStyles[variant]
 
+  // Determine aria attributes based on whether title exists
+  const ariaProps = title
+    ? { 'aria-labelledby': 'confirm-dialog-title', 'aria-describedby': 'confirm-dialog-description' }
+    : { 'aria-describedby': 'confirm-dialog-description' }
+
   return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
+      {...ariaProps}
     >
-      <div
-        ref={dialogRef}
-        className="relative w-full max-w-sm bg-gray-800 rounded-xl shadow-2xl border border-gray-700 animate-in fade-in zoom-in-95 duration-200"
-      >
+      <div className="relative w-full max-w-sm bg-gray-800 rounded-xl shadow-2xl border border-gray-700 animate-in fade-in zoom-in-95 duration-200">
         {/* Close button */}
         <button
           onClick={onCancel}
@@ -119,7 +120,12 @@ export default function ConfirmDialog({
                   {title}
                 </h3>
               )}
-              <p className="text-gray-300 text-sm whitespace-pre-wrap">{message}</p>
+              <p
+                id="confirm-dialog-description"
+                className="text-gray-300 text-sm whitespace-pre-wrap"
+              >
+                {message}
+              </p>
             </div>
           </div>
 

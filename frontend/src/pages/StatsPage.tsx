@@ -17,6 +17,7 @@ import {
 } from 'recharts'
 import { Image, Star, Heart, TrendingUp, Sparkles, BarChart2, RefreshCw } from 'lucide-react'
 import { statsApi } from '@/api/stats'
+import { getBasename } from '@/utils/imagePath'
 import type { RatingAnalysisItem } from '@/types/stats'
 
 const COLORS = [
@@ -381,7 +382,13 @@ export default function StatsPage() {
           <div className="bg-gray-800 rounded-lg p-4">
             <h2 className="text-lg font-semibold mb-4">Top Models</h2>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={stats.by_model_name} layout="vertical">
+              <BarChart
+                data={stats.by_model_name.map((item) => ({
+                  ...item,
+                  name: getBasename(item.name),
+                }))}
+                layout="vertical"
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis type="number" stroke="#9ca3af" fontSize={12} />
                 <YAxis
@@ -435,7 +442,13 @@ export default function StatsPage() {
           <div className="bg-gray-800 rounded-lg p-4">
             <h2 className="text-lg font-semibold mb-4">Top LoRAs</h2>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={stats.by_lora} layout="vertical">
+              <BarChart
+                data={stats.by_lora.map((item) => ({
+                  ...item,
+                  name: getBasename(item.name),
+                }))}
+                layout="vertical"
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis type="number" stroke="#9ca3af" fontSize={12} />
                 <YAxis
@@ -477,16 +490,19 @@ export default function StatsPage() {
               <BarChart
                 data={[...modelRatingDistribution.items]
                   .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0))
-                  .map((item) => ({
-                    name:
-                      item.model_name.length > 20
-                        ? item.model_name.slice(0, 20) + '...'
-                        : item.model_name,
-                    fullName: item.model_name,
-                    avg_rating: item.avg_rating || 0,
-                    total: item.total,
-                    rated_count: item.total - (item.rating_0 ?? 0),
-                  }))}
+                  .map((item) => {
+                    const displayName = getBasename(item.model_name)
+                    return {
+                      name:
+                        displayName.length > 20
+                          ? displayName.slice(0, 20) + '...'
+                          : displayName,
+                      fullName: displayName,
+                      avg_rating: item.avg_rating || 0,
+                      total: item.total,
+                      rated_count: item.total - (item.rating_0 ?? 0),
+                    }
+                  })}
                 layout="vertical"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -574,7 +590,10 @@ export default function StatsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analysisTab === 'overall' && (
               <RatingAnalysisChart
-                data={ratingAnalysis.by_model}
+                data={ratingAnalysis.by_model.map((item) => ({
+                  ...item,
+                  name: getBasename(item.name),
+                }))}
                 title="Best Models"
                 color="#3b82f6"
               />
@@ -585,7 +604,10 @@ export default function StatsPage() {
               color="#10b981"
             />
             <RatingAnalysisChart
-              data={ratingAnalysis.by_lora}
+              data={ratingAnalysis.by_lora.map((item) => ({
+                ...item,
+                name: getBasename(item.name),
+              }))}
               title={analysisTab === 'by-model' ? `Best LoRAs` : 'Best LoRAs'}
               color="#f59e0b"
             />

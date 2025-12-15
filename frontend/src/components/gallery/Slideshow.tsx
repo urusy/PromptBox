@@ -117,6 +117,14 @@ export default function Slideshow({ images, startIndex = 0, onClose }: Slideshow
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose, goToNext, goToPrev, togglePlay, toggleShuffle])
 
+  // Prevent body scroll when slideshow is open (iOS Safari fix)
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   // Auto-hide controls
   useEffect(() => {
     let hideTimer: number

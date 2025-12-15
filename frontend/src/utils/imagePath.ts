@@ -3,6 +3,22 @@
  * Prevents path traversal and ensures paths follow expected format.
  */
 
+/**
+ * Extracts the basename from a file path.
+ * Handles both Windows (backslash) and Unix (forward slash) paths.
+ * Also removes common file extensions like .safetensors, .ckpt, .pt
+ */
+export function getBasename(path: string | null | undefined): string {
+  if (!path) return ''
+
+  // Split by both backslash and forward slash, take the last part
+  const parts = path.split(/[\\/]/)
+  const filename = parts[parts.length - 1] || path
+
+  // Remove common model file extensions
+  return filename.replace(/\.(safetensors|ckpt|pt|pth|bin)$/i, '')
+}
+
 // Valid image path pattern: XX/YY/UUID.ext or XX/YY/UUID_thumb.webp
 const VALID_PATH_PATTERN =
   /^[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f-]+(?:_thumb)?\.(?:png|jpg|jpeg|webp|gif)$/i

@@ -280,6 +280,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   useEffect(() => {
     if (!showSaveModal || !saveModalRef.current) return
 
+    // Prevent body scroll (iOS Safari fix)
+    document.body.style.overflow = 'hidden'
+
     const modal = saveModalRef.current
     const focusableElements = modal.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -309,7 +312,10 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     }
 
     modal.addEventListener('keydown', handleKeyDown)
-    return () => modal.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      modal.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
   }, [showSaveModal])
 
   // Create preset mutation

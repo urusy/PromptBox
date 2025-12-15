@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -51,6 +51,26 @@ function CreateEditModal({
   const [description, setDescription] = useState(showcase?.description || '')
   const [icon, setIcon] = useState(showcase?.icon || 'album')
   const [coverImageId, setCoverImageId] = useState<string | null>(showcase?.cover_image_id || null)
+
+  // Handle escape key (iOS Safari fix)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    },
+    [onClose]
+  )
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+    // Prevent body scroll (iOS Safari fix)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [handleKeyDown])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

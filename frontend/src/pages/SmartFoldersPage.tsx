@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FolderSearch, Plus, Pencil, Trash2, Star, Heart, Grid, Sparkles } from 'lucide-react'
@@ -58,6 +58,26 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
   const [name, setName] = useState(folder?.name || '')
   const [icon, setIcon] = useState(folder?.icon || 'folder')
   const [filters, setFilters] = useState<SearchFilters>(folder?.filters || {})
+
+  // Handle escape key (iOS Safari fix)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    },
+    [onClose]
+  )
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+    // Prevent body scroll (iOS Safari fix)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [handleKeyDown])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

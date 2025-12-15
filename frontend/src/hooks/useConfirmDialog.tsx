@@ -1,4 +1,4 @@
-import { useState, useCallback, ReactNode } from 'react'
+import { useState, useCallback, useRef, useEffect, ReactNode } from 'react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 
 interface ConfirmOptions {
@@ -17,32 +17,42 @@ interface UseConfirmDialogReturn {
 export function useConfirmDialog(): UseConfirmDialogReturn {
   const [isOpen, setIsOpen] = useState(false)
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
-  const [resolveRef, setResolveRef] = useState<((value: boolean) => void) | null>(null)
+  const resolveRef = useRef<((value: boolean) => void) | null>(null)
+
+  // Cleanup on unmount: resolve any pending Promise with false
+  useEffect(() => {
+    return () => {
+      if (resolveRef.current) {
+        resolveRef.current(false)
+        resolveRef.current = null
+      }
+    }
+  }, [])
 
   const confirm = useCallback((opts: ConfirmOptions): Promise<boolean> => {
     setOptions(opts)
     setIsOpen(true)
 
     return new Promise<boolean>((resolve) => {
-      setResolveRef(() => resolve)
+      resolveRef.current = resolve
     })
   }, [])
 
   const handleConfirm = useCallback(() => {
     setIsOpen(false)
-    if (resolveRef) {
-      resolveRef(true)
-      setResolveRef(null)
+    if (resolveRef.current) {
+      resolveRef.current(true)
+      resolveRef.current = null
     }
-  }, [resolveRef])
+  }, [])
 
   const handleCancel = useCallback(() => {
     setIsOpen(false)
-    if (resolveRef) {
-      resolveRef(false)
-      setResolveRef(null)
+    if (resolveRef.current) {
+      resolveRef.current(false)
+      resolveRef.current = null
     }
-  }, [resolveRef])
+  }, [])
 
   const ConfirmDialogComponent = options ? (
     <ConfirmDialog

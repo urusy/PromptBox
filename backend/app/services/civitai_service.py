@@ -1,5 +1,6 @@
 """CivitAI API service with in-memory caching."""
 
+import re
 from typing import Literal
 
 import httpx
@@ -14,6 +15,42 @@ from app.schemas.model import (
 
 # CivitAI API base URL
 CIVITAI_API_BASE = "https://civitai.com/api/v1"
+
+
+def normalize_model_name(name: str) -> str:
+    """Normalize model name for better CivitAI search matching.
+
+    - Remove version suffixes like _v50, _v20VAE, v6, etc.
+    - Split camelCase into separate words
+    - Remove underscores and hyphens
+    - Convert to lowercase
+    """
+    # Remove common version patterns
+    # Patterns: _v50, _v20VAE, v6, V2.0, _v1.5, etc.
+    cleaned = re.sub(r"[_-]?v\d+(\.\d+)?[a-zA-Z]*$", "", name, flags=re.IGNORECASE)
+
+    # Split camelCase: "cyberIllustrious" -> "cyber Illustrious"
+    cleaned = re.sub(r"([a-z])([A-Z])", r"\1 \2", cleaned)
+
+    # Replace underscores and hyphens with spaces
+    cleaned = re.sub(r"[_-]+", " ", cleaned)
+
+    # Remove extra whitespace and convert to lowercase
+    cleaned = " ".join(cleaned.split()).lower()
+
+    return cleaned
+
+
+def extract_words(text: str) -> set[str]:
+    """Extract words from text, handling various separators and camelCase."""
+    # First, split camelCase: "cyberIllustrious" -> "cyber Illustrious"
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    # Split on spaces, underscores, hyphens, and numbers adjacent to letters
+    text = re.sub(r"(\D)(\d)", r"\1 \2", text)  # letter followed by number
+    text = re.sub(r"(\d)(\D)", r"\1 \2", text)  # number followed by letter
+    words = re.split(r"[\s_-]+", text.lower())
+    # Filter out very short words and version-like strings
+    return {w for w in words if len(w) > 2 and not re.match(r"^v?\d+", w)}
 
 # In-memory cache (TTL: 24 hours)
 # Key: "model:{name}" or "hash:{hash}"
@@ -264,10 +301,14 @@ class CivitaiService:
         try:
             client = await self._get_client()
 
+            # Normalize query for better search results
+            normalized_query = normalize_model_name(query)
+            logger.debug(f"Searching CivitAI: original='{query}', normalized='{normalized_query}'")
+
             params = {
-                "query": query,
+                "query": normalized_query,
                 "types": model_type,
-                "limit": 5 if exact else 10,
+                "limit": 10,  # Get more results for better matching
                 "nsfw": "true",  # Include NSFW models
             }
 
@@ -277,53 +318,81 @@ class CivitaiService:
 
             items = data.get("items", [])
             if not items:
+                logger.debug(f"No results from CivitAI for: {normalized_query}")
                 return None
 
-            # For exact match, check if first result matches closely
-            if exact:
-                first_item = items[0]
-                first_name = first_item.get("name", "").lower()
-                query_lower = query.lower()
+            # Extract words from query for matching
+            query_words = extract_words(query)
+            query_normalized = normalize_model_name(query)
 
-                # Check for exact or close match
-                if first_name == query_lower or query_lower in first_name:
-                    return self._parse_model_response(first_item, is_exact_match=True)
-                return None
-
-            # For fuzzy search, return best match
-            # Score by similarity (simple substring match)
-            query_lower = query.lower()
             best_match = None
             best_score = 0
 
             for item in items:
-                item_name = item.get("name", "").lower()
+                item_name = item.get("name", "")
+                item_normalized = normalize_model_name(item_name)
+                item_words = extract_words(item_name)
+
                 score = 0
 
-                # Exact match
-                if item_name == query_lower:
+                # Exact normalized match
+                if item_normalized == query_normalized:
                     score = 100
-                # Query is substring of name
-                elif query_lower in item_name:
-                    score = 80
-                # Name is substring of query
-                elif item_name in query_lower:
-                    score = 60
-                # Some words match
+                # Normalized query is substring of normalized name
+                elif query_normalized in item_normalized:
+                    score = 90
+                # Normalized name is substring of normalized query
+                elif item_normalized in query_normalized:
+                    score = 85
                 else:
-                    query_words = set(query_lower.split())
-                    name_words = set(item_name.split())
-                    common = query_words & name_words
+                    # Word-based matching (improved)
+                    common = query_words & item_words
                     if common:
-                        score = len(common) * 20
+                        # Score based on percentage of query words matched
+                        match_ratio = len(common) / max(len(query_words), 1)
+                        # Also consider how many of the item's significant words match
+                        item_match_ratio = len(common) / max(len(item_words), 1)
+                        # Combined score
+                        score = int((match_ratio * 50) + (item_match_ratio * 30))
+
+                        # Bonus for matching significant/long words
+                        for word in common:
+                            if len(word) >= 5:
+                                score += 10
+                    else:
+                        # Fallback: check if query words are substrings of concatenated item name
+                        # This helps with compound words like "cyberillustrious" matching
+                        # "CyberRealistic CyberIllustrious"
+                        item_concat = item_normalized.replace(" ", "")
+                        for qword in query_words:
+                            if len(qword) >= 5 and qword in item_concat:
+                                score = max(score, 60)  # Significant substring match
+                                break
+
+                        # Also check reverse: if item words are in query
+                        query_concat = query_normalized.replace(" ", "")
+                        for iword in item_words:
+                            if len(iword) >= 5 and iword in query_concat:
+                                score = max(score, 55)
+                                break
 
                 if score > best_score:
                     best_score = score
                     best_match = item
+                    logger.debug(f"  Candidate: '{item_name}' score={score}")
 
-            if best_match and best_score >= 20:
-                return self._parse_model_response(best_match, is_exact_match=False)
+            # For exact mode, require higher score
+            min_score = 80 if exact else 30
 
+            if best_match and best_score >= min_score:
+                is_exact = best_score >= 85
+                logger.info(
+                    f"CivitAI match for '{query}': '{best_match.get('name')}' "
+                    f"(score={best_score}, exact={is_exact})"
+                )
+                return self._parse_model_response(best_match, is_exact_match=is_exact)
+
+            logger.debug(f"No good match found for '{query}' (best_score={best_score})")
             return None
 
         except httpx.HTTPStatusError as e:

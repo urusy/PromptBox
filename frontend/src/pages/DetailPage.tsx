@@ -170,6 +170,16 @@ export default function DetailPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [image, navigateToImage, isLightboxOpen, handleRatingChange, updateMutation])
 
+  // Prevent body scroll when lightbox is open (iOS Safari fix)
+  useEffect(() => {
+    if (isLightboxOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isLightboxOpen])
+
   const deleteMutation = useMutation({
     mutationFn: () => imagesApi.delete(id!),
     onSuccess: () => {
@@ -178,6 +188,19 @@ export default function DetailPage() {
       navigate('/')
     },
   })
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'ゴミ箱に移動',
+      message: 'この画像をゴミ箱に移動しますか？',
+      confirmLabel: '移動',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
+      deleteMutation.mutate()
+    }
+  }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -374,18 +397,7 @@ export default function DetailPage() {
               )}
             </div>
             <button
-              onClick={async () => {
-                const confirmed = await confirm({
-                  title: 'ゴミ箱に移動',
-                  message: 'この画像をゴミ箱に移動しますか？',
-                  confirmLabel: '移動',
-                  cancelLabel: 'キャンセル',
-                  variant: 'warning',
-                })
-                if (confirmed) {
-                  deleteMutation.mutate()
-                }
-              }}
+              onClick={handleDelete}
               className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-600 hover:text-red-500"
               title="Move to trash"
             >

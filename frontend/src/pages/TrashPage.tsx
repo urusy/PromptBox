@@ -94,16 +94,16 @@ export default function TrashPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Trash</h1>
-        <button
-          onClick={handleEmptyTrash}
-          disabled={emptyTrashMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed rounded-lg transition-colors"
-        >
-          <AlertTriangle size={18} />
-          {emptyTrashMutation.isPending ? 'Emptying...' : 'Empty Trash'}
-          <span className="text-sm text-red-200">({data.items.length})</span>
-        </button>
-      </div>
+          <button
+            onClick={handleEmptyTrash}
+            disabled={emptyTrashMutation.isPending}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed rounded-lg transition-colors"
+          >
+            <AlertTriangle size={18} />
+            {emptyTrashMutation.isPending ? 'Emptying...' : 'Empty Trash'}
+            <span className="text-sm text-red-200">({data.items.length})</span>
+          </button>
+        </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 5xl:grid-cols-12 gap-4">
         {data.items.map((image) => (
           <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
