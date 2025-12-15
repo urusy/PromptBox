@@ -89,6 +89,18 @@ export interface CivitaiRecommendedSettings {
   strength: number | null
 }
 
+export interface CivitaiVersionInfo {
+  version_id: number
+  name: string
+  base_model: string | null
+  images: CivitaiImage[]
+  recommended_settings: CivitaiRecommendedSettings | null
+  trigger_words: string[]
+  download_url: string | null
+  file_size_kb: number | null
+  published_at: string | null
+}
+
 export interface CivitaiModelInfo {
   civitai_id: number
   name: string
@@ -96,13 +108,9 @@ export interface CivitaiModelInfo {
   type: string
   nsfw: boolean
   creator: string | null
-  base_model: string | null
-  images: CivitaiImage[]
-  recommended_settings: CivitaiRecommendedSettings | null
-  trigger_words: string[]
-  download_url: string | null
   civitai_url: string | null
   is_exact_match: boolean
+  versions: CivitaiVersionInfo[]
 }
 
 export interface CivitaiInfoResponse {

@@ -1,6 +1,17 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Star, Image, ExternalLink, AlertTriangle, Box, Layers } from 'lucide-react'
+import {
+  ArrowLeft,
+  Star,
+  Image,
+  ExternalLink,
+  AlertTriangle,
+  Box,
+  Layers,
+  Download,
+  FileText,
+} from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -22,10 +33,26 @@ const RATING_COLORS: Record<number, string> = {
   5: '#3b82f6',
 }
 
+// Helper to format file size
+function formatFileSize(sizeKb: number | null): string {
+  if (!sizeKb) return '-'
+  if (sizeKb < 1024) return `${sizeKb.toFixed(0)} KB`
+  const sizeMb = sizeKb / 1024
+  if (sizeMb < 1024) return `${sizeMb.toFixed(1)} MB`
+  return `${(sizeMb / 1024).toFixed(2)} GB`
+}
+
+// Helper to strip HTML tags from description
+function stripHtml(html: string | null): string {
+  if (!html) return ''
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export default function ModelDetailPage() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
   const decodedName = name ? decodeURIComponent(name) : ''
+  const [selectedVersionIndex, setSelectedVersionIndex] = useState(0)
 
   const {
     data: detail,
@@ -153,29 +180,8 @@ export default function ModelDetailPage() {
 
         {civitai?.info && (
           <div className="space-y-4">
-            {/* Images */}
-            {civitai.info.images.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {civitai.info.images.map((img, idx) => (
-                  <a
-                    key={idx}
-                    href={img.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
-                    <img
-                      src={img.url}
-                      alt={`Preview ${idx + 1}`}
-                      className="h-32 w-auto rounded-lg object-cover hover:opacity-80 transition-opacity"
-                    />
-                  </a>
-                ))}
-              </div>
-            )}
-
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Model Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-gray-400 text-sm">Name on CivitAI</div>
                 <div className="font-medium">{civitai.info.name}</div>
@@ -186,12 +192,6 @@ export default function ModelDetailPage() {
                   <div className="font-medium">{civitai.info.creator}</div>
                 </div>
               )}
-              {civitai.info.base_model && (
-                <div>
-                  <div className="text-gray-400 text-sm">Base Model</div>
-                  <div className="font-medium">{civitai.info.base_model}</div>
-                </div>
-              )}
               {civitai.info.type && (
                 <div>
                   <div className="text-gray-400 text-sm">Type</div>
@@ -200,48 +200,187 @@ export default function ModelDetailPage() {
               )}
             </div>
 
-            {/* Recommended Settings */}
-            {civitai.info.recommended_settings && (
-              <div className="bg-gray-700/50 rounded-lg p-3">
-                <div className="text-sm font-medium text-cyan-400 mb-2">Recommended Settings</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  {civitai.info.recommended_settings.clip_skip && (
-                    <div>
-                      <span className="text-gray-400">Clip Skip:</span>{' '}
-                      <span className="font-medium">
-                        {civitai.info.recommended_settings.clip_skip}
-                      </span>
-                    </div>
-                  )}
-                  {civitai.info.recommended_settings.steps && (
-                    <div>
-                      <span className="text-gray-400">Steps:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.steps}</span>
-                    </div>
-                  )}
-                  {civitai.info.recommended_settings.cfg_scale && (
-                    <div>
-                      <span className="text-gray-400">CFG:</span>{' '}
-                      <span className="font-medium">
-                        {civitai.info.recommended_settings.cfg_scale}
-                      </span>
-                    </div>
-                  )}
-                  {civitai.info.recommended_settings.sampler && (
-                    <div>
-                      <span className="text-gray-400">Sampler:</span>{' '}
-                      <span className="font-medium">
-                        {civitai.info.recommended_settings.sampler}
-                      </span>
-                    </div>
-                  )}
-                  {civitai.info.recommended_settings.vae && (
-                    <div>
-                      <span className="text-gray-400">VAE:</span>{' '}
-                      <span className="font-medium">{civitai.info.recommended_settings.vae}</span>
-                    </div>
-                  )}
+            {/* Description */}
+            {civitai.info.description && (
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <FileText size={14} />
+                  Description
                 </div>
+                <p className="text-sm text-gray-300 line-clamp-4">
+                  {stripHtml(civitai.info.description)}
+                </p>
+              </div>
+            )}
+
+            {/* Version Tabs */}
+            {civitai.info.versions.length > 0 && (
+              <div>
+                <div className="text-gray-400 text-sm mb-2">
+                  Versions ({civitai.info.versions.length})
+                </div>
+                <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
+                  {civitai.info.versions.map((version, idx) => (
+                    <button
+                      key={version.version_id}
+                      onClick={() => setSelectedVersionIndex(idx)}
+                      className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                        selectedVersionIndex === idx
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {version.name}
+                      {version.base_model && (
+                        <span className="ml-1 text-xs opacity-70">({version.base_model})</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selected Version Content */}
+                {(() => {
+                  const version = civitai.info.versions[selectedVersionIndex]
+                  if (!version) return null
+
+                  return (
+                    <div className="space-y-4 border-t border-gray-700 pt-4">
+                      {/* Version Images */}
+                      {version.images.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {version.images.map((img, imgIdx) => (
+                            <a
+                              key={imgIdx}
+                              href={img.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0"
+                            >
+                              <img
+                                src={img.url}
+                                alt={`Preview ${imgIdx + 1}`}
+                                className="h-32 w-auto rounded-lg object-cover hover:opacity-80 transition-opacity"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Version Info */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {version.base_model && (
+                          <div>
+                            <span className="text-gray-400">Base Model:</span>{' '}
+                            <span className="font-medium">{version.base_model}</span>
+                          </div>
+                        )}
+                        {version.file_size_kb && (
+                          <div>
+                            <span className="text-gray-400">File Size:</span>{' '}
+                            <span className="font-medium">{formatFileSize(version.file_size_kb)}</span>
+                          </div>
+                        )}
+                        {version.published_at && (
+                          <div>
+                            <span className="text-gray-400">Published:</span>{' '}
+                            <span className="font-medium">
+                              {new Date(version.published_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Trigger Words (for LoRA) */}
+                      {version.trigger_words.length > 0 && (
+                        <div>
+                          <div className="text-gray-400 text-sm mb-1">Trigger Words</div>
+                          <div className="flex flex-wrap gap-1">
+                            {version.trigger_words.map((word, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 bg-purple-600/20 text-purple-300 text-sm rounded"
+                              >
+                                {word}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recommended Settings */}
+                      {version.recommended_settings && (
+                        <div className="bg-gray-700/50 rounded-lg p-3">
+                          <div className="text-sm font-medium text-cyan-400 mb-2">
+                            Recommended Settings
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            {version.recommended_settings.clip_skip && (
+                              <div>
+                                <span className="text-gray-400">Clip Skip:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.clip_skip}
+                                </span>
+                              </div>
+                            )}
+                            {version.recommended_settings.steps && (
+                              <div>
+                                <span className="text-gray-400">Steps:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.steps}
+                                </span>
+                              </div>
+                            )}
+                            {version.recommended_settings.cfg_scale && (
+                              <div>
+                                <span className="text-gray-400">CFG:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.cfg_scale}
+                                </span>
+                              </div>
+                            )}
+                            {version.recommended_settings.sampler && (
+                              <div>
+                                <span className="text-gray-400">Sampler:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.sampler}
+                                </span>
+                              </div>
+                            )}
+                            {version.recommended_settings.vae && (
+                              <div>
+                                <span className="text-gray-400">VAE:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.vae}
+                                </span>
+                              </div>
+                            )}
+                            {version.recommended_settings.strength && (
+                              <div>
+                                <span className="text-gray-400">Strength:</span>{' '}
+                                <span className="font-medium">
+                                  {version.recommended_settings.strength}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Download Link */}
+                      {version.download_url && (
+                        <a
+                          href={version.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+                        >
+                          <Download size={14} />
+                          Download this version
+                        </a>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             )}
 

@@ -92,6 +92,20 @@ class CivitaiRecommendedSettings(BaseModel):
     strength: float | None = None  # For LoRA
 
 
+class CivitaiVersionInfo(BaseModel):
+    """CivitAI model version information."""
+
+    version_id: int
+    name: str
+    base_model: str | None = None  # SD 1.5, SDXL, Illustrious, etc.
+    images: list[CivitaiImage] = []
+    recommended_settings: CivitaiRecommendedSettings | None = None
+    trigger_words: list[str] = []  # For LoRA
+    download_url: str | None = None
+    file_size_kb: float | None = None
+    published_at: str | None = None
+
+
 class CivitaiModelInfo(BaseModel):
     """CivitAI model information."""
 
@@ -101,13 +115,9 @@ class CivitaiModelInfo(BaseModel):
     type: str  # Checkpoint, LORA, etc.
     nsfw: bool = False
     creator: str | None = None
-    base_model: str | None = None  # SD 1.5, SDXL, etc.
-    images: list[CivitaiImage] = []
-    recommended_settings: CivitaiRecommendedSettings | None = None
-    trigger_words: list[str] = []  # For LoRA
-    download_url: str | None = None
     civitai_url: str | None = None
     is_exact_match: bool = True  # False if found via fuzzy search
+    versions: list[CivitaiVersionInfo] = []  # All versions of the model
 
 
 class CivitaiInfoResponse(BaseModel):

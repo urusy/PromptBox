@@ -11,6 +11,7 @@ from app.schemas.model import (
     CivitaiImage,
     CivitaiModelInfo,
     CivitaiRecommendedSettings,
+    CivitaiVersionInfo,
 )
 
 # CivitAI API base URL
@@ -82,19 +83,11 @@ class CivitaiService:
             await self._client.aclose()
             self._client = None
 
-    def _parse_model_response(
-        self,
-        data: dict,
-        is_exact_match: bool = True,
-    ) -> CivitaiModelInfo:
-        """Parse CivitAI API response into our schema."""
-        # Get first model version for details
-        versions = data.get("modelVersions", [])
-        first_version = versions[0] if versions else {}
-
-        # Extract images
+    def _parse_version_data(self, version_data: dict) -> CivitaiVersionInfo:
+        """Parse a single version from CivitAI API response."""
+        # Extract images (limit to 10 per version)
         images: list[CivitaiImage] = []
-        for img in first_version.get("images", [])[:5]:  # Limit to 5 images
+        for img in version_data.get("images", [])[:10]:
             images.append(
                 CivitaiImage(
                     url=img.get("url", ""),
@@ -104,14 +97,16 @@ class CivitaiService:
                 )
             )
 
-        # Extract recommended settings
-        trained_words = first_version.get("trainedWords", [])
-
-        # Try to get recommended settings from metadata or files
+        # Extract recommended settings from files metadata
         recommended_settings = None
-        files = first_version.get("files", [])
+        files = version_data.get("files", [])
+        file_size_kb = None
+        download_url = None
+
         if files:
             first_file = files[0]
+            file_size_kb = first_file.get("sizeKB")
+            download_url = first_file.get("downloadUrl")
             metadata = first_file.get("metadata", {})
             if metadata:
                 recommended_settings = CivitaiRecommendedSettings(
@@ -123,16 +118,31 @@ class CivitaiService:
                     strength=metadata.get("strength"),
                 )
 
-        # Get base model
-        base_model = first_version.get("baseModel")
+        return CivitaiVersionInfo(
+            version_id=version_data.get("id", 0),
+            name=version_data.get("name", ""),
+            base_model=version_data.get("baseModel"),
+            images=images,
+            recommended_settings=recommended_settings,
+            trigger_words=version_data.get("trainedWords", []),
+            download_url=download_url,
+            file_size_kb=file_size_kb,
+            published_at=version_data.get("publishedAt"),
+        )
+
+    def _parse_model_response(
+        self,
+        data: dict,
+        is_exact_match: bool = True,
+    ) -> CivitaiModelInfo:
+        """Parse CivitAI API response into our schema with all versions."""
+        # Parse all versions
+        versions: list[CivitaiVersionInfo] = []
+        for version_data in data.get("modelVersions", []):
+            versions.append(self._parse_version_data(version_data))
 
         # Build civitai URL
         civitai_url = f"https://civitai.com/models/{data.get('id')}"
-
-        # Get download URL
-        download_url = None
-        if files:
-            download_url = files[0].get("downloadUrl")
 
         return CivitaiModelInfo(
             civitai_id=data.get("id", 0),
@@ -141,13 +151,9 @@ class CivitaiService:
             type=data.get("type", ""),
             nsfw=data.get("nsfw", False),
             creator=data.get("creator", {}).get("username"),
-            base_model=base_model,
-            images=images,
-            recommended_settings=recommended_settings,
-            trigger_words=trained_words,
-            download_url=download_url,
             civitai_url=civitai_url,
             is_exact_match=is_exact_match,
+            versions=versions,
         )
 
     def _parse_version_response(
@@ -155,46 +161,15 @@ class CivitaiService:
         data: dict,
         is_exact_match: bool = True,
     ) -> CivitaiModelInfo:
-        """Parse CivitAI model-versions API response."""
-        # Extract images
-        images: list[CivitaiImage] = []
-        for img in data.get("images", [])[:5]:
-            images.append(
-                CivitaiImage(
-                    url=img.get("url", ""),
-                    width=img.get("width"),
-                    height=img.get("height"),
-                    nsfw=img.get("nsfw", False) or img.get("nsfwLevel", 0) > 1,
-                )
-            )
-
-        trained_words = data.get("trainedWords", [])
-
-        # Try to get recommended settings from files metadata
-        recommended_settings = None
-        files = data.get("files", [])
-        if files:
-            first_file = files[0]
-            metadata = first_file.get("metadata", {})
-            if metadata:
-                recommended_settings = CivitaiRecommendedSettings(
-                    clip_skip=metadata.get("clipSkip"),
-                    steps=metadata.get("steps"),
-                    cfg_scale=metadata.get("cfgScale"),
-                    sampler=metadata.get("sampler"),
-                    vae=metadata.get("vae"),
-                    strength=metadata.get("strength"),
-                )
-
+        """Parse CivitAI model-versions API response (single version from hash lookup)."""
         # Get model info from nested model object
         model_info = data.get("model", {})
         model_id = model_info.get("id") or data.get("modelId", 0)
 
         civitai_url = f"https://civitai.com/models/{model_id}"
 
-        download_url = None
-        if files:
-            download_url = files[0].get("downloadUrl")
+        # Parse the single version
+        version = self._parse_version_data(data)
 
         return CivitaiModelInfo(
             civitai_id=model_id,
@@ -203,13 +178,9 @@ class CivitaiService:
             type=model_info.get("type", ""),
             nsfw=model_info.get("nsfw", False),
             creator=None,  # Not included in version response
-            base_model=data.get("baseModel"),
-            images=images,
-            recommended_settings=recommended_settings,
-            trigger_words=trained_words,
-            download_url=download_url,
             civitai_url=civitai_url,
             is_exact_match=is_exact_match,
+            versions=[version],  # Single version from hash lookup
         )
 
     async def get_model_by_hash(self, hash_value: str) -> CivitaiModelInfo | None:
