@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FolderSearch, Plus, Pencil, Trash2, Star, Heart, Grid, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { smartFoldersApi } from '@/api/smartFolders'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import type { SmartFolder, SmartFolderCreate } from '@/types/smartFolder'
 import type { SearchFilters } from '@/types/searchPreset'
 import { filtersToSearchParams } from '@/utils/searchParams'
@@ -253,6 +254,7 @@ function CreateEditModal({ folder, onClose, onSave, isPending }: CreateEditModal
 export default function SmartFoldersPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [showModal, setShowModal] = useState(false)
   const [editingFolder, setEditingFolder] = useState<SmartFolder | null>(null)
 
@@ -307,9 +309,16 @@ export default function SmartFoldersPage() {
     setEditingFolder(folder)
   }
 
-  const handleDelete = (e: React.MouseEvent, folder: SmartFolder) => {
+  const handleDelete = async (e: React.MouseEvent, folder: SmartFolder) => {
     e.stopPropagation()
-    if (confirm(`"${folder.name}" を削除しますか？`)) {
+    const confirmed = await confirm({
+      title: 'スマートフォルダを削除',
+      message: `"${folder.name}" を削除しますか？`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       deleteMutation.mutate(folder.id)
     }
   }
@@ -328,9 +337,11 @@ export default function SmartFoldersPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Smart Folders</h1>
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Smart Folders</h1>
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
@@ -396,15 +407,16 @@ export default function SmartFoldersPage() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      {(showModal || editingFolder) && (
-        <CreateEditModal
-          folder={editingFolder}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          isPending={createMutation.isPending || updateMutation.isPending}
-        />
-      )}
-    </div>
+        {/* Create/Edit Modal */}
+        {(showModal || editingFolder) && (
+          <CreateEditModal
+            folder={editingFolder}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            isPending={createMutation.isPending || updateMutation.isPending}
+          />
+        )}
+      </div>
+    </>
   )
 }

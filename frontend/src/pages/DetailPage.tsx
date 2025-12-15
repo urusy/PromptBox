@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import { showcasesApi } from '@/api/showcases'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import type { ImageUpdate } from '@/types/image'
 import type { Showcase } from '@/types/showcase'
 import { parseSearchParams } from '@/utils/searchParams'
@@ -30,6 +31,7 @@ export default function DetailPage() {
   const location = useLocation()
   const [urlSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [showShowcaseMenu, setShowShowcaseMenu] = useState(false)
   const showcaseMenuRef = useRef<HTMLDivElement>(null)
@@ -171,6 +173,7 @@ export default function DetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => imagesApi.delete(id!),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] })
       toast.success('Image moved to trash')
       navigate('/')
     },
@@ -208,11 +211,13 @@ export default function DetailPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate(`/${location.search}`)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white"
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate(`/${location.search}`)}
+            className="flex items-center gap-2 text-gray-400 hover:text-white"
         >
           <ArrowLeft size={20} />
           <span>Back</span>
@@ -369,7 +374,18 @@ export default function DetailPage() {
               )}
             </div>
             <button
-              onClick={() => deleteMutation.mutate()}
+              onClick={async () => {
+                const confirmed = await confirm({
+                  title: 'ゴミ箱に移動',
+                  message: 'この画像をゴミ箱に移動しますか？',
+                  confirmLabel: '移動',
+                  cancelLabel: 'キャンセル',
+                  variant: 'warning',
+                })
+                if (confirmed) {
+                  deleteMutation.mutate()
+                }
+              }}
               className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-600 hover:text-red-500"
               title="Move to trash"
             >
@@ -578,15 +594,16 @@ export default function DetailPage() {
           >
             <X size={32} />
           </button>
-          <img
-            src={`/storage/${image.storage_path}`}
-            alt={image.model_name || 'Generated image'}
-            className="max-w-[95vw] max-h-[95vh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-    </div>
+            <img
+              src={`/storage/${image.storage_path}`}
+              alt={image.model_name || 'Generated image'}
+              className="max-w-[95vw] max-h-[95vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 

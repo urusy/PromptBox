@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw, Trash2 } from 'lucide-react'
+import { RotateCcw, Trash2, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
+import { batchApi } from '@/api/batch'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import type { ImageSearchParams } from '@/types/image'
 
 export default function TrashPage() {
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [params] = useState<ImageSearchParams>({
     page: 1,
     per_page: 24,
@@ -36,6 +39,32 @@ export default function TrashPage() {
     },
   })
 
+  const emptyTrashMutation = useMutation({
+    mutationFn: (ids: string[]) => batchApi.delete({ ids, permanent: true }),
+    onSuccess: () => {
+      toast.success('Trash emptied')
+      queryClient.invalidateQueries({ queryKey: ['images'] })
+    },
+    onError: () => {
+      toast.error('Failed to empty trash')
+    },
+  })
+
+  const handleEmptyTrash = async () => {
+    if (!data || data.items.length === 0) return
+    const ids = data.items.map((img) => img.id)
+    const confirmed = await confirm({
+      title: 'ゴミ箱を空にする',
+      message: `${ids.length}枚の画像を完全に削除しますか？\nこの操作は取り消せません。`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'danger',
+    })
+    if (confirmed) {
+      emptyTrashMutation.mutate(ids)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -60,8 +89,21 @@ export default function TrashPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Trash</h1>
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Trash</h1>
+        <button
+          onClick={handleEmptyTrash}
+          disabled={emptyTrashMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed rounded-lg transition-colors"
+        >
+          <AlertTriangle size={18} />
+          {emptyTrashMutation.isPending ? 'Emptying...' : 'Empty Trash'}
+          <span className="text-sm text-red-200">({data.items.length})</span>
+        </button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 5xl:grid-cols-12 gap-4">
         {data.items.map((image) => (
           <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
@@ -82,8 +124,15 @@ export default function TrashPage() {
                 <RotateCcw size={20} />
               </button>
               <button
-                onClick={() => {
-                  if (confirm('Permanently delete this image? This cannot be undone.')) {
+                onClick={async () => {
+                  const confirmed = await confirm({
+                    title: '完全に削除',
+                    message: 'この画像を完全に削除しますか？\nこの操作は取り消せません。',
+                    confirmLabel: '削除',
+                    cancelLabel: 'キャンセル',
+                    variant: 'danger',
+                  })
+                  if (confirmed) {
                     deleteMutation.mutate(image.id)
                   }
                 }}
@@ -95,7 +144,8 @@ export default function TrashPage() {
             </div>
           </div>
         ))}
+        </div>
       </div>
-    </div>
+    </>
   )
 }

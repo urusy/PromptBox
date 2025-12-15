@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, AlertTriangle, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { duplicatesApi } from '@/api/duplicates'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 
 export default function DuplicatesPage() {
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['duplicates'],
@@ -41,18 +43,28 @@ export default function DuplicatesPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const handleDeleteAll = () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete all ${data?.count} duplicate files? This cannot be undone.`
-      )
-    ) {
+  const handleDeleteAll = async () => {
+    const confirmed = await confirm({
+      title: '重複ファイルをすべて削除',
+      message: `${data?.count}個の重複ファイルをすべて削除しますか？\nこの操作は取り消せません。`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'danger',
+    })
+    if (confirmed) {
       deleteAllMutation.mutate()
     }
   }
 
-  const handleDeleteFile = (filename: string) => {
-    if (window.confirm(`Delete ${filename}?`)) {
+  const handleDeleteFile = async (filename: string) => {
+    const confirmed = await confirm({
+      title: 'ファイルを削除',
+      message: `${filename} を削除しますか？`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       deleteFileMutation.mutate(filename)
     }
   }
@@ -70,15 +82,17 @@ export default function DuplicatesPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Duplicate Files</h1>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
-        >
-          <RefreshCw size={18} />
-          <span>Refresh</span>
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Duplicate Files</h1>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
+          >
+            <RefreshCw size={18} />
+            <span>Refresh</span>
         </button>
       </div>
 
@@ -149,10 +163,11 @@ export default function DuplicatesPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

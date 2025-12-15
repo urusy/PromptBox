@@ -7,6 +7,7 @@ import type { SearchFilters } from '@/types/searchPreset'
 import { searchPresetsApi } from '@/api/searchPresets'
 import { statsApi } from '@/api/stats'
 import { tagsApi } from '@/api/tags'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 
 interface SearchFormProps {
   params: ImageSearchParams
@@ -164,6 +165,7 @@ const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
 }
 
 export default function SearchForm({ params, onSearch }: SearchFormProps) {
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [isExpanded, setIsExpanded] = useState(false)
   const [localParams, setLocalParams] = useState<ImageSearchParams>(params)
   const [showSaveModal, setShowSaveModal] = useState(false)
@@ -411,9 +413,16 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     }
   }
 
-  const handleDeletePreset = (e: React.MouseEvent, presetId: string) => {
+  const handleDeletePreset = async (e: React.MouseEvent, presetId: string) => {
     e.stopPropagation()
-    if (confirm('このプリセットを削除しますか？')) {
+    const confirmed = await confirm({
+      title: 'プリセットを削除',
+      message: 'このプリセットを削除しますか？',
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       deletePresetMutation.mutate(presetId)
     }
   }
@@ -422,7 +431,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const selectedPreset = presets.find((p) => p.id === selectedPresetId)
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-4 mb-6">
+    <>
+      {ConfirmDialogComponent}
+      <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-4 mb-6">
       {/* Preset selector row */}
       <div className="flex items-center gap-2 mb-3">
         <div className="relative">
@@ -1120,10 +1131,11 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
         </div>
       )}
 
-      {/* Click outside to close dropdown */}
-      {showPresetDropdown && (
-        <div className="fixed inset-0 z-10" onClick={() => setShowPresetDropdown(false)} />
-      )}
-    </form>
+        {/* Click outside to close dropdown */}
+        {showPresetDropdown && (
+          <div className="fixed inset-0 z-10" onClick={() => setShowPresetDropdown(false)} />
+        )}
+      </form>
+    </>
   )
 }

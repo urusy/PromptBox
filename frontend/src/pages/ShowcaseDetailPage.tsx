@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Image as ImageIcon, X, Play, ArrowUpDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import Slideshow from '@/components/gallery/Slideshow'
 import SortableImageGrid from '@/components/gallery/SortableImageGrid'
 import type { ShowcaseImageInfo } from '@/types/showcase'
@@ -12,6 +13,7 @@ export default function ShowcaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [isSortMode, setIsSortMode] = useState(false)
@@ -79,13 +81,16 @@ export default function ShowcaseDetailPage() {
     }
   }
 
-  const handleRemoveSelected = () => {
+  const handleRemoveSelected = async () => {
     if (selectedImages.size === 0) return
-    if (
-      confirm(
-        `選択した ${selectedImages.size} 枚の画像をShowcaseから削除しますか？\n画像自体は削除されません。`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: 'Showcaseから削除',
+      message: `選択した ${selectedImages.size} 枚の画像をShowcaseから削除しますか？\n画像自体は削除されません。`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       removeImagesMutation.mutate(Array.from(selectedImages))
     }
   }
@@ -122,11 +127,13 @@ export default function ShowcaseDetailPage() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/showcases')}
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => navigate('/showcases')}
           className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
           title="戻る"
         >
@@ -248,14 +255,15 @@ export default function ShowcaseDetailPage() {
         </div>
       )}
 
-      {/* Slideshow modal */}
-      {slideshowStartIndex !== null && showcase.images.length > 0 && (
-        <Slideshow
-          images={showcase.images}
-          startIndex={slideshowStartIndex}
-          onClose={() => setSlideshowStartIndex(null)}
-        />
-      )}
-    </div>
+        {/* Slideshow modal */}
+        {slideshowStartIndex !== null && showcase.images.length > 0 && (
+          <Slideshow
+            images={showcase.images}
+            startIndex={slideshowStartIndex}
+            onClose={() => setSlideshowStartIndex(null)}
+          />
+        )}
+      </div>
+    </>
   )
 }

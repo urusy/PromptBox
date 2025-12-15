@@ -18,6 +18,7 @@ import { batchApi } from '@/api/batch'
 import { tagsApi } from '@/api/tags'
 import { showcasesApi } from '@/api/showcases'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { RATING_LABELS } from '@/constants/rating'
 import type { ShowcaseCreate } from '@/types/showcase'
 
@@ -35,6 +36,7 @@ export default function SelectionToolbar({
   onExitSelectionMode,
 }: SelectionToolbarProps) {
   const { selectedIds, clearSelection, selectAll } = useSelectionStore()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [showTagInput, setShowTagInput] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -220,8 +222,15 @@ export default function SelectionToolbar({
     }
   }
 
-  const handleDelete = () => {
-    if (confirm(`Move ${selectedCount} images to trash?`)) {
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'ゴミ箱に移動',
+      message: `${selectedCount}枚の画像をゴミ箱に移動しますか？`,
+      confirmLabel: '移動',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       deleteMutation.mutate({
         ids: Array.from(selectedIds),
       })
@@ -271,7 +280,9 @@ export default function SelectionToolbar({
   const disabledClass = !hasSelection ? 'opacity-40 cursor-not-allowed' : ''
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0 sm:pb-6">
+    <>
+      {ConfirmDialogComponent}
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0 sm:pb-6">
       <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-x-auto scrollbar-hide">
         <button
           onClick={handleSelectAll}
@@ -550,6 +561,7 @@ export default function SelectionToolbar({
           <X size={18} />
         </button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

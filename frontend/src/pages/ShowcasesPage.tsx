@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import type { Showcase, ShowcaseCreate, ShowcaseUpdate, ShowcaseImageInfo } from '@/types/showcase'
 
 // Available icons for showcases
@@ -206,6 +207,7 @@ function CreateEditModal({
 export default function ShowcasesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog()
   const [showModal, setShowModal] = useState(false)
   const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null)
 
@@ -267,9 +269,16 @@ export default function ShowcasesPage() {
     setEditingShowcaseId(showcase.id)
   }
 
-  const handleDelete = (e: React.MouseEvent, showcase: Showcase) => {
+  const handleDelete = async (e: React.MouseEvent, showcase: Showcase) => {
     e.stopPropagation()
-    if (confirm(`"${showcase.name}" を削除しますか？\n含まれる画像は削除されません。`)) {
+    const confirmed = await confirm({
+      title: 'Showcaseを削除',
+      message: `"${showcase.name}" を削除しますか？\n含まれる画像は削除されません。`,
+      confirmLabel: '削除',
+      cancelLabel: 'キャンセル',
+      variant: 'warning',
+    })
+    if (confirmed) {
       deleteMutation.mutate(showcase.id)
     }
   }
@@ -288,11 +297,13 @@ export default function ShowcasesPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Showcases</h1>
-        <button
-          onClick={() => setShowModal(true)}
+    <>
+      {ConfirmDialogComponent}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Showcases</h1>
+          <button
+            onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus size={18} />
@@ -380,16 +391,17 @@ export default function ShowcasesPage() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      {(showModal || editingShowcaseId) && (
-        <CreateEditModal
-          showcase={editingShowcaseDetail || null}
-          showcaseImages={editingShowcaseDetail?.images}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          isPending={createMutation.isPending || updateMutation.isPending}
-        />
-      )}
-    </div>
+        {/* Create/Edit Modal */}
+        {(showModal || editingShowcaseId) && (
+          <CreateEditModal
+            showcase={editingShowcaseDetail || null}
+            showcaseImages={editingShowcaseDetail?.images}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            isPending={createMutation.isPending || updateMutation.isPending}
+          />
+        )}
+      </div>
+    </>
   )
 }
