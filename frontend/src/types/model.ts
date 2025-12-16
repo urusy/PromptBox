@@ -104,6 +104,7 @@ export interface CivitaiRecommendedSettings {
 export interface CivitaiVersionInfo {
   version_id: number
   name: string
+  description: string | null
   base_model: string | null
   images: CivitaiImage[]
   recommended_settings: CivitaiRecommendedSettings | null

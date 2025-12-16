@@ -41,9 +41,31 @@ function formatFileSize(sizeKb: number | null): string {
   return `${(sizeMb / 1024).toFixed(2)} GB`
 }
 
-function stripHtml(html: string | null): string {
+// Helper to convert HTML to plain text with preserved line breaks
+function htmlToText(html: string | null): string {
   if (!html) return ''
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return html
+    // Convert block elements to line breaks
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    // Remove remaining HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode common HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Clean up excessive whitespace while preserving intentional line breaks
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n /g, '\n')
+    .replace(/ \n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 export default function LoraDetailPage() {
@@ -187,53 +209,51 @@ export default function LoraDetailPage() {
 
         {civitai?.info && (
           <div className="space-y-4">
-            {/* Model Info Header */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="text-gray-400 text-sm">Name on CivitAI</div>
-                <div className="font-medium">{civitai.info.name}</div>
+            {/* Compact Header with Link */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="font-medium text-white">{civitai.info.name}</span>
+                {civitai.info.creator && (
+                  <span className="text-gray-400">
+                    by <span className="text-cyan-400">{civitai.info.creator}</span>
+                  </span>
+                )}
+                {civitai.info.type && (
+                  <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
+                    {civitai.info.type}
+                  </span>
+                )}
               </div>
-              {civitai.info.creator && (
-                <div>
-                  <div className="text-gray-400 text-sm">Creator</div>
-                  <div className="font-medium">{civitai.info.creator}</div>
-                </div>
-              )}
-              {civitai.info.type && (
-                <div>
-                  <div className="text-gray-400 text-sm">Type</div>
-                  <div className="font-medium">{civitai.info.type}</div>
-                </div>
+              {civitai.info.civitai_url && (
+                <a
+                  href={civitai.info.civitai_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors text-sm"
+                >
+                  <ExternalLink size={14} />
+                  View on CivitAI
+                </a>
               )}
             </div>
 
-            {/* Description */}
-            {civitai.info.description && (
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <div className="text-sm font-medium text-gray-400 mb-2">Description</div>
-                <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
-                  {stripHtml(civitai.info.description)}
-                </p>
-              </div>
-            )}
-
-            {/* Version Tabs */}
+            {/* Version Tabs - Prominent Position */}
             {civitai.info.versions.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-700">
+              <div>
+                <div className="flex gap-1 overflow-x-auto pb-2">
                   {civitai.info.versions.map((version, idx) => (
                     <button
                       key={version.version_id}
                       onClick={() => setSelectedVersionIndex(idx)}
-                      className={`px-3 py-2 rounded-t-lg text-sm whitespace-nowrap transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
                         selectedVersionIndex === idx
-                          ? 'bg-gray-700 text-white border-b-2 border-cyan-400'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
                     >
                       {version.name}
                       {version.base_model && (
-                        <span className="ml-2 text-xs text-gray-500">({version.base_model})</span>
+                        <span className="ml-1 text-xs opacity-70">({version.base_model})</span>
                       )}
                     </button>
                   ))}
@@ -241,10 +261,10 @@ export default function LoraDetailPage() {
 
                 {/* Selected Version Content */}
                 {selectedVersion && (
-                  <div className="space-y-4">
-                    {/* Version Images */}
+                  <div className="space-y-4 border-t border-gray-700 pt-4 mt-2">
+                    {/* Version Images - Large and Prominent */}
                     {selectedVersion.images.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2">
+                      <div className="flex gap-3 overflow-x-auto pb-2">
                         {selectedVersion.images.map((img, idx) => (
                           <a
                             key={idx}
@@ -256,10 +276,25 @@ export default function LoraDetailPage() {
                             <img
                               src={img.url}
                               alt={`Preview ${idx + 1}`}
-                              className="h-32 w-auto rounded-lg object-cover hover:opacity-80 transition-opacity"
+                              className="h-48 w-auto rounded-lg object-cover hover:opacity-80 transition-opacity"
                             />
                           </a>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Description - Version-specific or fallback to model description */}
+                    {(selectedVersion.description || civitai.info.description) && (
+                      <div className="bg-gray-700/30 rounded-lg p-3">
+                        <div className="text-sm font-medium text-gray-400 mb-2">
+                          Description
+                          {selectedVersion.description && (
+                            <span className="text-xs text-orange-400 ml-2">(Version specific)</span>
+                          )}
+                        </div>
+                        <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+                          {htmlToText(selectedVersion.description || civitai.info.description)}
+                        </div>
                       </div>
                     )}
 
@@ -377,19 +412,6 @@ export default function LoraDetailPage() {
                   </div>
                 )}
               </div>
-            )}
-
-            {/* CivitAI Link */}
-            {civitai.info.civitai_url && (
-              <a
-                href={civitai.info.civitai_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
-              >
-                <ExternalLink size={16} />
-                View on CivitAI
-              </a>
             )}
           </div>
         )}

@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Album,
   Plus,
+  Search,
+  Dices,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
@@ -215,6 +217,70 @@ export default function DetailPage() {
     link.click()
   }
 
+  // Find similar images with the same settings
+  const handleFindSimilar = () => {
+    if (!image) return
+    const params = new URLSearchParams()
+
+    // Add model name filter
+    if (image.model_name) {
+      params.set('model_name', image.model_name)
+    }
+
+    // Add sampler filter
+    if (image.sampler_name) {
+      params.set('sampler', image.sampler_name)
+    }
+
+    // Search by prompt prefix (first 50 chars to catch similar generations)
+    // Remove special characters that cause tsquery syntax errors
+    if (image.positive_prompt) {
+      const sanitizedPrompt = image.positive_prompt
+        .slice(0, 50)
+        .replace(/[():<>!&|,*'"\\]/g, ' ') // Remove tsquery special chars
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim()
+      if (sanitizedPrompt && sanitizedPrompt.length >= 3) {
+        params.set('q', sanitizedPrompt)
+      }
+    }
+
+    navigate(`/?${params.toString()}`)
+    toast.success('同じ設定の画像を検索しています')
+  }
+
+  // Find images with the same or nearby seed
+  const handleFindBySeed = () => {
+    if (!image || image.seed == null) return
+    const params = new URLSearchParams()
+
+    // Set seed and tolerance for range search
+    params.set('seed', image.seed.toString())
+    params.set('seed_tolerance', '300') // Find seeds within +/- 300
+
+    navigate(`/?${params.toString()}`)
+    toast.success(`Seed ${image.seed} ±300 の画像を検索しています`)
+  }
+
+  // Find images with the same model and nearby seed
+  const handleFindByModelAndSeed = () => {
+    if (!image || image.seed == null) return
+    const params = new URLSearchParams()
+
+    // Set model name filter
+    if (image.model_name) {
+      params.set('model_name', image.model_name)
+    }
+
+    // Set seed and tolerance for range search
+    params.set('seed', image.seed.toString())
+    params.set('seed_tolerance', '300') // Find seeds within +/- 300
+
+    navigate(`/?${params.toString()}`)
+    const modelName = image.model_name || 'Unknown'
+    toast.success(`${modelName} + Seed ${image.seed} ±300 で検索しています`)
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -289,120 +355,159 @@ export default function DetailPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Actions */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <StarRating
-              rating={image.rating}
-              onChange={(rating) => updateMutation.mutate({ rating })}
-              size={28}
-            />
-            <button
-              onClick={() => updateMutation.mutate({ is_favorite: !image.is_favorite })}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              title={image.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Heart
-                size={24}
-                className={image.is_favorite ? 'text-red-500' : 'text-gray-600'}
-                fill={image.is_favorite ? 'currentColor' : 'none'}
+          {/* Actions - organized into groups */}
+          <div className="space-y-3">
+            {/* Rating & Status */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <StarRating
+                rating={image.rating}
+                onChange={(rating) => updateMutation.mutate({ rating })}
+                size={28}
               />
-            </button>
-            <button
-              onClick={() => updateMutation.mutate({ needs_improvement: !image.needs_improvement })}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              title={image.needs_improvement ? 'Remove improvement flag' : 'Mark for improvement'}
-            >
-              <AlertTriangle
-                size={24}
-                className={image.needs_improvement ? 'text-yellow-500' : 'text-gray-600'}
-                fill={image.needs_improvement ? 'currentColor' : 'none'}
-              />
-            </button>
-            <button
-              onClick={handleDownload}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-              title="Download original"
-            >
-              <Download size={24} />
-            </button>
-            {/* Showcase dropdown */}
-            <div className="relative" ref={showcaseMenuRef}>
+              <div className="w-px h-6 bg-gray-700" />
               <button
-                onClick={() => setShowShowcaseMenu(!showShowcaseMenu)}
-                className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-                title="Showcaseに追加"
+                onClick={() => updateMutation.mutate({ is_favorite: !image.is_favorite })}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                title={image.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}
               >
-                <Album size={24} />
+                <Heart
+                  size={24}
+                  className={image.is_favorite ? 'text-red-500' : 'text-gray-600'}
+                  fill={image.is_favorite ? 'currentColor' : 'none'}
+                />
               </button>
-              {showShowcaseMenu && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                  <div className="p-2 border-b border-gray-700">
-                    <span className="text-sm text-gray-400">Showcaseに追加</span>
-                  </div>
-                  {showcases.length === 0 ? (
-                    <div className="p-3 text-sm text-gray-500 text-center">
-                      Showcaseがありません
-                    </div>
-                  ) : (
-                    <div className="max-h-48 overflow-y-auto">
-                      {showcases.map((showcase: Showcase) => {
-                        const isAlreadyAdded = showcasesWithImage.has(showcase.id)
-                        return (
-                          <button
-                            key={showcase.id}
-                            onClick={() =>
-                              !isAlreadyAdded &&
-                              addToShowcaseMutation.mutate({
-                                showcaseId: showcase.id,
-                                imageIds: [id!],
-                              })
-                            }
-                            disabled={addToShowcaseMutation.isPending || isAlreadyAdded}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                              isAlreadyAdded
-                                ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
-                                : 'hover:bg-gray-700 disabled:opacity-50'
-                            }`}
-                          >
-                            <Album
-                              size={16}
-                              className={isAlreadyAdded ? 'text-gray-500' : 'text-gray-400'}
-                            />
-                            <span className="truncate">{showcase.name}</span>
-                            <span className="text-xs ml-auto">
-                              {isAlreadyAdded ? (
-                                <span className="text-green-500">追加済み</span>
-                              ) : (
-                                <span className="text-gray-500">{showcase.image_count}</span>
-                              )}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                  <div className="border-t border-gray-700">
-                    <button
-                      onClick={() => {
-                        setShowShowcaseMenu(false)
-                        navigate('/showcases')
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-400 hover:bg-gray-700 transition-colors"
-                    >
-                      <Plus size={16} />
-                      新規Showcaseを作成
-                    </button>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={() => updateMutation.mutate({ needs_improvement: !image.needs_improvement })}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                title={image.needs_improvement ? '要改善フラグを削除' : '要改善としてマーク'}
+              >
+                <AlertTriangle
+                  size={24}
+                  className={image.needs_improvement ? 'text-yellow-500' : 'text-gray-600'}
+                  fill={image.needs_improvement ? 'currentColor' : 'none'}
+                />
+              </button>
             </div>
-            <button
-              onClick={handleDelete}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-600 hover:text-red-500"
-              title="Move to trash"
-            >
-              <Trash2 size={24} />
-            </button>
+
+            {/* Search & Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleFindSimilar}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-gray-300 hover:text-blue-400 text-sm"
+                title="同じ設定の画像を検索"
+              >
+                <Search size={18} />
+                <span>類似検索</span>
+              </button>
+              {image.seed != null && (
+                <>
+                  <button
+                    onClick={handleFindBySeed}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-gray-300 hover:text-green-400 text-sm"
+                    title="同じSeed付近の画像を検索"
+                  >
+                    <Dices size={18} />
+                    <span>Seed検索</span>
+                  </button>
+                  {image.model_name && (
+                    <button
+                      onClick={handleFindByModelAndSeed}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-gray-300 hover:text-purple-400 text-sm"
+                      title="同じモデル＋Seed付近の画像を検索"
+                    >
+                      <Dices size={18} />
+                      <span>Model+Seed</span>
+                    </button>
+                  )}
+                </>
+              )}
+              <div className="w-px h-6 bg-gray-700" />
+              <button
+                onClick={handleDownload}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                title="オリジナルをダウンロード"
+              >
+                <Download size={20} />
+              </button>
+              {/* Showcase dropdown */}
+              <div className="relative" ref={showcaseMenuRef}>
+                <button
+                  onClick={() => setShowShowcaseMenu(!showShowcaseMenu)}
+                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                  title="Showcaseに追加"
+                >
+                  <Album size={20} />
+                </button>
+                {showShowcaseMenu && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                    <div className="p-2 border-b border-gray-700">
+                      <span className="text-sm text-gray-400">Showcaseに追加</span>
+                    </div>
+                    {showcases.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500 text-center">
+                        Showcaseがありません
+                      </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto">
+                        {showcases.map((showcase: Showcase) => {
+                          const isAlreadyAdded = showcasesWithImage.has(showcase.id)
+                          return (
+                            <button
+                              key={showcase.id}
+                              onClick={() =>
+                                !isAlreadyAdded &&
+                                addToShowcaseMutation.mutate({
+                                  showcaseId: showcase.id,
+                                  imageIds: [id!],
+                                })
+                              }
+                              disabled={addToShowcaseMutation.isPending || isAlreadyAdded}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                                isAlreadyAdded
+                                  ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
+                                  : 'hover:bg-gray-700 disabled:opacity-50'
+                              }`}
+                            >
+                              <Album
+                                size={16}
+                                className={isAlreadyAdded ? 'text-gray-500' : 'text-gray-400'}
+                              />
+                              <span className="truncate">{showcase.name}</span>
+                              <span className="text-xs ml-auto">
+                                {isAlreadyAdded ? (
+                                  <span className="text-green-500">追加済み</span>
+                                ) : (
+                                  <span className="text-gray-500">{showcase.image_count}</span>
+                                )}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <div className="border-t border-gray-700">
+                      <button
+                        onClick={() => {
+                          setShowShowcaseMenu(false)
+                          navigate('/showcases')
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-400 hover:bg-gray-700 transition-colors"
+                      >
+                        <Plus size={16} />
+                        新規Showcaseを作成
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleDelete}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-600 hover:text-red-500"
+                title="ゴミ箱に移動"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Basic Info */}

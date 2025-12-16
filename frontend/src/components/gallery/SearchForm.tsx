@@ -440,23 +440,24 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     <>
       {ConfirmDialogComponent}
       <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-4 mb-6">
-      {/* Preset selector row */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative">
+      {/* Preset + Search row */}
+      <div className="flex items-center gap-3">
+        {/* Preset selector */}
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setShowPresetDropdown(!showPresetDropdown)}
             aria-label="プリセット選択"
             aria-expanded={showPresetDropdown}
             aria-haspopup="listbox"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-sm ${
               selectedPreset
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-700 hover:bg-gray-600'
+                ? 'bg-blue-600 hover:bg-blue-700 border-blue-500 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 border-gray-600'
             }`}
           >
             <Bookmark size={16} className={selectedPreset ? 'fill-current' : ''} />
-            <span className="max-w-32 truncate">{selectedPreset?.name || 'プリセット'}</span>
+            <span className="hidden sm:inline max-w-32 truncate">{selectedPreset?.name || 'プリセット'}</span>
             <ChevronDown
               size={14}
               className={`transition-transform ${showPresetDropdown ? 'rotate-180' : ''}`}
@@ -514,16 +515,15 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           <button
             type="button"
             onClick={() => setShowSaveModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors text-sm text-gray-300 hover:text-white"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors text-sm text-gray-300 hover:text-white"
             title="現在の条件を保存"
           >
             <Save size={14} />
             <span className="hidden sm:inline">保存</span>
           </button>
         )}
-      </div>
 
-      <div className="flex items-center gap-4">
+        {/* Search input */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -549,7 +549,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors text-sm"
         >
           Filters
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -558,7 +558,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
 
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-blue-600 border border-blue-500 rounded-lg hover:bg-blue-700 transition-colors text-sm"
         >
           Search
         </button>

@@ -123,6 +123,21 @@ class ImageService:
             except ValueError:
                 pass  # Ignore invalid date format
 
+        # Filter by seed (exact match or range with tolerance)
+        if params.seed is not None:
+            if params.seed_tolerance is not None and params.seed_tolerance > 0:
+                # Search seeds within +/- tolerance
+                min_seed = params.seed - params.seed_tolerance
+                max_seed = params.seed + params.seed_tolerance
+                query = query.where(
+                    Image.seed.is_not(None),
+                    Image.seed >= min_seed,
+                    Image.seed <= max_seed,
+                )
+            else:
+                # Exact seed match
+                query = query.where(Image.seed == params.seed)
+
         # Full-text search in prompts
         if params.q:
             search_terms = params.q.replace(" ", " & ")

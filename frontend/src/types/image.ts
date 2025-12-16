@@ -104,6 +104,8 @@ export interface ImageSearchParams {
   min_width?: number
   min_height?: number
   date_from?: string // ISO date string (YYYY-MM-DD)
+  seed?: number // Exact seed match
+  seed_tolerance?: number // Search seeds within +/- tolerance (0-1000)
   include_deleted?: boolean
   page?: number
   per_page?: number

@@ -62,52 +62,52 @@ export default function MainLayout() {
         >
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 lg:gap-4 shrink-0">
               <Link to="/" className="text-lg sm:text-xl font-bold shrink-0">
                 Prompt Box
               </Link>
-              {/* Showcase - visible on tablet and up */}
+              {/* Showcase - visible on desktop, icon only until xl */}
               <Link
                 to="/showcases"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
+                className="hidden md:flex items-center gap-1.5 px-2 xl:px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
                 title="Showcases"
               >
                 <Album size={16} />
-                <span className="text-sm">Showcase</span>
+                <span className="hidden xl:inline text-sm">Showcase</span>
               </Link>
             </div>
 
             {/* Desktop Navigation - hidden on mobile */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+            <nav className="hidden md:flex items-center gap-0.5 xl:gap-2">
               {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                  className={`flex items-center gap-1.5 px-2 xl:px-3 py-1.5 xl:py-2 rounded-md transition-colors ${
                     isActive(item.to) ? 'bg-gray-700' : 'hover:bg-gray-700'
                   }`}
                   title={item.label}
                 >
-                  <item.icon size={18} className={item.color} />
-                  <span className="hidden lg:inline text-sm">{item.label}</span>
+                  <item.icon size={16} className={`xl:w-[18px] xl:h-[18px] ${item.color}`} />
+                  <span className="hidden xl:inline text-sm">{item.label}</span>
                 </Link>
               ))}
 
               {/* Divider */}
-              <div className="w-px h-6 bg-gray-600 mx-2" />
+              <div className="w-px h-5 lg:h-6 bg-gray-600 mx-1 lg:mx-2" />
 
               {/* User menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-1 xl:gap-1.5 px-2 xl:px-3 py-1.5 lg:py-2 rounded-md hover:bg-gray-700 transition-colors"
                   title={username || undefined}
                 >
-                  <User size={18} />
-                  <span className="text-sm text-gray-300">{username}</span>
+                  <User size={16} className="lg:w-[18px] lg:h-[18px]" />
+                  <span className="hidden xl:inline text-sm text-gray-300 max-w-[80px] truncate">{username}</span>
                   <ChevronDown
                     size={14}
-                    className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                    className={`hidden xl:inline text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
                   />
                 </button>
 

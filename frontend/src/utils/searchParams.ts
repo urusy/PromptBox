@@ -59,6 +59,12 @@ export function parseSearchParams(searchParams: URLSearchParams): ImageSearchPar
   const min_height = searchParams.get('min_height')
   if (min_height) params.min_height = parseInt(min_height)
 
+  const seed = searchParams.get('seed')
+  if (seed) params.seed = parseInt(seed)
+
+  const seed_tolerance = searchParams.get('seed_tolerance')
+  if (seed_tolerance) params.seed_tolerance = parseInt(seed_tolerance)
+
   const page = searchParams.get('page')
   if (page) params.page = parseInt(page)
 
@@ -95,6 +101,8 @@ export function toSearchParams(params: ImageSearchParams): URLSearchParams {
   else if (params.is_upscaled === false) searchParams.set('is_upscaled', 'false')
   if (params.min_width) searchParams.set('min_width', params.min_width.toString())
   if (params.min_height) searchParams.set('min_height', params.min_height.toString())
+  if (params.seed != null) searchParams.set('seed', params.seed.toString())
+  if (params.seed_tolerance != null) searchParams.set('seed_tolerance', params.seed_tolerance.toString())
   if (params.page && params.page !== 1) searchParams.set('page', params.page.toString())
   if (params.per_page && params.per_page !== 24)
     searchParams.set('per_page', params.per_page.toString())
@@ -127,6 +135,8 @@ export function toApiParams(
     apiParams.is_upscaled = params.is_upscaled
   if (params.min_width !== undefined) apiParams.min_width = params.min_width
   if (params.min_height !== undefined) apiParams.min_height = params.min_height
+  if (params.seed !== undefined) apiParams.seed = params.seed
+  if (params.seed_tolerance !== undefined) apiParams.seed_tolerance = params.seed_tolerance
   if (params.include_deleted) apiParams.include_deleted = params.include_deleted
   if (params.sort_by && params.sort_by !== 'created_at') apiParams.sort_by = params.sort_by
   if (params.sort_order && params.sort_order !== 'desc') apiParams.sort_order = params.sort_order

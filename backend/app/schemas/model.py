@@ -111,6 +111,7 @@ class CivitaiVersionInfo(BaseModel):
 
     version_id: int
     name: str
+    description: str | None = None  # Version-specific description
     base_model: str | None = None  # SD 1.5, SDXL, Illustrious, etc.
     images: list[CivitaiImage] = []
     recommended_settings: CivitaiRecommendedSettings | None = None

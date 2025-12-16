@@ -140,6 +140,8 @@ class ImageSearchParams(BaseModel):
     min_width: int | None = Field(None, ge=1)
     min_height: int | None = Field(None, ge=1)
     date_from: str | None = None  # ISO format date string (YYYY-MM-DD)
+    seed: int | None = None  # Exact seed match
+    seed_tolerance: int | None = Field(None, ge=0, le=1000)  # Search seeds within +/- tolerance
     include_deleted: bool = False
     page: int = Field(1, ge=1)
     per_page: int = Field(24, ge=1, le=120)

@@ -121,6 +121,7 @@ class CivitaiService:
         return CivitaiVersionInfo(
             version_id=version_data.get("id", 0),
             name=version_data.get("name", ""),
+            description=version_data.get("description"),
             base_model=version_data.get("baseModel"),
             images=images,
             recommended_settings=recommended_settings,
