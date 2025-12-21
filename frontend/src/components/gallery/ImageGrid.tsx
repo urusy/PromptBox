@@ -11,11 +11,14 @@ interface ImageGridProps {
   size?: GridSize
 }
 
+// Gap between rows (gap-3 = 12px)
+const ROW_GAP = 12
+
 // Row height estimates based on grid size (including gap)
 const ROW_HEIGHT: Record<GridSize, number> = {
-  small: 140,
-  medium: 200,
-  large: 280,
+  small: 140 + ROW_GAP,
+  medium: 200 + ROW_GAP,
+  large: 280 + ROW_GAP,
 }
 
 // Threshold for enabling virtual scrolling
