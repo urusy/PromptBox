@@ -82,7 +82,7 @@ export default function ModelsPage() {
       {/* Search & Filters */}
       <div className="bg-gray-800 rounded-lg p-4 space-y-4">
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input

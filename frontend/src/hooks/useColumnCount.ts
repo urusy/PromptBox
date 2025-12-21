@@ -7,6 +7,7 @@ const BREAKPOINTS = {
   md: 768,
   lg: 1024,
   xl: 1280,
+  ipad: 1400, // iPad Pro 11" landscape (1376px)
   '2xl': 1536,
   '3xl': 1920,
   '4xl': 2560,
@@ -21,6 +22,7 @@ const COLUMN_COUNTS: Record<GridSize, Record<string, number>> = {
     md: 5,
     lg: 6,
     xl: 8,
+    ipad: 9,
     '2xl': 10,
     '3xl': 12,
     '4xl': 14,
@@ -32,6 +34,7 @@ const COLUMN_COUNTS: Record<GridSize, Record<string, number>> = {
     md: 4,
     lg: 5,
     xl: 6,
+    ipad: 7,
     '2xl': 8,
     '3xl': 10,
     '4xl': 12,
@@ -43,6 +46,7 @@ const COLUMN_COUNTS: Record<GridSize, Record<string, number>> = {
     md: 3,
     lg: 4,
     xl: 4,
+    ipad: 5,
     '2xl': 5,
     '3xl': 6,
     '4xl': 8,
@@ -57,6 +61,7 @@ function getColumnCount(width: number, size: GridSize): number {
   if (width >= BREAKPOINTS['4xl']) return counts['4xl']
   if (width >= BREAKPOINTS['3xl']) return counts['3xl']
   if (width >= BREAKPOINTS['2xl']) return counts['2xl']
+  if (width >= BREAKPOINTS.ipad) return counts.ipad
   if (width >= BREAKPOINTS.xl) return counts.xl
   if (width >= BREAKPOINTS.lg) return counts.lg
   if (width >= BREAKPOINTS.md) return counts.md

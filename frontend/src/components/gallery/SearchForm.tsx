@@ -441,7 +441,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
       {ConfirmDialogComponent}
       <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-4 mb-6">
       {/* Preset + Search row */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         {/* Preset selector */}
         <div className="relative shrink-0">
           <button
