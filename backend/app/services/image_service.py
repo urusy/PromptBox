@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.image import Image
+from app.models.showcase import ShowcaseImage
 from app.schemas.common import PaginatedResponse
 from app.schemas.image import (
     ImageListResponse,
@@ -147,6 +148,12 @@ class ImageService:
                 ).op("@@")(func.to_tsquery("english", search_terms))
             )
 
+        # Filter by showcase membership
+        if params.showcase_id:
+            query = query.join(
+                ShowcaseImage, Image.id == ShowcaseImage.image_id
+            ).where(ShowcaseImage.showcase_id == params.showcase_id)
+
         return query
 
     async def list_images(
@@ -216,6 +223,12 @@ class ImageService:
         if not search_params:
             return response
 
+        # Special handling for showcase navigation (use sort_order)
+        if search_params.showcase_id:
+            return await self._get_showcase_neighbors(
+                image_id, search_params.showcase_id, response
+            )
+
         # Build the same query used for list
         base_query = self._build_search_query(search_params)
 
@@ -281,6 +294,60 @@ class ImageService:
         next_image = next_result.scalar_one_or_none()
         if next_image:
             response.next_id = next_image.id
+
+        return response
+
+    async def _get_showcase_neighbors(
+        self, image_id: UUID, showcase_id: UUID, response: ImageResponse
+    ) -> ImageResponse:
+        """Get prev/next images within a showcase based on sort_order."""
+        # Get current image's sort_order in this showcase
+        current_order_result = await self.db.execute(
+            select(ShowcaseImage.sort_order).where(
+                ShowcaseImage.showcase_id == showcase_id,
+                ShowcaseImage.image_id == image_id,
+            )
+        )
+        current_sort_order = current_order_result.scalar_one_or_none()
+
+        if current_sort_order is None:
+            return response
+
+        # Find prev image (lower sort_order)
+        prev_query = (
+            select(ShowcaseImage.image_id)
+            .where(
+                ShowcaseImage.showcase_id == showcase_id,
+                ShowcaseImage.sort_order < current_sort_order,
+            )
+            .order_by(ShowcaseImage.sort_order.desc())
+            .limit(1)
+        )
+
+        # Find next image (higher sort_order)
+        next_query = (
+            select(ShowcaseImage.image_id)
+            .where(
+                ShowcaseImage.showcase_id == showcase_id,
+                ShowcaseImage.sort_order > current_sort_order,
+            )
+            .order_by(ShowcaseImage.sort_order.asc())
+            .limit(1)
+        )
+
+        # Execute queries in parallel
+        prev_result, next_result = await asyncio.gather(
+            self.db.execute(prev_query),
+            self.db.execute(next_query),
+        )
+
+        prev_image_id = prev_result.scalar_one_or_none()
+        if prev_image_id:
+            response.prev_id = prev_image_id
+
+        next_image_id = next_result.scalar_one_or_none()
+        if next_image_id:
+            response.next_id = next_image_id
 
         return response
 

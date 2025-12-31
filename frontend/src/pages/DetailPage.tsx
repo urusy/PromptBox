@@ -40,6 +40,7 @@ export default function DetailPage() {
 
   // Parse search params from URL to pass to API
   const searchParams = parseSearchParams(urlSearchParams)
+  const showcaseId = urlSearchParams.get('showcase_id')
 
   const {
     data: image,
@@ -305,7 +306,13 @@ export default function DetailPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigate(`/${location.search}`)}
+            onClick={() => {
+              if (showcaseId) {
+                navigate(`/showcase/${showcaseId}`)
+              } else {
+                navigate(`/${location.search}`)
+              }
+            }}
             className="flex items-center gap-2 text-gray-400 hover:text-white"
         >
           <ArrowLeft size={20} />

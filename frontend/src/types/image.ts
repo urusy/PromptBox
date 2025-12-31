@@ -106,6 +106,7 @@ export interface ImageSearchParams {
   date_from?: string // ISO date string (YYYY-MM-DD)
   seed?: number // Exact seed match
   seed_tolerance?: number // Search seeds within +/- tolerance (0-1000)
+  showcase_id?: string // Filter to images in this showcase
   include_deleted?: boolean
   page?: number
   per_page?: number

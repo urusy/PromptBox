@@ -65,6 +65,9 @@ export function parseSearchParams(searchParams: URLSearchParams): ImageSearchPar
   const seed_tolerance = searchParams.get('seed_tolerance')
   if (seed_tolerance) params.seed_tolerance = parseInt(seed_tolerance)
 
+  const showcase_id = searchParams.get('showcase_id')
+  if (showcase_id) params.showcase_id = showcase_id
+
   const page = searchParams.get('page')
   if (page) params.page = parseInt(page)
 
@@ -137,6 +140,7 @@ export function toApiParams(
   if (params.min_height !== undefined) apiParams.min_height = params.min_height
   if (params.seed !== undefined) apiParams.seed = params.seed
   if (params.seed_tolerance !== undefined) apiParams.seed_tolerance = params.seed_tolerance
+  if (params.showcase_id) apiParams.showcase_id = params.showcase_id
   if (params.include_deleted) apiParams.include_deleted = params.include_deleted
   if (params.sort_by && params.sort_by !== 'created_at') apiParams.sort_by = params.sort_by
   if (params.sort_order && params.sort_order !== 'desc') apiParams.sort_order = params.sort_order

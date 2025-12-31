@@ -77,7 +77,7 @@ export default function ShowcaseDetailPage() {
         return next
       })
     } else {
-      navigate(`/image/${imageId}`)
+      navigate(`/image/${imageId}?showcase_id=${id}`)
     }
   }
 
