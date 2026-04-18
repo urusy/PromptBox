@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000"
 
+    # Gelbooru API
+    gelbooru_api_key: str = ""
+    gelbooru_user_id: str = ""
+
     # Debug
     debug: bool = False
 

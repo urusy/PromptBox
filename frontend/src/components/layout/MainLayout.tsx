@@ -13,6 +13,7 @@ import {
   Box,
   Layers,
   Sparkles,
+  Tag,
   Menu,
   X,
 } from 'lucide-react'
@@ -41,6 +42,7 @@ export default function MainLayout() {
     { to: '/stats', icon: BarChart3, label: 'Stats', color: '' },
     { to: '/models', icon: Box, label: 'Models', color: 'text-blue-400' },
     { to: '/loras', icon: Layers, label: 'LoRAs', color: 'text-orange-400' },
+    { to: '/gelbooru-tags', icon: Tag, label: 'Gelbooru', color: 'text-teal-400' },
   ]
 
   const isActive = (path: string) => location.pathname === path

@@ -37,6 +37,8 @@ services:
       - STORAGE_PATH=/app/storage
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
       - DEBUG=${DEBUG:-true}
+      - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
+      - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
     depends_on:
       db:
         condition: service_healthy

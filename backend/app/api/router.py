@@ -5,6 +5,7 @@ from app.api.endpoints import (
     batch,
     duplicates,
     export,
+    gelbooru,
     health,
     images,
     loras,
@@ -31,3 +32,4 @@ api_router.include_router(stats.router)
 api_router.include_router(tags.router)
 api_router.include_router(models.router)
 api_router.include_router(loras.router)
+api_router.include_router(gelbooru.router)

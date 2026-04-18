@@ -20,6 +20,7 @@ const ModelDetailPage = lazy(() => import('@/pages/ModelDetailPage'))
 const LorasPage = lazy(() => import('@/pages/LorasPage'))
 const LoraDetailPage = lazy(() => import('@/pages/LoraDetailPage'))
 const SwipePage = lazy(() => import('@/pages/SwipePage'))
+const GelbooruTagsPage = lazy(() => import('@/pages/GelbooruTagsPage'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -136,6 +137,14 @@ function App() {
             element={
               <Suspense fallback={<PageLoader />}>
                 <SwipePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="gelbooru-tags"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <GelbooruTagsPage />
               </Suspense>
             }
           />
