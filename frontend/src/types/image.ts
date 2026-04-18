@@ -104,6 +104,7 @@ export interface ImageSearchParams {
   min_width?: number
   min_height?: number
   date_from?: string // ISO date string (YYYY-MM-DD)
+  file_type?: string // Filter by file extension (png, jpg, jpeg, webp)
   seed?: number // Exact seed match
   seed_tolerance?: number // Search seeds within +/- tolerance (0-1000)
   showcase_id?: string // Filter to images in this showcase

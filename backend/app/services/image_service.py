@@ -124,6 +124,20 @@ class ImageService:
             except ValueError:
                 pass  # Ignore invalid date format
 
+        # Filter by file type (extension)
+        if params.file_type:
+            ext = params.file_type.lower().lstrip(".")
+            if ext == "jpg":
+                # Match both .jpg and .jpeg
+                query = query.where(
+                    Image.original_filename.ilike("%.jpg", escape="\\")
+                    | Image.original_filename.ilike("%.jpeg", escape="\\")
+                )
+            else:
+                query = query.where(
+                    Image.original_filename.ilike(f"%.{ext}", escape="\\")
+                )
+
         # Filter by seed (exact match or range with tolerance)
         if params.seed is not None:
             if params.seed_tolerance is not None and params.seed_tolerance > 0:

@@ -16,6 +16,7 @@ export interface SearchFilters {
   min_width?: number
   min_height?: number
   date_from?: string
+  file_type?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
 }

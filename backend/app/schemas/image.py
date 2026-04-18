@@ -140,6 +140,7 @@ class ImageSearchParams(BaseModel):
     min_width: int | None = Field(None, ge=1)
     min_height: int | None = Field(None, ge=1)
     date_from: str | None = None  # ISO format date string (YYYY-MM-DD)
+    file_type: str | None = None  # Filter by file extension (png, jpg, jpeg, webp)
     seed: int | None = None  # Exact seed match
     seed_tolerance: int | None = Field(None, ge=0, le=1000)  # Search seeds within +/- tolerance
     showcase_id: UUID | None = None  # Filter to images in this showcase

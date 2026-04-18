@@ -38,6 +38,12 @@ const ORIENTATION_OPTIONS = [
   { value: 'landscape', label: 'Landscape' },
   { value: 'square', label: 'Square' },
 ]
+const FILE_TYPE_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'png', label: 'PNG' },
+  { value: 'jpg', label: 'JPEG' },
+  { value: 'webp', label: 'WebP' },
+]
 const RATING_MATCH_OPTIONS = [
   { value: 'min', label: '以上' },
   { value: 'exact', label: '同等' },
@@ -136,6 +142,7 @@ const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
     'min_width',
     'min_height',
     'date_from',
+    'file_type',
     'sort_by',
     'sort_order',
   ]
@@ -693,7 +700,7 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
           </div>
 
           {/* Row 2: LoRA & Image Attributes */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="relative">
               <label className="block text-sm text-gray-400 mb-1">LoRA</label>
               <div className="relative">
@@ -831,6 +838,21 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {UPSCALE_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">File Type</label>
+              <select
+                value={localParams.file_type || ''}
+                onChange={(e) => updateParam('file_type', e.target.value || undefined)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {FILE_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
