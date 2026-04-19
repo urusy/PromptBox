@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコード
 COPY . .
 
+# エントリポイントに実行権限
+RUN chmod +x /app/scripts/entrypoint.sh
+
 # 非rootユーザーで実行
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
@@ -22,5 +25,5 @@ USER appuser
 # ポート公開
 EXPOSE 8000
 
-# 起動コマンド
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 起動コマンド（alembic migrate → uvicorn）
+CMD ["/app/scripts/entrypoint.sh"]
