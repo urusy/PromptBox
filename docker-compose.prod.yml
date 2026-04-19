@@ -11,6 +11,11 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - app-network
 
@@ -33,6 +38,8 @@ services:
       - STORAGE_PATH=/app/storage
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
       - DEBUG=${DEBUG:-false}
+      - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
+      - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
     depends_on:
       db:
         condition: service_healthy
@@ -45,6 +52,11 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - app-network
 
@@ -86,6 +98,11 @@ services:
       -c wal_buffers=16MB
       -c logging_collector=on
       -c log_statement=none
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - app-network
 
