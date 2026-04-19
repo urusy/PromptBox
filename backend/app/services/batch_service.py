@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select, update
@@ -100,7 +100,7 @@ class BatchService:
                 update(Image)
                 .where(Image.id.in_(ids))
                 .where(Image.deleted_at.is_(None))
-                .values(deleted_at=datetime.utcnow())
+                .values(deleted_at=datetime.now(timezone.utc))
             )
             result = await self.db.execute(stmt)
             await self.db.commit()

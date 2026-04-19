@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import bcrypt
@@ -29,12 +29,12 @@ class AuthService:
 
     def create_session(self, username: str) -> str:
         """Create a JWT session token."""
-        expire = datetime.utcnow() + timedelta(hours=self.settings.session_expire_hours)
+        expire = datetime.now(timezone.utc) + timedelta(hours=self.settings.session_expire_hours)
 
         payload: dict[str, Any] = {
             "sub": username,
             "exp": expire,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
         }
 
         return jwt.encode(payload, self.settings.secret_key, algorithm="HS256")

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -112,8 +112,8 @@ async def create_showcase(
         name=data.name,
         description=data.description,
         icon=data.icon,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(showcase)
     await db.commit()
@@ -221,7 +221,7 @@ async def update_showcase(
     if data.cover_image_id is not None:
         showcase.cover_image_id = data.cover_image_id
 
-    showcase.updated_at = datetime.utcnow()
+    showcase.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(showcase)
@@ -316,13 +316,13 @@ async def add_images_to_showcase(
                 showcase_id=showcase_id,
                 image_id=image_id,
                 sort_order=max_order,
-                added_at=datetime.utcnow(),
+                added_at=datetime.now(timezone.utc),
             )
             db.add(showcase_image)
             added_count += 1
 
     # Update showcase's updated_at
-    showcase.updated_at = datetime.utcnow()
+    showcase.updated_at = datetime.now(timezone.utc)
 
     # Set cover image if not set
     if showcase.cover_image_id is None and data.image_ids:
@@ -363,7 +363,7 @@ async def remove_images_from_showcase(
         showcase.cover_image_id = None
 
     # Update showcase's updated_at
-    showcase.updated_at = datetime.utcnow()
+    showcase.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     return MessageResponse(
@@ -399,7 +399,7 @@ async def reorder_images_in_showcase(
         )
 
     # Update showcase's updated_at
-    showcase.updated_at = datetime.utcnow()
+    showcase.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     return MessageResponse(message="Images reordered successfully")

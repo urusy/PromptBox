@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -43,8 +43,8 @@ async def create_search_preset(
         id=uuid7(),
         name=data.name,
         filters=data.filters.model_dump(exclude_none=True),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(preset)
     await db.commit()
@@ -73,7 +73,7 @@ async def update_search_preset(
         preset.name = data.name
     if data.filters is not None:
         preset.filters = data.filters.model_dump(exclude_none=True)
-    preset.updated_at = datetime.utcnow()
+    preset.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(preset)

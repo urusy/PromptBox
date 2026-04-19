@@ -1,6 +1,6 @@
 """Tests for AuthService."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from jose import jwt
@@ -72,8 +72,8 @@ class TestAuthService:
         # Create an expired token manually
         expired_payload = {
             "sub": "testadmin",
-            "exp": datetime.utcnow() - timedelta(hours=1),
-            "iat": datetime.utcnow() - timedelta(hours=2),
+            "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+            "iat": datetime.now(timezone.utc) - timedelta(hours=2),
         }
         expired_token = jwt.encode(
             expired_payload,
@@ -102,8 +102,8 @@ class TestAuthService:
         """Test session verification with token signed by wrong secret."""
         wrong_secret_payload = {
             "sub": "testadmin",
-            "exp": datetime.utcnow() + timedelta(hours=1),
-            "iat": datetime.utcnow(),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            "iat": datetime.now(timezone.utc),
         }
         # Derive wrong key from actual secret to avoid hardcoded secret warning
         wrong_secret = f"{auth_service.settings.secret_key}-wrong"

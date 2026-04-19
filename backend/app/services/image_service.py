@@ -1,6 +1,6 @@
 import asyncio
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import Select, func, select, type_coerce
@@ -21,6 +21,12 @@ from app.schemas.image import (
 def escape_like_pattern(value: str) -> str:
     """Escape special characters in LIKE patterns (%, _, \\)."""
     return re.sub(r"([%_\\])", r"\\\1", value)
+
+
+# Allowed columns for sorting (defense-in-depth: also enforced at schema level)
+_ALLOWED_SORT_COLUMNS: frozenset[str] = frozenset(
+    {"created_at", "updated_at", "rating", "model_name", "file_size_bytes", "width", "height"}
+)
 
 
 class ImageService:
@@ -181,8 +187,9 @@ class ImageService:
         total_result = await self.db.execute(count_query)
         total = total_result.scalar() or 0
 
-        # Apply sorting
-        sort_column = getattr(Image, params.sort_by, Image.created_at)
+        # Apply sorting (whitelist allowed columns)
+        sort_key = params.sort_by if params.sort_by in _ALLOWED_SORT_COLUMNS else "created_at"
+        sort_column = getattr(Image, sort_key)
         if params.sort_order == "asc":
             query = query.order_by(sort_column.asc())
         else:
@@ -395,7 +402,7 @@ class ImageService:
         if permanent:
             await self.db.delete(image)
         else:
-            image.deleted_at = datetime.utcnow()
+            image.deleted_at = datetime.now(timezone.utc)
 
         await self.db.commit()
         return True

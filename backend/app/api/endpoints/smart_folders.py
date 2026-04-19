@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -44,8 +44,8 @@ async def create_smart_folder(
         name=data.name,
         icon=data.icon,
         filters=data.filters.model_dump(exclude_none=True),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(folder)
     await db.commit()
@@ -95,7 +95,7 @@ async def update_smart_folder(
         folder.icon = data.icon
     if data.filters is not None:
         folder.filters = data.filters.model_dump(exclude_none=True)
-    folder.updated_at = datetime.utcnow()
+    folder.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(folder)

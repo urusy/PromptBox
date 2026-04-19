@@ -1,9 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+ImageSortBy = Literal["created_at", "updated_at", "rating", "model_name", "file_size_bytes", "width", "height"]
+ImageSortOrder = Literal["asc", "desc"]
 
 
 class LoraInfo(BaseModel):
@@ -147,5 +150,5 @@ class ImageSearchParams(BaseModel):
     include_deleted: bool = False
     page: int = Field(1, ge=1)
     per_page: int = Field(24, ge=1, le=120)
-    sort_by: str = "created_at"
-    sort_order: str = "desc"
+    sort_by: ImageSortBy = "created_at"
+    sort_order: ImageSortOrder = "desc"

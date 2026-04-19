@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from cachetools import TTLCache
 from fastapi import APIRouter
@@ -237,7 +237,7 @@ async def get_stats(
     ]
 
     # Daily counts for last N days (imports)
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     day_trunc_created = func.date_trunc("day", Image.created_at)
     daily_result = await db.execute(
         select(
