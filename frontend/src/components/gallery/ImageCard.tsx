@@ -6,6 +6,7 @@ import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
 import { imagesApi } from '@/api/images'
+import { getImageUrl, getThumbnailUrl } from '@/utils/imagePath'
 
 interface ImageCardProps {
   image: ImageListItem
@@ -53,7 +54,7 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
     // Prefetch full image
     const link = document.createElement('link')
     link.rel = 'prefetch'
-    link.href = `/storage/${image.storage_path}`
+    link.href = getImageUrl(image.storage_path)
     link.as = 'image'
     document.head.appendChild(link)
   }, [image.id, image.storage_path, queryClient])
@@ -73,7 +74,7 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
     >
       <div className="aspect-square">
         <img
-          src={`/storage/${image.thumbnail_path}`}
+          src={getThumbnailUrl(image.thumbnail_path)}
           alt={image.model_name || 'Generated image'}
           className={clsx(
             'w-full h-full object-cover transition-opacity',

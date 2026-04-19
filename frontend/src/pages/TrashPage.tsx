@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
 import { batchApi } from '@/api/batch'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { getThumbnailUrl } from '@/utils/imagePath'
 import type { ImageSearchParams } from '@/types/image'
 
 export default function TrashPage() {
@@ -109,7 +110,7 @@ export default function TrashPage() {
           <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
             <div className="aspect-square opacity-60">
               <img
-                src={`/storage/${image.thumbnail_path}`}
+                src={getThumbnailUrl(image.thumbnail_path)}
                 alt={image.model_name || 'Deleted image'}
                 className="w-full h-full object-cover"
                 loading="lazy"

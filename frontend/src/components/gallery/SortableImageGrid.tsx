@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { useState } from 'react'
+import { getThumbnailUrl } from '@/utils/imagePath'
 import type { ShowcaseImageInfo } from '@/types/showcase'
 
 interface SortableImageGridProps {
@@ -61,7 +62,7 @@ function SortableImageItem({ image }: SortableImageItemProps) {
       className="relative aspect-square rounded-lg overflow-hidden group bg-gray-800"
     >
       <img
-        src={`/storage/${image.thumbnail_path}`}
+        src={getThumbnailUrl(image.thumbnail_path)}
         alt=""
         className="w-full h-full object-cover"
         loading="lazy"
@@ -85,7 +86,7 @@ function DragOverlayImage({ image }: { image: ShowcaseImageInfo }) {
   return (
     <div className="aspect-square rounded-lg overflow-hidden shadow-2xl ring-2 ring-blue-500 bg-gray-800">
       <img
-        src={`/storage/${image.thumbnail_path}`}
+        src={getThumbnailUrl(image.thumbnail_path)}
         alt=""
         className="w-full h-full object-cover"
         draggable={false}

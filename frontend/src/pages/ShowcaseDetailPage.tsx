@@ -5,6 +5,7 @@ import { ArrowLeft, Image as ImageIcon, X, Play, ArrowUpDown } from 'lucide-reac
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { getThumbnailUrl } from '@/utils/imagePath'
 import Slideshow from '@/components/gallery/Slideshow'
 import SortableImageGrid from '@/components/gallery/SortableImageGrid'
 import type { ShowcaseImageInfo } from '@/types/showcase'
@@ -221,7 +222,7 @@ export default function ShowcaseDetailPage() {
               }`}
             >
               <img
-                src={`/storage/${image.thumbnail_path}`}
+                src={getThumbnailUrl(image.thumbnail_path)}
                 alt=""
                 className="w-full h-full object-cover"
                 loading="lazy"

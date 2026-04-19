@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { imagesApi } from '@/api/images'
+import { getImageUrl } from '@/utils/imagePath'
 import { showcasesApi } from '@/api/showcases'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import type { ImageUpdate } from '@/types/image'
@@ -213,7 +214,7 @@ export default function DetailPage() {
   const handleDownload = () => {
     if (!image) return
     const link = document.createElement('a')
-    link.href = `/storage/${image.storage_path}`
+    link.href = getImageUrl(image.storage_path)
     link.download = image.original_filename
     link.click()
   }
@@ -353,7 +354,7 @@ export default function DetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <img
-            src={`/storage/${image.storage_path}`}
+            src={getImageUrl(image.storage_path)}
             alt={image.model_name || 'Generated image'}
             className="w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setIsLightboxOpen(true)}
@@ -719,7 +720,7 @@ export default function DetailPage() {
             <X size={32} />
           </button>
             <img
-              src={`/storage/${image.storage_path}`}
+              src={getImageUrl(image.storage_path)}
               alt={image.model_name || 'Generated image'}
               className="max-w-[95vw] max-h-[95vh] object-contain"
               onClick={(e) => e.stopPropagation()}

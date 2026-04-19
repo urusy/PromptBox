@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast'
 import { showcasesApi } from '@/api/showcases'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { getThumbnailUrl } from '@/utils/imagePath'
 import type { Showcase, ShowcaseCreate, ShowcaseUpdate, ShowcaseImageInfo } from '@/types/showcase'
 
 // Available icons for showcases
@@ -191,7 +192,7 @@ function CreateEditModal({
                     }`}
                   >
                     <img
-                      src={`/storage/${image.thumbnail_path}`}
+                      src={getThumbnailUrl(image.thumbnail_path)}
                       alt=""
                       className="w-full h-full object-cover"
                     />
@@ -358,7 +359,7 @@ export default function ShowcasesPage() {
                 <div className="aspect-video bg-gray-700 relative">
                   {showcase.cover_thumbnail_path ? (
                     <img
-                      src={`/storage/${showcase.cover_thumbnail_path}`}
+                      src={getThumbnailUrl(showcase.cover_thumbnail_path)}
                       alt=""
                       className="w-full h-full object-cover"
                     />

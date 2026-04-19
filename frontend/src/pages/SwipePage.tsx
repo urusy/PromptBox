@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { imagesApi } from '@/api/images'
+import { getImageUrl } from '@/utils/imagePath'
 import type { ImageSearchParams } from '@/types/image'
 
 // Touch/swipe detection
@@ -411,7 +412,7 @@ export default function SwipePage() {
               {/* Image */}
               <Link to={`/image/${currentImage.id}`}>
                 <img
-                  src={`/storage/${currentImage.storage_path}`}
+                  src={getImageUrl(currentImage.storage_path)}
                   alt=""
                   className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
                   draggable={false}

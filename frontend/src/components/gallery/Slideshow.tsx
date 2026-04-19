@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Play, Pause, ChevronLeft, ChevronRight, Shuffle } from 'lucide-react'
+import { getImageUrl } from '@/utils/imagePath'
 
 // Slideshow interval options (in seconds)
 const INTERVAL_OPTIONS = [3, 5, 10, 15, 30]
@@ -159,7 +160,7 @@ export default function Slideshow({ images, startIndex = 0, onClose }: Slideshow
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
       {/* Main image */}
       <img
-        src={`/storage/${currentImage.storage_path}`}
+        src={getImageUrl(currentImage.storage_path)}
         alt=""
         className="max-w-full max-h-full object-contain"
       />
