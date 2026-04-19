@@ -50,42 +50,13 @@ class ThreadSafeSet:
             return item in self._set
 
 
-# Global session factory for the watcher (single instance)
-_watcher_engine: "create_async_engine | None" = None
-_watcher_session_factory: async_sessionmaker[AsyncSession] | None = None
-_watcher_session_lock = threading.Lock()
-
-
-def get_watcher_session() -> async_sessionmaker[AsyncSession]:
-    """Get or create a session factory for the watcher.
-
-    Uses a single shared engine to avoid connection pool exhaustion.
-    """
-    global _watcher_engine, _watcher_session_factory
-
-    with _watcher_session_lock:
-        if _watcher_session_factory is None:
-            settings = get_settings()
-            _watcher_engine = create_async_engine(
-                settings.database_url,
-                echo=False,
-                pool_size=3,
-                max_overflow=2,
-                pool_pre_ping=True,
-                pool_recycle=300,  # Recycle connections every 5 minutes
-            )
-            _watcher_session_factory = async_sessionmaker(
-                _watcher_engine,
-                class_=AsyncSession,
-                expire_on_commit=False,
-            )
-            logger.debug("Created watcher session factory")
-
-        return _watcher_session_factory
-
-
 class ImageImportHandler(FileSystemEventHandler):
-    """Handler for file system events in the import folder."""
+    """Handler for file system events in the import folder.
+
+    Dispatches file-created events to the worker event loop owned by
+    ``ImageWatcher`` (set via ``set_dispatch``). We never create a new event
+    loop per file — all processing happens on the single long-lived loop.
+    """
 
     SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -93,15 +64,19 @@ class ImageImportHandler(FileSystemEventHandler):
         self.settings = get_settings()
         self.parser_factory = MetadataParserFactory()
         self._processing = ThreadSafeSet()
+        self._dispatch: "ImageWatcher._Dispatch | None" = None
+
+    def set_dispatch(self, dispatch: "ImageWatcher._Dispatch") -> None:
+        """Bind the dispatcher used to submit coroutines to the worker loop."""
+        self._dispatch = dispatch
 
     def on_created(self, event: FileCreatedEvent) -> None:
-        """Handle file creation events."""
+        """Handle file creation events (runs in watchdog's thread)."""
         if event.is_directory:
             return
 
         file_path = Path(event.src_path)
 
-        # Check extension
         if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
             return
 
@@ -109,29 +84,36 @@ class ImageImportHandler(FileSystemEventHandler):
         if not self._processing.add(str(file_path)):
             return
 
-        # Process in a new event loop (watchdog runs in a separate thread)
-        try:
-            asyncio.run(self._process_file(file_path))
-        except OSError as e:
-            logger.error(f"I/O error processing {file_path}: {e}")
-        except RuntimeError as e:
-            logger.error(f"Runtime error processing {file_path}: {e}")
-        finally:
+        if self._dispatch is None:
+            # Shouldn't happen — dispatcher is set before observer starts.
+            logger.error("Watcher dispatch not initialized; dropping event")
             self._processing.discard(str(file_path))
+            return
+
+        async def _run() -> None:
+            try:
+                await self._process_file(file_path)
+            except OSError as e:
+                logger.error(f"I/O error processing {file_path}: {e}")
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Error processing {file_path}: {e}")
+            finally:
+                self._processing.discard(str(file_path))
+
+        self._dispatch.submit(_run())
 
     async def _process_file(self, file_path: Path) -> None:
         """Process a newly created image file."""
         logger.info(f"Processing new file: {file_path}")
 
-        # Wait for file to be fully written
         await self._wait_for_file(file_path)
 
         if not file_path.exists():
             logger.warning(f"File no longer exists: {file_path}")
             return
 
-        # Get or create session factory for this event loop
-        session_factory = get_watcher_session()
+        assert self._dispatch is not None
+        session_factory = self._dispatch.session_factory()
         async with session_factory() as db:
             try:
                 await self._import_image(db, file_path)
@@ -152,9 +134,8 @@ class ImageImportHandler(FileSystemEventHandler):
 
             current_size = file_path.stat().st_size
 
-            # File size hasn't changed for a bit, assume it's done
             if current_size == last_size and current_size > 0:
-                await asyncio.sleep(0.5)  # Extra wait
+                await asyncio.sleep(0.5)
                 break
 
             last_size = current_size
@@ -166,20 +147,16 @@ class ImageImportHandler(FileSystemEventHandler):
 
     async def _import_image(self, db: AsyncSession, file_path: Path) -> UUID:
         """Import an image file into the database and storage."""
-        # Calculate file hash for duplicate detection
         file_hash = calculate_file_hash(file_path)
 
-        # Check for duplicates
         result = await db.execute(select(Image).where(Image.file_hash == file_hash))
         existing = result.scalar_one_or_none()
 
         if existing:
             logger.info(f"Duplicate detected: {file_path} (hash: {file_hash[:16]}...)")
-            # Move the duplicate file to duplicated folder
             duplicated_dir = Path(self.settings.import_path) / "duplicated"
             ensure_directory(duplicated_dir)
             duplicated_path = duplicated_dir / file_path.name
-            # Handle filename collision in duplicated folder
             if duplicated_path.exists():
                 stem = file_path.stem
                 suffix = file_path.suffix
@@ -191,30 +168,22 @@ class ImageImportHandler(FileSystemEventHandler):
             logger.info(f"Moved duplicate to: {duplicated_path}")
             return existing.id
 
-        # Generate UUID v7 for database ID
         image_id = uuid7()
 
-        # Get image dimensions (async)
         width, height = await get_image_dimensions_async(file_path)
 
-        # Get file stats (before moving the file)
         file_stat = file_path.stat()
         file_size = file_stat.st_size
 
-        # Get file creation/modification time for created_at
-        # Use birthtime (creation time) if available, otherwise fall back to mtime
         try:
             file_timestamp = file_stat.st_birthtime
         except AttributeError:
-            # st_birthtime is not available on Linux
             file_timestamp = file_stat.st_mtime
         file_created_at = datetime.fromtimestamp(file_timestamp, tz=timezone.utc)
 
-        # Parse metadata (supports PNG and JPEG)
         image_info = read_image_info(file_path)
         metadata = self.parser_factory.parse(image_info)
 
-        # Generate paths using file hash (content-addressable storage)
         storage_rel_path = get_storage_path(
             self.settings.storage_path,
             file_hash,
@@ -228,14 +197,11 @@ class ImageImportHandler(FileSystemEventHandler):
         storage_abs_path = Path(self.settings.storage_path) / storage_rel_path
         thumbnail_abs_path = Path(self.settings.storage_path) / thumbnail_rel_path
 
-        # Ensure directories exist
         ensure_directory(storage_abs_path.parent)
         ensure_directory(thumbnail_abs_path.parent)
 
-        # Move file to storage
         shutil.move(str(file_path), str(storage_abs_path))
 
-        # Create thumbnail (async)
         await create_thumbnail_async(
             storage_abs_path,
             thumbnail_abs_path,
@@ -243,7 +209,6 @@ class ImageImportHandler(FileSystemEventHandler):
             quality=self.settings.thumbnail_quality,
         )
 
-        # Create database record
         image = Image(
             id=image_id,
             source_tool=metadata.source_tool.value,
@@ -281,25 +246,107 @@ class ImageImportHandler(FileSystemEventHandler):
 
 
 class ImageWatcher:
-    """Watches the import folder for new images."""
+    """Watches the import folder for new images.
+
+    Runs a single long-lived asyncio event loop in a dedicated thread; all
+    file-processing work is dispatched onto it. This avoids creating a fresh
+    event loop per file (previous design) and lets the DB connection pool be
+    reused across events.
+    """
+
+    class _Dispatch:
+        """Glue between threads (watchdog, periodic scanner) and the worker loop."""
+
+        def __init__(self) -> None:
+            self._loop: asyncio.AbstractEventLoop | None = None
+            self._engine = None
+            self._session_factory: async_sessionmaker[AsyncSession] | None = None
+
+        def bind(
+            self,
+            loop: asyncio.AbstractEventLoop,
+            session_factory: async_sessionmaker[AsyncSession],
+            engine,
+        ) -> None:
+            self._loop = loop
+            self._session_factory = session_factory
+            self._engine = engine
+
+        @property
+        def loop(self) -> asyncio.AbstractEventLoop:
+            assert self._loop is not None, "Dispatch not bound"
+            return self._loop
+
+        def session_factory(self) -> async_sessionmaker[AsyncSession]:
+            assert self._session_factory is not None, "Dispatch not bound"
+            return self._session_factory
+
+        def submit(self, coro) -> "asyncio.Future":
+            """Schedule a coroutine on the worker loop from another thread."""
+            return asyncio.run_coroutine_threadsafe(coro, self.loop)
+
+        async def dispose(self) -> None:
+            if self._engine is not None:
+                await self._engine.dispose()
 
     def __init__(self) -> None:
         self.settings = get_settings()
         self.observer = Observer()
         self.handler = ImageImportHandler()
+        self._dispatch = ImageWatcher._Dispatch()
+        self.handler.set_dispatch(self._dispatch)
         self._scanner_thread: threading.Thread | None = None
         self._stop_scanner = threading.Event()
+        self._loop_thread: threading.Thread | None = None
+        self._loop_ready = threading.Event()
+
+    def _run_loop(self) -> None:
+        """Run a persistent asyncio loop in this thread."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        engine = create_async_engine(
+            self.settings.database_url,
+            echo=False,
+            pool_size=3,
+            max_overflow=2,
+            pool_pre_ping=True,
+            pool_recycle=300,
+        )
+        session_factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        self._dispatch.bind(loop, session_factory, engine)
+        self._loop_ready.set()
+
+        try:
+            loop.run_forever()
+        finally:
+            try:
+                loop.run_until_complete(self._dispatch.dispose())
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Error disposing watcher engine: {e}")
+            loop.close()
 
     def start(self) -> None:
-        """Start watching the import folder."""
+        """Start the worker loop, observer, and periodic scanner."""
         import_path = self.settings.import_path
         ensure_directory(import_path)
+
+        # Start the persistent worker loop (idempotent — process_existing may have
+        # already spun it up).
+        if self._loop_thread is None or not self._loop_thread.is_alive():
+            self._loop_thread = threading.Thread(
+                target=self._run_loop, daemon=True, name="WatcherLoop"
+            )
+            self._loop_thread.start()
+            if not self._loop_ready.wait(timeout=5):
+                raise RuntimeError("Watcher event loop failed to start")
 
         self.observer.schedule(self.handler, import_path, recursive=False)
         self.observer.start()
         logger.info(f"Started watching: {import_path}")
 
-        # Start periodic scanner thread
         self._stop_scanner.clear()
         self._scanner_thread = threading.Thread(
             target=self._periodic_scan_loop,
@@ -310,8 +357,7 @@ class ImageWatcher:
         logger.info(f"Started periodic scanner (interval: {PERIODIC_SCAN_INTERVAL}s)")
 
     def stop(self) -> None:
-        """Stop watching."""
-        # Stop periodic scanner
+        """Stop observer, scanner, and worker loop."""
         self._stop_scanner.set()
         if self._scanner_thread and self._scanner_thread.is_alive():
             self._scanner_thread.join(timeout=5)
@@ -321,32 +367,36 @@ class ImageWatcher:
         self.observer.join()
         logger.info("Stopped watching")
 
-    def _periodic_scan_loop(self) -> None:
-        """Background thread that periodically scans for unprocessed files."""
-        while not self._stop_scanner.is_set():
-            # Wait for the interval (or until stop is signaled)
-            if self._stop_scanner.wait(timeout=PERIODIC_SCAN_INTERVAL):
-                break  # Stop was signaled
+        # Stop the persistent worker loop
+        if self._loop_thread and self._loop_thread.is_alive():
+            loop = self._dispatch.loop
+            loop.call_soon_threadsafe(loop.stop)
+            self._loop_thread.join(timeout=10)
+            logger.info("Stopped watcher event loop")
 
-            # Scan for unprocessed files
+    def _periodic_scan_loop(self) -> None:
+        """Background thread: periodically submit unprocessed files to worker loop."""
+        while not self._stop_scanner.is_set():
+            if self._stop_scanner.wait(timeout=PERIODIC_SCAN_INTERVAL):
+                break
+
             try:
                 self._scan_and_process()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(f"Error in periodic scan: {e}")
 
     def _scan_and_process(self) -> None:
-        """Scan import folder and process any unprocessed files."""
+        """Scan import folder and submit unprocessed files to worker loop."""
         import_path = Path(self.settings.import_path)
 
         if not import_path.exists():
             return
 
-        unprocessed_files = []
+        unprocessed_files: list[Path] = []
         for file_path in import_path.iterdir():
             if not file_path.is_file():
                 continue
             ext = file_path.suffix.lower()
-            # Skip unsupported extensions or files currently being processed
             if (
                 ext in ImageImportHandler.SUPPORTED_EXTENSIONS
                 and str(file_path) not in self.handler._processing
@@ -357,13 +407,17 @@ class ImageWatcher:
             logger.info(
                 f"Periodic scan found {len(unprocessed_files)} unprocessed file(s)"
             )
-            # Process all files in a single event loop to reuse DB connections
-            asyncio.run(self._process_files_batch(unprocessed_files))
+            # Dispatch the batch to the worker loop; wait for completion so
+            # we don't overlap with the next scan interval.
+            future = self._dispatch.submit(self._process_files_batch(unprocessed_files))
+            try:
+                future.result(timeout=300)
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Periodic scan batch failed: {e}")
 
     async def _process_files_batch(self, files: list[Path]) -> None:
-        """Process multiple files in a single async context."""
+        """Process multiple files sequentially on the worker loop."""
         for file_path in files:
-            # Atomic check-and-add to avoid duplicate processing
             if not self.handler._processing.add(str(file_path)):
                 continue
             try:
@@ -372,7 +426,7 @@ class ImageWatcher:
                 logger.error(
                     f"I/O error processing {file_path} in periodic scan: {e}"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(
                     f"Error processing {file_path} in periodic scan: {e}"
                 )
@@ -380,16 +434,34 @@ class ImageWatcher:
                 self.handler._processing.discard(str(file_path))
 
     async def process_existing(self) -> None:
-        """Process any existing files in the import folder."""
+        """Process any existing files in the import folder.
+
+        Called from the FastAPI lifespan (which has its own loop). The actual
+        processing runs on the worker loop — we just submit and wait.
+        """
         import_path = Path(self.settings.import_path)
 
-        existing_files = []
+        existing_files: list[Path] = []
         for file_path in import_path.iterdir():
             if file_path.is_file():
                 ext = file_path.suffix.lower()
                 if ext in ImageImportHandler.SUPPORTED_EXTENSIONS:
                     existing_files.append(file_path)
 
-        if existing_files:
-            logger.info(f"Processing {len(existing_files)} existing file(s)")
-            await self._process_files_batch(existing_files)
+        if not existing_files:
+            return
+
+        logger.info(f"Processing {len(existing_files)} existing file(s)")
+
+        # Lazily spin up the worker loop so the session factory is available.
+        if self._loop_thread is None or not self._loop_thread.is_alive():
+            self._loop_thread = threading.Thread(
+                target=self._run_loop, daemon=True, name="WatcherLoop"
+            )
+            self._loop_thread.start()
+            if not self._loop_ready.wait(timeout=5):
+                raise RuntimeError("Watcher event loop failed to start")
+
+        future = self._dispatch.submit(self._process_files_batch(existing_files))
+        # Await completion from the calling loop (FastAPI lifespan)
+        await asyncio.wrap_future(future)
