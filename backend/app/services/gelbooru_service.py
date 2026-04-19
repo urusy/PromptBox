@@ -14,6 +14,22 @@ GELBOORU_API_BASE = "https://gelbooru.com/index.php"
 _gelbooru_cache: TTLCache[str, list[GelbooruTag]] = TTLCache(maxsize=500, ttl=300)
 
 
+class GelbooruServiceError(Exception):
+    """Base exception for Gelbooru service."""
+
+
+class GelbooruRateLimitError(GelbooruServiceError):
+    """Raised when Gelbooru API returns a rate-limit response (HTTP 429)."""
+
+
+class GelbooruUpstreamError(GelbooruServiceError):
+    """Raised when Gelbooru API returns a non-2xx, non-429 HTTP response."""
+
+
+class GelbooruUnavailableError(GelbooruServiceError):
+    """Raised on network-level failures (timeout, connection error, etc.)."""
+
+
 class GelbooruService:
     """Service for interacting with Gelbooru Tag API."""
 
@@ -100,11 +116,24 @@ class GelbooruService:
             return tags
 
         except httpx.HTTPStatusError as e:
-            logger.warning(f"Gelbooru API error for '{query}': {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Error fetching Gelbooru tags: {e}")
-            return []
+            status_code = e.response.status_code
+            if status_code == 429:
+                logger.warning(f"Gelbooru rate limit hit for '{query}'")
+                raise GelbooruRateLimitError("Gelbooru API rate limit exceeded") from e
+            logger.warning(f"Gelbooru API HTTP {status_code} for '{query}': {e}")
+            raise GelbooruUpstreamError(
+                f"Gelbooru API returned HTTP {status_code}"
+            ) from e
+        except httpx.TimeoutException as e:
+            logger.warning(f"Gelbooru API timeout for '{query}': {e}")
+            raise GelbooruUnavailableError("Gelbooru API timeout") from e
+        except httpx.HTTPError as e:
+            logger.warning(f"Gelbooru API network error for '{query}': {e}")
+            raise GelbooruUnavailableError("Gelbooru API network error") from e
+        except (ValueError, KeyError) as e:
+            # JSON decode or response format errors
+            logger.error(f"Gelbooru API response parse error for '{query}': {e}")
+            raise GelbooruUpstreamError("Gelbooru API returned unexpected data") from e
 
 
 # Global singleton instance
