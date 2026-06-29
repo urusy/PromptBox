@@ -131,13 +131,23 @@ pub async fn list_images(
 }
 
 /// GET /api/images/{id}
+///
+/// prev/next are computed within the search context supplied as query params
+/// (same filters/sort as the listing), mirroring get_image_with_neighbors.
 pub async fn get_image(
     _user: CurrentUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Query(q): Query<ListQuery>,
 ) -> Result<Json<ImageDetail>, AppError> {
     let row = image::get_by_id(&state.pool, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Image not found".to_string()))?;
-    Ok(Json(row.into_detail(None, None)))
+    // page/per_page are unused when computing neighbors.
+    let params = q.into_params(1, 1);
+    let (prev, next) = image::neighbors(&state.pool, &params, id).await?;
+    Ok(Json(row.into_detail(
+        prev.map(|u| u.to_string()),
+        next.map(|u| u.to_string()),
+    )))
 }

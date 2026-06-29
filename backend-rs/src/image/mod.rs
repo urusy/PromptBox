@@ -162,3 +162,66 @@ pub async fn list(pool: &PgPool, p: &SearchParams) -> Result<ListResult, sqlx::E
     let items = qb.build_query_as::<ImageRow>().fetch_all(pool).await?;
     Ok(ListResult { items, total })
 }
+
+/// Compute (prev, next) image ids within the search context, mirroring
+/// image_service.py:get_image_with_neighbors. Row-value comparison
+/// `(sort_col, id) <cmp> (subquery)` avoids handling the sort column's type.
+///
+/// Direction (matches image_service.py):
+///   asc  listing: prev `<` ORDER BY DESC, next `>` ORDER BY ASC
+///   desc listing: prev `>` ORDER BY ASC,  next `<` ORDER BY DESC
+pub async fn neighbors(
+    pool: &PgPool,
+    p: &SearchParams,
+    current_id: Uuid,
+) -> Result<(Option<Uuid>, Option<Uuid>), sqlx::Error> {
+    let (col, _) = sort_clause(p);
+    let asc = p.sort_order.eq_ignore_ascii_case("asc");
+    let prev = neighbor_one(
+        pool,
+        p,
+        current_id,
+        col,
+        if asc { "<" } else { ">" },
+        if asc { "DESC" } else { "ASC" },
+    )
+    .await?;
+    let next = neighbor_one(
+        pool,
+        p,
+        current_id,
+        col,
+        if asc { ">" } else { "<" },
+        if asc { "ASC" } else { "DESC" },
+    )
+    .await?;
+    Ok((prev, next))
+}
+
+async fn neighbor_one(
+    pool: &PgPool,
+    p: &SearchParams,
+    current_id: Uuid,
+    col: &str,
+    cmp: &str,
+    order_dir: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    let mut qb = QueryBuilder::<Postgres>::new("SELECT id FROM images WHERE 1=1");
+    push_filters(&mut qb, p);
+    qb.push(" AND (")
+        .push(col)
+        .push(", id) ")
+        .push(cmp)
+        .push(" (SELECT s.")
+        .push(col)
+        .push(", s.id FROM images s WHERE s.id = ")
+        .push_bind(current_id)
+        .push(") ORDER BY ")
+        .push(col)
+        .push(" ")
+        .push(order_dir)
+        .push(", id ")
+        .push(order_dir)
+        .push(" LIMIT 1");
+    qb.build_query_scalar::<Uuid>().fetch_optional(pool).await
+}
