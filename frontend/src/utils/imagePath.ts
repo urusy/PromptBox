@@ -19,9 +19,12 @@ export function getBasename(path: string | null | undefined): string {
   return filename.replace(/\.(safetensors|ckpt|pt|pth|bin)$/i, '')
 }
 
-// Valid image path pattern: XX/YY/UUID.ext or XX/YY/UUID_thumb.webp
+// Valid image path patterns (relative to /storage/):
+//   - originals:  XX/YY/<hash>.ext          (get_storage_path)
+//   - thumbnails: thumbnails/XX/YY/<hash>.webp  (get_thumbnail_path)
+// The legacy XX/YY/<uuid>_thumb.webp form is still accepted for safety.
 const VALID_PATH_PATTERN =
-  /^[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f-]+(?:_thumb)?\.(?:png|jpg|jpeg|webp|gif)$/i
+  /^(?:thumbnails\/)?[0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f-]+(?:_thumb)?\.(?:png|jpg|jpeg|webp|gif)$/i
 
 /**
  * Validates that an image path follows the expected format.
