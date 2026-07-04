@@ -7,7 +7,10 @@ from typing import ClassVar
 from uuid import UUID
 
 from loguru import logger
+from PIL import Image as PILImage
+from PIL import UnidentifiedImageError
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from uuid_utils import uuid7
 from watchdog.events import FileCreatedEvent, FileSystemEventHandler
@@ -22,6 +25,18 @@ from app.utils.image_utils import create_thumbnail_async, get_image_dimensions_a
 
 # Interval for periodic folder scanning (in seconds)
 PERIODIC_SCAN_INTERVAL = 30
+
+# Errors that mean the *file itself* can never be imported (bad/oversized content).
+# These quarantine the file immediately — retrying is pointless.
+_PERMANENT_ERRORS: tuple[type[Exception], ...] = (
+    PILImage.DecompressionBombError,
+    UnidentifiedImageError,
+)
+
+# Errors that are environmental/transient (DB unavailable, filesystem hiccup). These
+# must NOT count toward the quarantine threshold — otherwise a DB outage would move
+# every pending file into failed/.
+_TRANSIENT_ERRORS: tuple[type[Exception], ...] = (OSError, DBAPIError)
 
 
 class ThreadSafeSet:
@@ -66,6 +81,84 @@ class ImageImportHandler(FileSystemEventHandler):
         self._processing = ThreadSafeSet()
         self._dispatch: "ImageWatcher._Dispatch | None" = None
 
+        # (C) Filename substrings to exclude from import (e.g. "xyz_grid").
+        self._skip_patterns: list[str] = [
+            p.strip().lower()
+            for p in self.settings.import_skip_patterns.split(",")
+            if p.strip()
+        ]
+        # (B) Per-file content-failure counter. Access is serialized by a lock
+        # because the periodic scanner and watchdog dispatch may both touch it.
+        self._failures: dict[str, int] = {}
+        self._failures_lock = threading.Lock()
+        self._max_attempts = max(1, self.settings.import_max_attempts)
+
+    def should_skip(self, file_path: Path) -> bool:
+        """(C) True if the filename matches an excluded pattern."""
+        name = file_path.name.lower()
+        return any(pattern in name for pattern in self._skip_patterns)
+
+    def _unique_destination(self, directory: Path, name: str) -> Path:
+        """Return a non-colliding path inside ``directory`` for ``name``."""
+        dest = directory / name
+        if not dest.exists():
+            return dest
+        stem = Path(name).stem
+        suffix = Path(name).suffix
+        counter = 1
+        while dest.exists():
+            dest = directory / f"{stem}_{counter}{suffix}"
+            counter += 1
+        return dest
+
+    def quarantine(self, file_path: Path, subdir: str, reason: str) -> None:
+        """Move a file out of the import folder so it is no longer re-scanned.
+
+        Used for both excluded files (C) and permanently-failing files (B).
+        Safe to call from any thread (pure blocking filesystem ops).
+        """
+        try:
+            if not file_path.exists():
+                return
+            dest_dir = Path(self.settings.import_path) / subdir
+            ensure_directory(dest_dir)
+            dest = self._unique_destination(dest_dir, file_path.name)
+            shutil.move(str(file_path), str(dest))
+            logger.warning(f"Quarantined {file_path.name} -> {subdir}/ ({reason})")
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to quarantine {file_path}: {e}")
+        finally:
+            self._failures.pop(str(file_path), None)
+
+    def register_failure(self, file_path: Path, exc: Exception) -> None:
+        """(B) Decide whether a failed file should be quarantined.
+
+        - Permanent content errors → quarantine immediately.
+        - Transient/environmental errors → ignored (do not count).
+        - Anything else → count; quarantine once it exceeds ``import_max_attempts``.
+        """
+        if isinstance(exc, _PERMANENT_ERRORS):
+            self.quarantine(
+                file_path, self.settings.import_failed_dir, f"permanent: {exc}"
+            )
+            return
+
+        if isinstance(exc, _TRANSIENT_ERRORS):
+            # Environmental problem — don't penalize the file.
+            return
+
+        key = str(file_path)
+        with self._failures_lock:
+            count = self._failures.get(key, 0) + 1
+            self._failures[key] = count
+
+        if count >= self._max_attempts:
+            self.quarantine(
+                file_path,
+                self.settings.import_failed_dir,
+                f"failed {count}x: {exc}",
+            )
+
     def set_dispatch(self, dispatch: "ImageWatcher._Dispatch") -> None:
         """Bind the dispatcher used to submit coroutines to the worker loop."""
         self._dispatch = dispatch
@@ -78,6 +171,13 @@ class ImageImportHandler(FileSystemEventHandler):
         file_path = Path(event.src_path)
 
         if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
+            return
+
+        # (C) Excluded by filename pattern — move it aside, never process.
+        if self.should_skip(file_path):
+            self.quarantine(
+                file_path, self.settings.import_skipped_dir, "excluded by pattern"
+            )
             return
 
         # Avoid duplicate processing (atomic check-and-add)
@@ -121,6 +221,8 @@ class ImageImportHandler(FileSystemEventHandler):
             except Exception as e:
                 await db.rollback()
                 logger.error(f"Failed to import {file_path}: {e}")
+                # (B) Track/quarantine before re-raising so callers still log.
+                self.register_failure(file_path, e)
                 raise
 
     async def _wait_for_file(self, file_path: Path, timeout: float = 30.0) -> None:
@@ -397,10 +499,17 @@ class ImageWatcher:
             if not file_path.is_file():
                 continue
             ext = file_path.suffix.lower()
-            if (
-                ext in ImageImportHandler.SUPPORTED_EXTENSIONS
-                and str(file_path) not in self.handler._processing
-            ):
+            if ext not in ImageImportHandler.SUPPORTED_EXTENSIONS:
+                continue
+            # (C) Excluded by pattern — move aside so it stops being re-scanned.
+            if self.handler.should_skip(file_path):
+                self.handler.quarantine(
+                    file_path,
+                    self.settings.import_skipped_dir,
+                    "excluded by pattern",
+                )
+                continue
+            if str(file_path) not in self.handler._processing:
                 unprocessed_files.append(file_path)
 
         if unprocessed_files:
@@ -443,10 +552,20 @@ class ImageWatcher:
 
         existing_files: list[Path] = []
         for file_path in import_path.iterdir():
-            if file_path.is_file():
-                ext = file_path.suffix.lower()
-                if ext in ImageImportHandler.SUPPORTED_EXTENSIONS:
-                    existing_files.append(file_path)
+            if not file_path.is_file():
+                continue
+            ext = file_path.suffix.lower()
+            if ext not in ImageImportHandler.SUPPORTED_EXTENSIONS:
+                continue
+            # (C) Excluded by pattern — move aside instead of importing.
+            if self.handler.should_skip(file_path):
+                self.handler.quarantine(
+                    file_path,
+                    self.settings.import_skipped_dir,
+                    "excluded by pattern",
+                )
+                continue
+            existing_files.append(file_path)
 
         if not existing_files:
             return

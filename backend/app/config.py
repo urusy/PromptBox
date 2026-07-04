@@ -20,6 +20,16 @@ class Settings(BaseSettings):
     import_path: str = "/app/import"
     storage_path: str = "/app/storage"
 
+    # Import worker
+    # Comma-separated filename substrings to exclude from import (case-insensitive).
+    # Matching files are moved to import/<import_skipped_dir>/ instead of processed.
+    import_skip_patterns: str = "xyz_grid"
+    # After this many *content* failures a file is quarantined to import/<import_failed_dir>/.
+    # Transient errors (DB down, I/O) are NOT counted toward this threshold.
+    import_max_attempts: int = 5
+    import_failed_dir: str = "failed"
+    import_skipped_dir: str = "skipped"
+
     # CORS
     cors_origins: str = "http://localhost:3000"
 
