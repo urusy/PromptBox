@@ -40,6 +40,8 @@ services:
       - DEBUG=${DEBUG:-false}
       - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
       - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
+      - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-xyz_grid}
+      - IMPORT_MAX_ATTEMPTS=${IMPORT_MAX_ATTEMPTS:-5}
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +54,43 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  # ===========================================
+  # Backend (Rust / axum) — strangler-fig rewrite, pulled from Docker Hub.
+  # Coexists with the FastAPI backend on a separate port, sharing DB/storage.
+  # ===========================================
+  backend-rs:
+    image: urusy7/promptbox-backend-rs:latest
+    ports:
+      - "${BACKEND_RS_PORT:-8001}:8000"
+    volumes:
+      - ./import:/app/import
+      - ./storage:/app/storage
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      - SECRET_KEY=${SECRET_KEY}
+      - IMPORT_PATH=/app/import
+      - STORAGE_PATH=/app/storage
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
+      - DEBUG=${DEBUG:-false}
+      - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
+      - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
+      - WATCHER_ENABLED=${RS_WATCHER_ENABLED:-false}
+      - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-xyz_grid}
+      - IMPORT_MAX_ATTEMPTS=${IMPORT_MAX_ATTEMPTS:-5}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
     logging:
       driver: json-file
       options:
