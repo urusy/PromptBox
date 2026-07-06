@@ -2,7 +2,17 @@
 
 ## 未着手
 
-（なし）
+- [ ] Falcon（../Falcon）との統合とデータ移行の検討
+  - **背景**: PromptBoxをRust(axum)+Svelteで再構築中（backend-rs/、AI生成画像メタデータ特化）。一方FalconはGo Gateway+ReactのDAMアプリで機能的にスーパーセット。両者の関係を整理し、統合するか・データ移行するか・併存させるかの方針を決めたい
+  - **成果物**: 検討結果をドキュメントに纏める（`docs/` 配下、例: `docs/12_falcon_integration.md`）
+  - **検討観点**:
+    - 統合方針の選択肢比較（Falconへ吸収 / PromptBoxをAIメタ特化サービスとして併存・連携 / 段階的統合）
+    - データ移行: 画像ファイル（storage/のUUID v7配置）、DBスキーマの対応付け（images、タグ、評価、Showcase/コレクション、スマートフォルダ等）
+    - AIメタデータ（プロンプト、モデル、LoRA、Sampler等）のFalcon側スキーマへのマッピング可否
+    - 外部共有PostgreSQL（promptbox-db-1 / comfyui_gallery）構成との整合
+    - CivitAI連携・取り込みworker等、PromptBox固有機能の扱い
+    - 移行手順・ロールバック戦略・工数目安
+  - **工数目安**: 小〜中（検討・ドキュメント作成のみ）
 
 ## AI提案機能(未精査)
 
