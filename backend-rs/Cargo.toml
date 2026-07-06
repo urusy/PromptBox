@@ -6,13 +6,28 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.103"
 axum = "0.8.9"
-axum-extra = { version = "0.12.6", features = ["cookie", "cookie-signed"] }
+axum-extra = { version = "0.12.6", features = ["cookie", "cookie-signed", "query"] }
 bcrypt = "0.19.2"
 chrono = { version = "0.4.45", features = ["serde"] }
 jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
+regex = "1.11.1"
+reqwest = { version = "0.12.27", default-features = false, features = ["json", "rustls-tls"] }
 rust_decimal = "1.42.1"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+# preserve_order: JSON objects keep insertion order so ComfyUI graph traversal
+# and round-tripped JSONB match the Python (insertion-ordered) behaviour.
+serde_json = { version = "1.0.150", features = ["preserve_order"] }
+sha2 = "0.10.9"
+image = { version = "0.25.8", default-features = false, features = ["png", "jpeg", "webp"] }
+# Low-level PNG access for reading tEXt/iTXt/zTXt metadata chunks (the `image`
+# crate does not expose them). Pinned to the version `image` already uses.
+png = "0.17.16"
+# Lossy WebP encoding (quality 85) for thumbnails, matching the Python backend;
+# the pure-Rust `image` encoder is lossless-only. Builds libwebp from source.
+webp = "0.3.0"
+# JPEG EXIF UserComment (A1111/Forge store parameters there).
+kamadak-exif = "0.6.1"
+notify = "8.2.0"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "rust_decimal", "macros"] }
 thiserror = "2.0.18"
 time = "0.3.51"

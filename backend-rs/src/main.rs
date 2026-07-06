@@ -1,12 +1,27 @@
 //! PromptBox Rust backend entry point.
 
 mod auth;
+mod batch;
+mod catalog;
+mod civitai;
 mod config;
 mod db;
 mod dto;
+mod duplicate;
 mod error;
+mod export;
+mod gelbooru;
 mod http;
 mod image;
+mod media;
+mod parser;
+mod preset;
+mod showcase;
+mod smart_folder;
+mod stats;
+mod tag;
+mod util;
+mod worker;
 
 use anyhow::Result;
 use std::sync::Arc;
@@ -16,13 +31,19 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 async fn main() -> Result<()> {
     init_tracing();
 
-    let cfg = config::Config::load()?;
+    let cfg = Arc::new(config::Config::load()?);
     let listen_addr = cfg.listen_addr.clone();
 
     let pool = db::create_pool(&cfg.database_url).await?;
 
+    // Background import worker (folder watch + periodic scan). Disable via
+    // WATCHER_ENABLED=false (e.g. while the Python backend still owns imports).
+    if cfg.watcher_enabled {
+        worker::spawn(pool.clone(), cfg.clone());
+    }
+
     let state = http::AppState {
-        config: Arc::new(cfg),
+        config: cfg,
         pool,
     };
     let app = http::router(state);

@@ -15,8 +15,3 @@ pub struct LoginResponse {
     pub message: String,
     pub username: String,
 }
-
-#[derive(Debug, serde::Serialize)]
-pub struct MessageResponse {
-    pub message: String,
-}

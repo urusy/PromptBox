@@ -12,7 +12,14 @@ use serde_json::json;
 pub enum AppError {
     NotFound(String),
     Unauthorized(String),
+    Forbidden(String),
     BadRequest(String),
+    /// 429 — upstream rate limit (Gelbooru).
+    TooManyRequests(String),
+    /// 502 — upstream returned an unexpected response (Gelbooru).
+    BadGateway(String),
+    /// 503 — upstream unreachable (Gelbooru).
+    ServiceUnavailable(String),
     Internal(anyhow::Error),
 }
 
@@ -21,7 +28,11 @@ impl IntoResponse for AppError {
         let (status, detail) = match self {
             AppError::NotFound(m) => (StatusCode::NOT_FOUND, m),
             AppError::Unauthorized(m) => (StatusCode::UNAUTHORIZED, m),
+            AppError::Forbidden(m) => (StatusCode::FORBIDDEN, m),
             AppError::BadRequest(m) => (StatusCode::BAD_REQUEST, m),
+            AppError::TooManyRequests(m) => (StatusCode::TOO_MANY_REQUESTS, m),
+            AppError::BadGateway(m) => (StatusCode::BAD_GATEWAY, m),
+            AppError::ServiceUnavailable(m) => (StatusCode::SERVICE_UNAVAILABLE, m),
             AppError::Internal(e) => {
                 tracing::error!(error = ?e, "internal error");
                 (

@@ -9,7 +9,8 @@ use serde_json::{json, Value};
 use super::AppState;
 use crate::auth;
 use crate::config::Config;
-use crate::dto::auth::{LoginRequest, LoginResponse, MessageResponse};
+use crate::dto::auth::{LoginRequest, LoginResponse};
+use crate::dto::common::MessageResponse;
 use crate::error::AppError;
 
 /// Authenticated user, extracted from the `session` cookie. Handlers that take

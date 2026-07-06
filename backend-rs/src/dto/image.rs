@@ -134,14 +134,32 @@ pub struct ImageDetail {
     pub next_id: Option<String>,
 }
 
-/// PATCH body for a single image (mirrors Python ImageUpdate). All fields
-/// optional: absent (None) means "leave unchanged".
+/// Deserialize helper that distinguishes an absent field from an explicit JSON
+/// `null`. Combined with `#[serde(default, deserialize_with = "double_option")]`:
+///   - key absent      -> `None`        (leave unchanged)
+///   - key present null -> `Some(None)` (clear the column to NULL)
+///   - key present val  -> `Some(Some(v))`
+///
+/// This mirrors Pydantic's `model_dump(exclude_unset=True)` for nullable fields,
+/// so a PATCH can explicitly clear `user_memo` by sending `{"user_memo": null}`.
+fn double_option<'de, T, D>(de: D) -> Result<Option<Option<T>>, D::Error>
+where
+    T: serde::Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    serde::Deserialize::deserialize(de).map(Some)
+}
+
+/// PATCH body for a single image (mirrors Python ImageUpdate). Every field is
+/// optional; an absent field is left unchanged. Non-nullable columns
+/// (rating/is_favorite/needs_improvement/user_tags) treat `None` as "absent".
+/// `user_memo` is nullable and uses `double_option` so it can be cleared.
 #[derive(Debug, serde::Deserialize)]
-#[allow(dead_code)] // consumed by the update endpoint (later task)
 pub struct ImageUpdate {
     pub rating: Option<i32>,
     pub is_favorite: Option<bool>,
     pub needs_improvement: Option<bool>,
     pub user_tags: Option<Vec<String>>,
-    pub user_memo: Option<String>,
+    #[serde(default, deserialize_with = "double_option")]
+    pub user_memo: Option<Option<String>>,
 }

@@ -25,6 +25,16 @@ pub struct Config {
     pub import_path: String,
     pub storage_path: String,
 
+    // Import worker (mirror the Python backend's import_* settings).
+    // Filename substrings excluded from import (lowercased); matches are moved
+    // to `import/<import_skipped_dir>/` instead of processed.
+    pub import_skip_patterns: Vec<String>,
+    // After this many *content* failures a file is quarantined to
+    // `import/<import_failed_dir>/`. Transient errors (DB/IO) are not counted.
+    pub import_max_attempts: u32,
+    pub import_failed_dir: String,
+    pub import_skipped_dir: String,
+
     // CORS
     pub cors_origins: Vec<String>,
 
@@ -41,6 +51,10 @@ pub struct Config {
 
     // HTTP listen address (Rust-specific; not in the Python config).
     pub listen_addr: String,
+
+    // Whether to run the import worker (Rust-specific; lets the Python backend
+    // keep ownership of imports during the strangler-fig migration).
+    pub watcher_enabled: bool,
 }
 
 impl Config {
@@ -59,6 +73,13 @@ impl Config {
             session_expire_hours: get_int("SESSION_EXPIRE_HOURS", 24 * 7), // 1 week
             import_path: get("IMPORT_PATH", "/app/import"),
             storage_path: get("STORAGE_PATH", "/app/storage"),
+            import_skip_patterns: split_csv(&get("IMPORT_SKIP_PATTERNS", "xyz_grid"))
+                .into_iter()
+                .map(|s| s.to_lowercase())
+                .collect(),
+            import_max_attempts: get_int("IMPORT_MAX_ATTEMPTS", 5).max(1) as u32,
+            import_failed_dir: get("IMPORT_FAILED_DIR", "failed"),
+            import_skipped_dir: get("IMPORT_SKIPPED_DIR", "skipped"),
             cors_origins: split_csv(&get("CORS_ORIGINS", "http://localhost:3000")),
             gelbooru_api_key: get("GELBOORU_API_KEY", ""),
             gelbooru_user_id: get("GELBOORU_USER_ID", ""),
@@ -66,6 +87,7 @@ impl Config {
             thumbnail_size: get_int("THUMBNAIL_SIZE", 300) as u32,
             thumbnail_quality: get_int("THUMBNAIL_QUALITY", 85) as u8,
             listen_addr: get("LISTEN_ADDR", "0.0.0.0:8000"),
+            watcher_enabled: get_bool("WATCHER_ENABLED", true),
         };
         cfg.validate_secret_key()?;
         Ok(cfg)
@@ -90,6 +112,35 @@ impl Config {
             bail!("SECRET_KEY must be at least 32 characters");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl Config {
+    /// Minimal configuration for tests that build app components without
+    /// touching the database or authenticating.
+    pub fn for_test() -> Self {
+        Config {
+            database_url: "postgres://user:pass@localhost/db".to_string(),
+            admin_username: "admin".to_string(),
+            admin_password_hash: String::new(),
+            secret_key: "x".repeat(32),
+            session_expire_hours: 24,
+            import_path: "/tmp/import".to_string(),
+            storage_path: "/tmp/storage".to_string(),
+            import_skip_patterns: vec!["xyz_grid".to_string()],
+            import_max_attempts: 5,
+            import_failed_dir: "failed".to_string(),
+            import_skipped_dir: "skipped".to_string(),
+            cors_origins: vec!["http://localhost:3000".to_string()],
+            gelbooru_api_key: String::new(),
+            gelbooru_user_id: String::new(),
+            debug: true,
+            thumbnail_size: 300,
+            thumbnail_quality: 85,
+            listen_addr: "0.0.0.0:8000".to_string(),
+            watcher_enabled: false,
+        }
     }
 }
 
