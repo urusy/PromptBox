@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid, Play } from 'lucide-react'
+import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid, Play, Square, Rows3, Columns3 } from 'lucide-react'
 import { imagesApi } from '@/api/images'
 import type { ImageSearchParams } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
@@ -15,7 +15,8 @@ import Slideshow from '@/components/gallery/Slideshow'
 
 export default function GalleryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { perPage, gridSize, setPerPage, setGridSize } = useGallerySettingsStore()
+  const { perPage, gridSize, layout, setPerPage, setGridSize, setLayout } =
+    useGallerySettingsStore()
   const [params, setParams] = useState<ImageSearchParams>(() => ({
     ...parseSearchParams(searchParams),
     per_page: perPage,
@@ -122,6 +123,42 @@ export default function GalleryPage() {
                   </option>
                 ))}
               </select>
+              {/* Layout Toggle */}
+              <div className="flex items-center bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setLayout('square')}
+                  className={`p-1.5 rounded transition-colors ${
+                    layout === 'square'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Square grid"
+                >
+                  <Square size={16} />
+                </button>
+                <button
+                  onClick={() => setLayout('justified')}
+                  className={`p-1.5 rounded transition-colors ${
+                    layout === 'justified'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Justified rows (keep aspect ratio)"
+                >
+                  <Rows3 size={16} />
+                </button>
+                <button
+                  onClick={() => setLayout('waterfall')}
+                  className={`p-1.5 rounded transition-colors ${
+                    layout === 'waterfall'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Waterfall / masonry (keep aspect ratio)"
+                >
+                  <Columns3 size={16} />
+                </button>
+              </div>
               {/* Grid Size Toggle */}
               <div className="flex items-center bg-gray-800 rounded-lg p-1">
                 <button
@@ -183,7 +220,7 @@ export default function GalleryPage() {
             </div>
           </div>
 
-          <ImageGrid images={data.items} size={gridSize} />
+          <ImageGrid images={data.items} size={gridSize} layout={layout} />
 
           <Pagination
             page={params.page || 1}

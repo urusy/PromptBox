@@ -10,9 +10,14 @@ import { getImageUrl, getThumbnailUrl } from '@/utils/imagePath'
 
 interface ImageCardProps {
   image: ImageListItem
+  /**
+   * アスペクト比（幅/高さ）。指定時はサムネイル枠を正方形ではなく元画像比率で描画し、
+   * 切り抜きを回避する。未指定時は従来通り正方形(aspect-square)。
+   */
+  aspectRatio?: number
 }
 
-const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({ image, aspectRatio }: ImageCardProps) {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
@@ -66,13 +71,16 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
       onMouseDown={handleLongPress}
       onMouseEnter={handleMouseEnter}
       className={clsx(
-        'group relative bg-gray-800 rounded-lg overflow-hidden transition-all',
+        'group relative block w-full bg-gray-800 rounded-lg overflow-hidden transition-all',
         isSelected
           ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
           : 'hover:ring-2 hover:ring-blue-500/50'
       )}
     >
-      <div className="aspect-square">
+      <div
+        className={clsx(!aspectRatio && 'aspect-square')}
+        style={aspectRatio ? { aspectRatio } : undefined}
+      >
         <img
           src={getThumbnailUrl(image.thumbnail_path)}
           alt={image.model_name || 'Generated image'}
