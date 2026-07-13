@@ -25,10 +25,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting application...")
     logger.info(f"Debug mode: {settings.debug}")
 
-    # Start the image watcher
-    _watcher = ImageWatcher()
-    await _watcher.process_existing()  # Process any files already in import folder
-    _watcher.start()
+    # Start the image watcher (disabled via WATCHER_ENABLED=false when the
+    # Rust backend owns imports)
+    if settings.watcher_enabled:
+        _watcher = ImageWatcher()
+        await _watcher.process_existing()  # Process any files already in import folder
+        _watcher.start()
+    else:
+        logger.info("Import watcher disabled (WATCHER_ENABLED=false)")
 
     yield
 

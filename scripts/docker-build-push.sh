@@ -8,14 +8,13 @@
 # Options:
 #   --all            Build and push all images (default)
 #   --frontend       Build and push React frontend image only
-#   --backend        Build and push FastAPI backend image only
 #   --backend-rs     Build and push Rust/axum backend image only
 #   --tag <tag>      Use specific tag (default: latest)
 #   --no-push        Build only, don't push to registry
 #
 # Examples:
 #   ./scripts/docker-build-push.sh                          # Build and push all
-#   ./scripts/docker-build-push.sh --backend --frontend     # Build specific images
+#   ./scripts/docker-build-push.sh --backend-rs --frontend  # Build specific images
 #   ./scripts/docker-build-push.sh --tag v1.0.0             # Use specific tag
 #   ./scripts/docker-build-push.sh --no-push                # Build only
 # ===========================================
@@ -38,7 +37,6 @@ PLATFORM="linux/amd64"
 
 # Build flags
 BUILD_FRONTEND=false
-BUILD_BACKEND=false
 BUILD_BACKEND_RS=false
 PUSH_IMAGES=true
 
@@ -54,16 +52,11 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --all)
             BUILD_FRONTEND=true
-            BUILD_BACKEND=true
             BUILD_BACKEND_RS=true
             shift
             ;;
         --frontend)
             BUILD_FRONTEND=true
-            shift
-            ;;
-        --backend)
-            BUILD_BACKEND=true
             shift
             ;;
         --backend-rs)
@@ -84,7 +77,6 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --all              Build and push all images (default)"
             echo "  --frontend         Build and push React frontend image only"
-            echo "  --backend          Build and push FastAPI backend image only"
             echo "  --backend-rs       Build and push Rust/axum backend image only"
             echo "  --tag <tag>        Use specific tag (default: latest)"
             echo "  --no-push          Build only, don't push to registry"
@@ -100,9 +92,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # If no specific image selected, build all
-if [ "$BUILD_FRONTEND" = false ] && [ "$BUILD_BACKEND" = false ] && [ "$BUILD_BACKEND_RS" = false ]; then
+if [ "$BUILD_FRONTEND" = false ] && [ "$BUILD_BACKEND_RS" = false ]; then
     BUILD_FRONTEND=true
-    BUILD_BACKEND=true
     BUILD_BACKEND_RS=true
 fi
 
@@ -168,13 +159,6 @@ if [ "$BUILD_FRONTEND" = true ]; then
     BUILD_PIDS+=($!)
     BUILD_NAMES+=("frontend")
     BUILD_IMAGES+=("${DOCKER_USER}/promptbox-frontend:${IMAGE_TAG}")
-fi
-
-if [ "$BUILD_BACKEND" = true ]; then
-    build_image "backend" "${DOCKER_USER}/promptbox-backend:${IMAGE_TAG}" "${PROJECT_ROOT}/backend" &
-    BUILD_PIDS+=($!)
-    BUILD_NAMES+=("backend")
-    BUILD_IMAGES+=("${DOCKER_USER}/promptbox-backend:${IMAGE_TAG}")
 fi
 
 if [ "$BUILD_BACKEND_RS" = true ]; then

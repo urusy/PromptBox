@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     storage_path: str = "/app/storage"
 
     # Import worker
+    # Whether this backend runs the import watcher. Must be False when the Rust
+    # backend (backend-rs) owns imports: with object storage it uploads to MinIO,
+    # and a concurrently running Python watcher would write the same files to the
+    # local filesystem instead, making them unreachable.
+    watcher_enabled: bool = True
     # Comma-separated filename substrings to exclude from import (case-insensitive).
     # Matching files are moved to import/<import_skipped_dir>/ instead of processed.
     import_skip_patterns: str = "xyz_grid"

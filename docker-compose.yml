@@ -8,60 +8,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:80"
-    volumes:
-      - ./storage:/app/storage:ro
     depends_on:
-      - backend
       - backend-rs
     restart: unless-stopped
     networks:
       - app-network
 
   # ===========================================
-  # Backend (FastAPI)
-  # ===========================================
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    volumes:
-      - ./import:/app/import
-      - ./storage:/app/storage
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - ADMIN_USERNAME=${ADMIN_USERNAME}
-      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
-      - SECRET_KEY=${SECRET_KEY}
-      - IMPORT_PATH=/app/import
-      - STORAGE_PATH=/app/storage
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
-      - DEBUG=${DEBUG:-true}
-      - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
-      - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
-      - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-xyz_grid}
-      - IMPORT_MAX_ATTEMPTS=${IMPORT_MAX_ATTEMPTS:-5}
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    networks:
-      - app-network
-
-  # ===========================================
-  # Backend (Rust / axum) — strangler-fig rewrite
-  # Shares the same DB / import / storage as the FastAPI backend. Runs on a
-  # separate port so both can coexist during migration. The import worker is
-  # off by default (RS_WATCHER_ENABLED=true to let Rust own imports).
+  # Backend (Rust / axum)
+  # Owns the import worker and stores images in MinIO (object storage).
+  # Applies sqlx migrations at startup.
   # ===========================================
   backend-rs:
     build:
@@ -71,24 +27,31 @@ services:
       - "${BACKEND_RS_PORT:-8001}:8000"
     volumes:
       - ./import:/app/import
-      - ./storage:/app/storage
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - SECRET_KEY=${SECRET_KEY}
       - IMPORT_PATH=/app/import
+      # fs バックエンド（STORAGE_BACKEND=fs）へ切り戻す場合に使用
       - STORAGE_PATH=/app/storage
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-s3}
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=${S3_BUCKET:-promptbox}
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
       - DEBUG=${DEBUG:-true}
       - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
       - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
-      - WATCHER_ENABLED=${RS_WATCHER_ENABLED:-false}
+      - WATCHER_ENABLED=${RS_WATCHER_ENABLED:-true}
       - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-xyz_grid}
       - IMPORT_MAX_ATTEMPTS=${IMPORT_MAX_ATTEMPTS:-5}
     depends_on:
       db:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     deploy:
       resources:
@@ -98,6 +61,56 @@ services:
         reservations:
           cpus: '0.25'
           memory: 64M
+    networks:
+      - app-network
+
+  # ===========================================
+  # Object storage (MinIO) — originals + thumbnails
+  # ./minio-data は MinIO コンテナ専有。ホスト側（File Station 等）から
+  # 中身を直接操作しないこと（xl.meta 構造が壊れる）。
+  # ===========================================
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ./minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - app-network
+
+  # One-shot: バケット作成（存在すれば何もしない）
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}
+      && mc mb --ignore-existing local/$${S3_BUCKET}"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET:-promptbox}
+    restart: "no"
     networks:
       - app-network
 

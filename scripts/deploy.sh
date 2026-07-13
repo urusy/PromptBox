@@ -20,7 +20,6 @@ fi
 PLATFORM="${PLATFORM:-${DEFAULT_PLATFORM}}"
 
 FRONTEND_BASE="${DOCKER_USER}/promptbox-frontend"
-BACKEND_BASE="${DOCKER_USER}/promptbox-backend"
 BACKEND_RS_BASE="${DOCKER_USER}/promptbox-backend-rs"
 
 # プロジェクトルートに移動
@@ -33,7 +32,6 @@ echo ""
 echo "Platform:      ${PLATFORM}"
 echo "Version tag:   ${VERSION_TAG}"
 echo "Frontend:      ${FRONTEND_BASE}:${VERSION_TAG} (+ :latest)"
-echo "Backend:       ${BACKEND_BASE}:${VERSION_TAG} (+ :latest)"
 echo "Backend (rs):  ${BACKEND_RS_BASE}:${VERSION_TAG} (+ :latest)"
 echo ""
 
@@ -46,7 +44,7 @@ fi
 
 # フロントエンドのビルド＆プッシュ（バージョンタグ + latest 両方）
 echo "-----------------------------------------"
-echo "[1/3] Building & pushing frontend..."
+echo "[1/2] Building & pushing frontend..."
 echo "-----------------------------------------"
 docker buildx build --platform "${PLATFORM}" \
     -t "${FRONTEND_BASE}:${VERSION_TAG}" \
@@ -55,20 +53,9 @@ docker buildx build --platform "${PLATFORM}" \
 echo "Frontend pushed successfully."
 echo ""
 
-# バックエンド(FastAPI)のビルド＆プッシュ
-echo "-----------------------------------------"
-echo "[2/3] Building & pushing backend (FastAPI)..."
-echo "-----------------------------------------"
-docker buildx build --platform "${PLATFORM}" \
-    -t "${BACKEND_BASE}:${VERSION_TAG}" \
-    -t "${BACKEND_BASE}:latest" \
-    --push ./backend
-echo "Backend pushed successfully."
-echo ""
-
 # バックエンド(Rust/axum)のビルド＆プッシュ
 echo "-----------------------------------------"
-echo "[3/3] Building & pushing backend (Rust/axum)..."
+echo "[2/2] Building & pushing backend (Rust/axum)..."
 echo "-----------------------------------------"
 docker buildx build --platform "${PLATFORM}" \
     -t "${BACKEND_RS_BASE}:${VERSION_TAG}" \
@@ -83,5 +70,4 @@ echo "========================================="
 echo ""
 echo "本番で特定版に固定するには docker-compose.prod.yml の image タグを書き換え:"
 echo "  image: ${FRONTEND_BASE}:${VERSION_TAG}"
-echo "  image: ${BACKEND_BASE}:${VERSION_TAG}"
 echo "  image: ${BACKEND_RS_BASE}:${VERSION_TAG}"
