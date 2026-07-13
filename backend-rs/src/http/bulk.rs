@@ -59,21 +59,35 @@ pub async fn batch_update(
 }
 
 /// POST /api/bulk/delete
+///
+/// Permanent deletes also remove each image's original + thumbnail objects
+/// from storage (DB rows first; object deletion is best-effort).
 pub async fn batch_delete(
     _user: CurrentUser,
     State(state): State<AppState>,
     Json(req): Json<BatchDeleteRequest>,
 ) -> Result<Json<MessageResponse>, AppError> {
     validate_ids(&req.ids)?;
-    let count = batch::delete(&state.pool, &req.ids, req.permanent).await?;
+    let (count, action) = if req.permanent {
+        let paths = batch::delete_permanent(&state.pool, &req.ids).await?;
+        for (storage_path, thumbnail_path) in &paths {
+            crate::storage::delete_image_objects(
+                state.storage.as_ref(),
+                storage_path,
+                thumbnail_path,
+            )
+            .await;
+        }
+        (paths.len() as u64, "permanently deleted")
+    } else {
+        (
+            batch::soft_delete(&state.pool, &req.ids).await?,
+            "moved to trash",
+        )
+    };
     if count == 0 {
         return Err(AppError::NotFound("No images found".to_string()));
     }
-    let action = if req.permanent {
-        "permanently deleted"
-    } else {
-        "moved to trash"
-    };
     Ok(Json(MessageResponse::new(format!(
         "{count} images {action}"
     ))))

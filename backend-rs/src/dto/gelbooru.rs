@@ -1,6 +1,6 @@
 //! Gelbooru tag search DTOs (mirror schemas/gelbooru.py).
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct GelbooruTag {
     pub id: i64,
     pub name: String,
@@ -10,7 +10,7 @@ pub struct GelbooruTag {
     pub ambiguous: bool,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct GelbooruTagSearchResponse {
     pub tags: Vec<GelbooruTag>,
     pub query: String,

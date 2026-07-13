@@ -1,24 +1,24 @@
 //! Statistics DTOs (mirror the inline Pydantic models in endpoints/stats.py).
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CountItem {
     pub name: String,
     pub count: i64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct TimeSeriesItem {
     pub date: String,
     pub count: i64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct RatingDistribution {
     pub rating: i32,
     pub count: i64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct StatsOverview {
     pub total_images: i64,
     pub total_favorites: i64,
@@ -27,7 +27,7 @@ pub struct StatsOverview {
     pub avg_rating: Option<f64>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct StatsResponse {
     pub overview: StatsOverview,
     pub by_model_type: Vec<CountItem>,
@@ -40,7 +40,7 @@ pub struct StatsResponse {
     pub daily_updates: Vec<TimeSeriesItem>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct RatingAnalysisItem {
     pub name: String,
     pub avg_rating: f64,
@@ -48,7 +48,7 @@ pub struct RatingAnalysisItem {
     pub high_rated_count: i64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct RatingAnalysisResponse {
     pub by_model: Vec<RatingAnalysisItem>,
     pub by_sampler: Vec<RatingAnalysisItem>,
@@ -58,22 +58,22 @@ pub struct RatingAnalysisResponse {
     pub filtered_by_model: Option<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModelListResponse {
     pub models: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct LoraListResponse {
     pub loras: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct SamplerListResponse {
     pub samplers: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModelRatingDistributionItem {
     pub model_name: String,
     pub rating_0: i64,
@@ -86,7 +86,7 @@ pub struct ModelRatingDistributionItem {
     pub avg_rating: Option<f64>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModelRatingDistributionResponse {
     pub items: Vec<ModelRatingDistributionItem>,
 }

@@ -3,15 +3,18 @@
 //! Looks up model/LoRA metadata by SHA256 hash or by name (with normalization
 //! and fuzzy scoring). Every failure path resolves to `None` — like the Python
 //! service, the endpoints always answer 200 with `found: false` on miss/error.
-//! NOTE: the Python service caches results (24h TTL); omitted here.
+//! Results are cached like the Python service (24h TTL, maxsize 1000). One
+//! deliberate difference: misses are cached for only 1h, because Rust folds
+//! transport errors into `None` and a CivitAI outage must not stick for 24h.
 
 use std::collections::HashSet;
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 use std::time::Duration;
 
 use regex::Regex;
 use serde_json::Value;
 
+use crate::cache::TtlCache;
 use crate::dto::civitai::{
     CivitaiImage, CivitaiModelInfo, CivitaiRecommendedSettings, CivitaiVersionInfo,
 };
@@ -19,6 +22,10 @@ use crate::util::http_client;
 
 const CIVITAI_API_BASE: &str = "https://civitai.com/api/v1";
 const TIMEOUT: Duration = Duration::from_secs(30);
+const MISS_TTL: Duration = Duration::from_secs(3600);
+
+static CACHE: LazyLock<TtlCache<Option<CivitaiModelInfo>>> =
+    LazyLock::new(|| TtlCache::new(Duration::from_secs(86400), 1000));
 
 fn re(cell: &'static OnceLock<Regex>, pat: &str) -> &'static Regex {
     cell.get_or_init(|| Regex::new(pat).unwrap())
@@ -165,8 +172,23 @@ fn parse_version_response(data: &Value, is_exact_match: bool) -> CivitaiModelInf
     }
 }
 
-/// Look up a model by SHA256 hash — the most accurate match.
+/// Look up a model by SHA256 hash — the most accurate match. Cached.
 pub async fn get_model_by_hash(hash_value: &str) -> Option<CivitaiModelInfo> {
+    let cache_key = format!("hash:{hash_value}");
+    if let Some(cached) = CACHE.get(&cache_key) {
+        return cached;
+    }
+    let result = fetch_model_by_hash(hash_value).await;
+    let ttl = if result.is_some() {
+        Duration::from_secs(86400)
+    } else {
+        MISS_TTL
+    };
+    CACHE.insert_with_ttl(cache_key, result.clone(), ttl);
+    result
+}
+
+async fn fetch_model_by_hash(hash_value: &str) -> Option<CivitaiModelInfo> {
     let url = format!("{CIVITAI_API_BASE}/model-versions/by-hash/{hash_value}");
     let resp = http_client().get(&url).timeout(TIMEOUT).send().await.ok()?;
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
@@ -181,7 +203,23 @@ pub async fn get_model_by_hash(hash_value: &str) -> Option<CivitaiModelInfo> {
 }
 
 /// Look up a model by name: exact search first, then fuzzy (marked non-exact).
+/// Cached (key mirrors the Python service: `model:{name.lower()}:{type}`).
 pub async fn get_model_info(name: &str, model_type: &str) -> Option<CivitaiModelInfo> {
+    let cache_key = format!("model:{}:{model_type}", name.to_lowercase());
+    if let Some(cached) = CACHE.get(&cache_key) {
+        return cached;
+    }
+    let result = fetch_model_info(name, model_type).await;
+    let ttl = if result.is_some() {
+        Duration::from_secs(86400)
+    } else {
+        MISS_TTL
+    };
+    CACHE.insert_with_ttl(cache_key, result.clone(), ttl);
+    result
+}
+
+async fn fetch_model_info(name: &str, model_type: &str) -> Option<CivitaiModelInfo> {
     if let Some(info) = search_models(name, model_type, true).await {
         return Some(info);
     }

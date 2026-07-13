@@ -107,21 +107,28 @@ async fn update_with_tags(
     Ok(count)
 }
 
-/// Bulk delete: `permanent` removes rows regardless of state; otherwise
-/// soft-deletes the still-live ones. Mirrors BatchService.batch_delete.
-pub async fn delete(pool: &PgPool, ids: &[Uuid], permanent: bool) -> Result<u64, sqlx::Error> {
-    let res = if permanent {
-        sqlx::query("DELETE FROM images WHERE id = ANY($1)")
-            .bind(ids.to_vec())
-            .execute(pool)
-            .await?
-    } else {
+/// Bulk soft-delete of the still-live images among `ids`. Mirrors
+/// BatchService.batch_delete (permanent=false).
+pub async fn soft_delete(pool: &PgPool, ids: &[Uuid]) -> Result<u64, sqlx::Error> {
+    let res =
         sqlx::query("UPDATE images SET deleted_at = NOW() WHERE deleted_at IS NULL AND id = ANY($1)")
             .bind(ids.to_vec())
             .execute(pool)
-            .await?
-    };
+            .await?;
     Ok(res.rows_affected())
+}
+
+/// Bulk permanent delete regardless of state, returning each removed row's
+/// (storage_path, thumbnail_path) so the caller can delete the objects too.
+/// Mirrors BatchService.batch_delete (permanent=true).
+pub async fn delete_permanent(
+    pool: &PgPool,
+    ids: &[Uuid],
+) -> Result<Vec<(String, String)>, sqlx::Error> {
+    sqlx::query_as("DELETE FROM images WHERE id = ANY($1) RETURNING storage_path, thumbnail_path")
+        .bind(ids.to_vec())
+        .fetch_all(pool)
+        .await
 }
 
 /// Bulk restore of soft-deleted images. Mirrors BatchService.batch_restore.

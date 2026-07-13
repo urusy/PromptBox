@@ -45,7 +45,7 @@ pub struct CivitaiModelInfo {
     pub versions: Vec<CivitaiVersionInfo>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CivitaiInfoResponse {
     pub found: bool,
     pub info: Option<CivitaiModelInfo>,

@@ -2,16 +2,22 @@
 //!
 //! Proxies tag lookups to the public Gelbooru API. Errors are classified so the
 //! HTTP layer can map them to 429 / 503 / 502 like the Python service.
-//! NOTE: the Python service caches results (5 min TTL); omitted here.
+//! Successful results are cached (5 min TTL, maxsize 500 — mirror the Python
+//! service); errors are never cached.
 
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use serde_json::Value;
 
+use crate::cache::TtlCache;
 use crate::dto::gelbooru::GelbooruTag;
 use crate::util::http_client;
 
 const GELBOORU_API_BASE: &str = "https://gelbooru.com/index.php";
+
+static CACHE: LazyLock<TtlCache<Vec<GelbooruTag>>> =
+    LazyLock::new(|| TtlCache::new(Duration::from_secs(300), 500));
 
 #[derive(Debug)]
 pub enum GelbooruError {
@@ -47,6 +53,10 @@ pub async fn search_tags(
     query: &str,
     limit: i64,
 ) -> Result<Vec<GelbooruTag>, GelbooruError> {
+    let cache_key = format!("tags:{query}:{limit}");
+    if let Some(cached) = CACHE.get(&cache_key) {
+        return Ok(cached);
+    }
     let name_pattern = format!("%{query}%");
     let limit_s = limit.to_string();
     let resp = http_client()
@@ -98,7 +108,7 @@ pub async fn search_tags(
         Vec::new()
     };
 
-    let tags = raw
+    let tags: Vec<GelbooruTag> = raw
         .iter()
         .map(|t| GelbooruTag {
             id: as_i64_loose(t.get("id")),
@@ -112,5 +122,6 @@ pub async fn search_tags(
             ambiguous: as_bool_loose(t.get("ambiguous")),
         })
         .collect();
+    CACHE.insert(cache_key, tags.clone());
     Ok(tags)
 }
