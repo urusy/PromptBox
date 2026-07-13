@@ -2,8 +2,9 @@
 //!
 //! Watches the import folder (filesystem events via `notify`) plus a periodic
 //! safety-net scan, and imports each new image: hash → duplicate check → metadata
-//! parse → move into content-addressed storage → WebP thumbnail → DB row.
-//! Runs as a background Tokio task; CPU/IO-heavy steps use `spawn_blocking`.
+//! parse → upload original + WebP thumbnail to object storage (content-addressed
+//! keys) → DB row → remove the import file. Runs as a background Tokio task;
+//! CPU/IO-heavy steps use `spawn_blocking`.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -12,6 +13,8 @@ use std::time::Duration;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use object_store::ObjectStore;
+use object_store::path::Path as ObjectPath;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use sqlx::PgPool;
@@ -31,6 +34,7 @@ const STABLE_TIMEOUT: Duration = Duration::from_secs(30);
 struct Worker {
     pool: PgPool,
     config: Arc<Config>,
+    storage: Arc<dyn ObjectStore>,
     /// Paths currently being imported, to avoid double-processing across the
     /// event stream and the periodic scan.
     processing: Arc<Mutex<HashSet<PathBuf>>>,
@@ -53,10 +57,11 @@ enum FailureKind {
 
 /// Spawn the import worker as a background task (no-op aside from logging if the
 /// import directory can't be created).
-pub fn spawn(pool: PgPool, config: Arc<Config>) {
+pub fn spawn(pool: PgPool, config: Arc<Config>, storage: Arc<dyn ObjectStore>) {
     let worker = Worker {
         pool,
         config,
+        storage,
         processing: Arc::new(Mutex::new(HashSet::new())),
         failures: Arc::new(Mutex::new(HashMap::new())),
     };
@@ -278,20 +283,27 @@ impl Worker {
             .to_string();
         let storage_rel = media::storage_path(&hash, &filename);
         let thumb_rel = media::thumbnail_path(&hash);
-        let base = PathBuf::from(&self.config.storage_path);
-        let storage_abs = base.join(&storage_rel);
-        let thumb_abs = base.join(&thumb_rel);
 
-        // Move the original into storage, then generate the thumbnail from it.
-        move_file(path, &storage_abs).await?;
-        {
-            let src = storage_abs.clone();
-            let dst = thumb_abs.clone();
+        // Read the original once and encode the thumbnail in memory. Decoding
+        // happens before any upload, so bad content still fails Permanent-ly
+        // without leaving partial objects behind.
+        let bytes = tokio::fs::read(path).await?;
+        let (bytes, thumb) = {
             let size = self.config.thumbnail_size;
             let quality = self.config.thumbnail_quality;
-            tokio::task::spawn_blocking(move || media::create_thumbnail(&src, &dst, size, quality))
-                .await??;
-        }
+            tokio::task::spawn_blocking(move || {
+                let thumb = media::create_thumbnail_bytes(&bytes, size, quality)?;
+                Ok::<_, anyhow::Error>((bytes, thumb))
+            })
+            .await??
+        };
+
+        // Upload both objects before the DB row so a listed image always has
+        // its files. Keys are content-addressed → retried puts are idempotent.
+        let storage_key = ObjectPath::parse(&storage_rel)?;
+        let thumb_key = ObjectPath::parse(&thumb_rel)?;
+        self.storage.put(&storage_key, bytes.into()).await?;
+        self.storage.put(&thumb_key, thumb.into()).await?;
 
         self.insert_image(
             &parsed,
@@ -305,6 +317,9 @@ impl Worker {
             created_at,
         )
         .await?;
+
+        // Everything is durable (objects + DB row); the import file is done.
+        tokio::fs::remove_file(path).await?;
 
         tracing::info!(file = %filename, "imported");
         Ok(())
@@ -408,7 +423,9 @@ impl Worker {
 ///
 /// - Decode/format errors from the `image` crate mean the file content itself is
 ///   bad or unsupported → Permanent (except its IO variant, which is transient).
-/// - `sqlx::Error` / `std::io::Error` are environmental → Transient.
+/// - `sqlx::Error` / `std::io::Error` / `object_store::Error` are environmental
+///   (DB down, IO hiccup, MinIO unreachable) → Transient, so a stopped MinIO
+///   never quarantines good files to `failed/`.
 /// - Anything else is retried up to `import_max_attempts` → Countable.
 fn classify_failure(err: &anyhow::Error) -> FailureKind {
     for cause in err.chain() {
@@ -420,6 +437,7 @@ fn classify_failure(err: &anyhow::Error) -> FailureKind {
         }
         if cause.downcast_ref::<sqlx::Error>().is_some()
             || cause.downcast_ref::<std::io::Error>().is_some()
+            || cause.downcast_ref::<object_store::Error>().is_some()
         {
             return FailureKind::Transient;
         }

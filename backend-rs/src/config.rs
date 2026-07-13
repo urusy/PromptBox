@@ -23,7 +23,17 @@ pub struct Config {
 
     // Paths
     pub import_path: String,
+    // Local filesystem root for the `fs` storage backend (rollback path); also
+    // kept for parity with the Python config.
     pub storage_path: String,
+
+    // Object storage. `storage_backend` selects "s3" (MinIO, production) or
+    // "fs" (local directory, rollback/offline dev).
+    pub storage_backend: String,
+    pub s3_endpoint: String,
+    pub s3_bucket: String,
+    pub s3_access_key: String,
+    pub s3_secret_key: String,
 
     // Import worker (mirror the Python backend's import_* settings).
     // Filename substrings excluded from import (lowercased); matches are moved
@@ -73,6 +83,11 @@ impl Config {
             session_expire_hours: get_int("SESSION_EXPIRE_HOURS", 24 * 7), // 1 week
             import_path: get("IMPORT_PATH", "/app/import"),
             storage_path: get("STORAGE_PATH", "/app/storage"),
+            storage_backend: get("STORAGE_BACKEND", "s3").to_lowercase(),
+            s3_endpoint: get("S3_ENDPOINT", "http://minio:9000"),
+            s3_bucket: get("S3_BUCKET", "promptbox"),
+            s3_access_key: get("S3_ACCESS_KEY", ""),
+            s3_secret_key: get("S3_SECRET_KEY", ""),
             import_skip_patterns: split_csv(&get("IMPORT_SKIP_PATTERNS", "xyz_grid"))
                 .into_iter()
                 .map(|s| s.to_lowercase())
@@ -90,7 +105,26 @@ impl Config {
             watcher_enabled: get_bool("WATCHER_ENABLED", true),
         };
         cfg.validate_secret_key()?;
+        cfg.validate_storage()?;
         Ok(cfg)
+    }
+
+    /// The s3 backend needs credentials; fail fast at startup instead of on the
+    /// first import.
+    fn validate_storage(&self) -> Result<()> {
+        match self.storage_backend.as_str() {
+            "s3" => {
+                if self.s3_access_key.is_empty() || self.s3_secret_key.is_empty() {
+                    bail!(
+                        "STORAGE_BACKEND=s3 requires S3_ACCESS_KEY and S3_SECRET_KEY \
+                         (set them to the MinIO credentials)"
+                    );
+                }
+                Ok(())
+            }
+            "fs" => Ok(()),
+            other => bail!("STORAGE_BACKEND must be \"s3\" or \"fs\", got {other:?}"),
+        }
     }
 
     /// Require an explicit key in production, generate an ephemeral one in
@@ -128,6 +162,11 @@ impl Config {
             session_expire_hours: 24,
             import_path: "/tmp/import".to_string(),
             storage_path: "/tmp/storage".to_string(),
+            storage_backend: "fs".to_string(),
+            s3_endpoint: String::new(),
+            s3_bucket: String::new(),
+            s3_access_key: String::new(),
+            s3_secret_key: String::new(),
             import_skip_patterns: vec!["xyz_grid".to_string()],
             import_max_attempts: 5,
             import_failed_dir: "failed".to_string(),

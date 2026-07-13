@@ -1,0 +1,12 @@
+-- Baseline (no-op).
+--
+-- The actual schema is created by db/init/*.sql on the FIRST boot of a fresh
+-- PostgreSQL volume (docker-entrypoint-initdb.d), exactly like the retired
+-- Python backend's alembic 0001_baseline. Running this file merely records the
+-- baseline in _sqlx_migrations on both fresh and existing databases.
+--
+-- From here on, ALL schema changes must be added as new files in this
+-- directory (sqlx migrations, applied automatically at backend-rs startup).
+-- Do NOT edit db/init/*.sql for incremental changes — it is only the
+-- fresh-install snapshot.
+SELECT 1;

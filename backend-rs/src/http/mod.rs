@@ -13,6 +13,7 @@ pub mod presets;
 pub mod showcases;
 pub mod smart_folders;
 pub mod stats;
+pub mod storage;
 pub mod tags;
 
 use std::sync::Arc;
@@ -20,9 +21,9 @@ use std::sync::Arc;
 use axum::http::{HeaderValue, Method};
 use axum::routing::{delete, get, post, put};
 use axum::Router;
+use object_store::ObjectStore;
 use sqlx::PgPool;
 use tower_http::cors::{AllowHeaders, CorsLayer};
-use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
@@ -32,18 +33,18 @@ use crate::config::Config;
 pub struct AppState {
     pub config: Arc<Config>,
     pub pool: PgPool,
+    pub storage: Arc<dyn ObjectStore>,
 }
 
 /// Build the HTTP handler tree.
 pub fn router(state: AppState) -> Router {
     let cors = build_cors(&state.config);
 
-    // Static serving for originals and thumbnails. In production nginx serves
-    // /storage directly; this exists for direct access and the Falcon
-    // DownloadImage integration test (GET baseURL + storage path).
-    let storage = ServeDir::new(state.config.storage_path.clone());
-
     let api = Router::new()
+        // The Python backend served health under /api; keep both spellings so
+        // existing monitoring keeps working after the cutover.
+        .route("/health", get(health::health))
+        .route("/health/db", get(health::health_db))
         .route("/auth/login", post(auth::login))
         .route("/auth/logout", post(auth::logout))
         .route("/auth/me", get(auth::me))
@@ -131,7 +132,10 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(health::health))
         .route("/health/db", get(health::health_db))
         .nest("/api", api)
-        .nest_service("/storage", storage)
+        // Originals and thumbnails, streamed from object storage. In production
+        // nginx proxies /storage/ here; also used directly by the Falcon
+        // DownloadImage integration (GET baseURL + storage path).
+        .route("/storage/{*path}", get(storage::serve))
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state)
@@ -174,9 +178,12 @@ mod tests {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .connect_lazy("postgres://user:pass@localhost/db")
             .expect("lazy pool construction");
+        let config = Config::for_test();
+        let storage = crate::storage::build(&config).expect("fs store");
         let state = AppState {
-            config: Arc::new(Config::for_test()),
+            config: Arc::new(config),
             pool,
+            storage,
         };
         let _ = router(state);
     }

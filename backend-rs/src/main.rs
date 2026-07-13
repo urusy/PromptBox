@@ -2,6 +2,7 @@
 
 mod auth;
 mod batch;
+mod cache;
 mod catalog;
 mod civitai;
 mod config;
@@ -19,6 +20,7 @@ mod preset;
 mod showcase;
 mod smart_folder;
 mod stats;
+mod storage;
 mod tag;
 mod util;
 mod worker;
@@ -36,15 +38,37 @@ async fn main() -> Result<()> {
 
     let pool = db::create_pool(&cfg.database_url).await?;
 
+    // Apply pending schema migrations (mirror the Python entrypoint's
+    // `alembic upgrade head`). The baseline is a no-op — the initial schema
+    // comes from db/init/*.sql on a fresh database.
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    tracing::info!("database migrations up to date");
+
+    let store = storage::build(&cfg)?;
+    // Reachability probe only — a missing key is fine, an unreachable MinIO is
+    // worth a warning (imports will retry, serving will 502 until it's up).
+    match store
+        .head(&object_store::path::Path::from("startup-probe"))
+        .await
+    {
+        Ok(_) | Err(object_store::Error::NotFound { .. }) => {
+            tracing::info!(backend = %cfg.storage_backend, "object storage reachable");
+        }
+        Err(e) => {
+            tracing::warn!(backend = %cfg.storage_backend, error = %e, "object storage unreachable at startup");
+        }
+    }
+
     // Background import worker (folder watch + periodic scan). Disable via
     // WATCHER_ENABLED=false (e.g. while the Python backend still owns imports).
     if cfg.watcher_enabled {
-        worker::spawn(pool.clone(), cfg.clone());
+        worker::spawn(pool.clone(), cfg.clone(), store.clone());
     }
 
     let state = http::AppState {
         config: cfg,
         pool,
+        storage: store,
     };
     let app = http::router(state);
 

@@ -108,28 +108,30 @@ pub async fn update(
     qb.build_query_as::<ImageRow>().fetch_optional(pool).await
 }
 
-/// Delete an image. `permanent` removes the row entirely; otherwise the row is
-/// soft-deleted by setting `deleted_at = NOW()`. Returns whether a row was
-/// affected. Mirrors image_service.delete_image.
-///
-/// NOTE: a permanent delete removes only the DB row, not the original/thumbnail
-/// files on disk — identical to the Python backend. Orphan-file cleanup is a
-/// separate maintenance concern.
-pub async fn delete(pool: &PgPool, id: Uuid, permanent: bool) -> Result<bool, sqlx::Error> {
-    let affected = if permanent {
-        sqlx::query("DELETE FROM images WHERE id = $1")
-            .bind(id)
-            .execute(pool)
-            .await?
-            .rows_affected()
-    } else {
-        sqlx::query("UPDATE images SET deleted_at = NOW() WHERE id = $1")
-            .bind(id)
-            .execute(pool)
-            .await?
-            .rows_affected()
-    };
+/// Soft-delete an image by setting `deleted_at = NOW()`. Returns whether a row
+/// was affected. Mirrors image_service.delete_image.
+pub async fn soft_delete(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
+    let affected = sqlx::query("UPDATE images SET deleted_at = NOW() WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?
+        .rows_affected();
     Ok(affected > 0)
+}
+
+/// Permanently delete an image row, returning its (storage_path,
+/// thumbnail_path) so the caller can delete the objects too, or `None` if the
+/// image does not exist.
+pub async fn delete_permanent(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<Option<(String, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "DELETE FROM images WHERE id = $1 RETURNING storage_path, thumbnail_path",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
 }
 
 /// Restore a soft-deleted image. Returns `false` if the image does not exist or

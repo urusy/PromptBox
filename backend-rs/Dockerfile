@@ -14,6 +14,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs \
     && rm -rf src
 
 COPY src ./src
+# sqlx::migrate! embeds these at compile time.
+COPY migrations ./migrations
 # Bust the cached dummy binary, then build the real one.
 RUN touch src/main.rs && cargo build --release
 

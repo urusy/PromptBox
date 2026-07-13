@@ -31,14 +31,12 @@ pub fn image_dimensions(path: &Path) -> Result<(u32, u32)> {
     image::image_dimensions(path).with_context(|| format!("read dimensions of {path:?}"))
 }
 
-/// Create a WebP thumbnail (lossy, given quality), shrinking to fit within
-/// `size`×`size` while preserving aspect ratio and never upscaling
-/// (mirror create_thumbnail with Pillow's thumbnail()).
-pub fn create_thumbnail(src: &Path, dst: &Path, size: u32, quality: u8) -> Result<()> {
-    if let Some(parent) = dst.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let img = image::open(src).with_context(|| format!("open image {src:?}"))?;
+/// Encode a WebP thumbnail (lossy, given quality) from in-memory image bytes,
+/// shrinking to fit within `size`×`size` while preserving aspect ratio and
+/// never upscaling (mirror create_thumbnail with Pillow's thumbnail()).
+/// Decoding doubles as content validation before anything is uploaded.
+pub fn create_thumbnail_bytes(data: &[u8], size: u32, quality: u8) -> Result<Vec<u8>> {
+    let img = image::load_from_memory(data).context("decode image for thumbnail")?;
     let (w, h) = (img.width(), img.height());
     let longest = w.max(h);
     let resized = if longest <= size || longest == 0 {
@@ -51,9 +49,7 @@ pub fn create_thumbnail(src: &Path, dst: &Path, size: u32, quality: u8) -> Resul
     };
     let rgb = resized.to_rgb8();
     let encoder = webp::Encoder::from_rgb(rgb.as_raw(), rgb.width(), rgb.height());
-    let data = encoder.encode(quality as f32);
-    std::fs::write(dst, &*data).with_context(|| format!("write thumbnail {dst:?}"))?;
-    Ok(())
+    Ok(encoder.encode(quality as f32).to_vec())
 }
 
 /// Read text metadata into a flat map (mirror read_image_info). PNG text chunks

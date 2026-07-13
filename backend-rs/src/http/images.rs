@@ -10,6 +10,7 @@ use crate::dto::common::MessageResponse;
 use crate::dto::image::{ImageDetail, ImageListItem, ImageListResponse, ImageUpdate, Pagination};
 use crate::error::AppError;
 use crate::image::{self, SearchParams};
+use crate::storage;
 
 fn default_page() -> i64 {
     1
@@ -212,20 +213,28 @@ pub struct DeleteQuery {
 /// DELETE /api/images/{id}
 ///
 /// Soft delete by default (sets `deleted_at`), or physical delete with
-/// `?permanent=true`.
+/// `?permanent=true`. A permanent delete also removes the original and
+/// thumbnail objects from storage (DB row first — a failed object delete only
+/// leaves a harmless orphan).
 pub async fn delete_image(
     _user: CurrentUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Query(q): Query<DeleteQuery>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let deleted = image::delete(&state.pool, id, q.permanent).await?;
-    if !deleted {
-        return Err(AppError::NotFound("Image not found".to_string()));
-    }
     let action = if q.permanent {
+        let Some((storage_path, thumbnail_path)) =
+            image::delete_permanent(&state.pool, id).await?
+        else {
+            return Err(AppError::NotFound("Image not found".to_string()));
+        };
+        storage::delete_image_objects(state.storage.as_ref(), &storage_path, &thumbnail_path)
+            .await;
         "permanently deleted"
     } else {
+        if !image::soft_delete(&state.pool, id).await? {
+            return Err(AppError::NotFound("Image not found".to_string()));
+        }
         "moved to trash"
     };
     Ok(Json(MessageResponse::new(format!("Image {action}"))))
