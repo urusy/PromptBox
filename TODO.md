@@ -2,17 +2,15 @@
 
 ## 未着手
 
-- [ ] Falcon（../Falcon）との統合とデータ移行の検討
-  - **背景**: PromptBoxをRust(axum)+Svelteで再構築中（backend-rs/、AI生成画像メタデータ特化）。一方FalconはGo Gateway+ReactのDAMアプリで機能的にスーパーセット。両者の関係を整理し、統合するか・データ移行するか・併存させるかの方針を決めたい
-  - **成果物**: 検討結果をドキュメントに纏める（`docs/` 配下、例: `docs/12_falcon_integration.md`）
-  - **検討観点**:
-    - 統合方針の選択肢比較（Falconへ吸収 / PromptBoxをAIメタ特化サービスとして併存・連携 / 段階的統合）
-    - データ移行: 画像ファイル（storage/のUUID v7配置）、DBスキーマの対応付け（images、タグ、評価、Showcase/コレクション、スマートフォルダ等）
-    - AIメタデータ（プロンプト、モデル、LoRA、Sampler等）のFalcon側スキーマへのマッピング可否
-    - 外部共有PostgreSQL（promptbox-db-1 / comfyui_gallery）構成との整合
-    - CivitAI連携・取り込みworker等、PromptBox固有機能の扱い
-    - 移行手順・ロールバック戦略・工数目安
-  - **工数目安**: 小〜中（検討・ドキュメント作成のみ）
+- [ ] Falcon統合（案C）の方針確定と未確認事項の解消
+  - **前提**: 検討結果は `docs/12_falcon_integration.md` 参照（推奨: 案C 役割分担による段階的統合）
+  - **残作業**:
+    - 案A/B/Cの最終判断、取込ポリシー（全量ミラー or 選抜アーカイブ）の決定
+    - Falcon bulk-import の created_at 引き継ぎ確認
+    - smart_folder_conditions のAIメタ系field対応確認
+    - 本番NASでのコンテナネットワーク疎通確認
+    - 評価二重管理ポリシーの決定
+  - **工数目安**: 小（確認・判断のみ）
 
 ## AI提案機能(未精査)
 
@@ -140,6 +138,11 @@
 
 ### 最近の更新
 
+- [x] Falcon（../Falcon）との統合とデータ移行の検討
+  - 検討結果を `docs/12_falcon_integration.md` に纏めた（2026-07-06）
+  - 両システムのスキーマ・ストレージ・連携資産を調査し、案A（吸収）/案B（併存）/案C（段階的統合）を比較
+  - 推奨は案C: PromptBoxを取り込み・メタデータエンジン、FalconをアーカイブDAMとする役割分担
+  - 鍵となる発見: FalconはAIメタデータパーサー非保持（吸収コスト大）、一方でbulk-import連携は実装済み（移行リスク小）
 - [x] 画像取り込み時にファイルの作成日を生成日として使用
   - ファイルの作成日時（birthtime）を`created_at`に設定
   - birthtimeが利用不可の場合は更新日時（mtime）にフォールバック
