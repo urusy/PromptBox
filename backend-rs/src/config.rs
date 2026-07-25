@@ -20,6 +20,11 @@ pub struct Config {
     pub admin_password_hash: String,
     pub secret_key: String,
     pub session_expire_hours: i64,
+    /// Forces the `Secure` attribute on the session cookie. `None` (the
+    /// default) means "decide per request from the forwarded scheme", which is
+    /// what lets the same deployment serve both the plain-HTTP LAN origin and
+    /// the HTTPS Cloudflare tunnel.
+    pub session_cookie_secure: Option<bool>,
 
     // Paths
     pub import_path: String,
@@ -81,6 +86,7 @@ impl Config {
             admin_password_hash: get("ADMIN_PASSWORD_HASH", ""),
             secret_key: get("SECRET_KEY", ""),
             session_expire_hours: get_int("SESSION_EXPIRE_HOURS", 24 * 7), // 1 week
+            session_cookie_secure: get_opt_bool("SESSION_COOKIE_SECURE"),
             import_path: get("IMPORT_PATH", "/app/import"),
             storage_path: get("STORAGE_PATH", "/app/storage"),
             storage_backend: get("STORAGE_BACKEND", "s3").to_lowercase(),
@@ -160,6 +166,7 @@ impl Config {
             admin_password_hash: String::new(),
             secret_key: "x".repeat(32),
             session_expire_hours: 24,
+            session_cookie_secure: None,
             import_path: "/tmp/import".to_string(),
             storage_path: "/tmp/storage".to_string(),
             storage_backend: "fs".to_string(),
@@ -207,6 +214,24 @@ fn get_bool(key: &str, def: bool) -> bool {
     match std::env::var(key) {
         Ok(v) => parse_bool(v.trim()).unwrap_or(def),
         Err(_) => def,
+    }
+}
+
+/// Tri-state boolean: unset/empty means "not configured" rather than `false`,
+/// so callers can distinguish an explicit override from the default behaviour.
+/// An unparsable value is treated as unset and warned about.
+fn get_opt_bool(key: &str) -> Option<bool> {
+    let raw = std::env::var(key).ok()?;
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    match parse_bool(raw) {
+        Some(v) => Some(v),
+        None => {
+            tracing::warn!("{key}={raw:?} is not a boolean; ignoring it");
+            None
+        }
     }
 }
 

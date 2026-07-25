@@ -32,6 +32,8 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - SECRET_KEY=${SECRET_KEY}
+      # 未設定なら X-Forwarded-Proto から自動判定（HTTPS のみ Secure を付与）
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-}
       - IMPORT_PATH=/app/import
       # fs バックエンド（STORAGE_BACKEND=fs）へ切り戻す場合に使用
       - STORAGE_PATH=/app/storage
