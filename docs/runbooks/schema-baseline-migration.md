@@ -27,6 +27,23 @@ docker compose exec -T db sh -c \
 
 `20260711000000` が既にあれば作業不要（適用済み）。
 
+## ⚠️ 順序を間違えたときの症状と復旧（2026-07-25 に実際に発生）
+
+**手順2の INSERT より先に新イメージをデプロイすると**、backend-rs が
+`Error: while executing migration 20260711000000: relation "images" already exists` で
+exit 1 し、数秒間隔で**再起動ループ**に入る（アプリは全停止）。
+
+スキーマは壊れていない（マイグレーションはトランザクション内で失敗しロールバックされる）。
+復旧は「コンテナを止める → 手順2の INSERT → 起動」だけでよい。
+本番 NAS では compose ファイル名が `docker-compose.yaml`、docker CLI は `sudo` が必要:
+
+```bash
+cd /volume1/docker/prompt_box
+sudo docker compose -f docker-compose.yaml stop backend-rs
+# …手順2の INSERT（"INSERT 0 1" が返れば成功）…
+sudo docker compose -f docker-compose.yaml start backend-rs
+```
+
 ## 手順
 
 ### 1. checksum を計算する
@@ -92,7 +109,7 @@ B1 以降に追加されたマイグレーションは、backend-rs の起動時
 
 | バージョン | 内容 | 本番での注意 |
 |---|---|---|
-| `20260725000001_fulltext_simple` | `images.search_vector`（STORED 生成列）追加 + GIN/trigram index、旧 english FTS index 削除 | **テーブル書き換え（ACCESS EXCLUSIVE）**。約42,000行で数秒〜十数秒、その間 `images` への読み書きがブロックされる。index 作成は CONCURRENTLY ではない（マイグレーションはトランザクション内のため）。深夜など取り込みの少ない時間に再起動するのが無難 |
+| `20260725000001_fulltext_simple` | `images.search_vector`（STORED 生成列）追加 + GIN/trigram index、旧 english FTS index 削除 | **テーブル書き換え（ACCESS EXCLUSIVE）**。**実測 18.9 秒**（2026-07-25 本番・約42,000行。`slow statement` 警告が1本出るが正常）、その間 `images` への読み書きがブロックされる。index 作成は CONCURRENTLY ではない（マイグレーションはトランザクション内のため）。深夜など取り込みの少ない時間に再起動するのが無難 |
 | `20260725000002_jobs` | `jobs` テーブル新設 | 新規テーブルのみ。既存データに触れないので一瞬 |
 | `20260725000003_image_events` | `image_events` テーブル + `images` への変更フィードトリガー、**既存画像分の created イベントを backfill** | backfill は論理削除されていない画像1件につき1行。約42,000行の INSERT で数秒。以後 `images` の全 INSERT/UPDATE/DELETE でトリガーが1行書く（オーバーヘッドは軽微だが、取り込みバッチ中は `image_events` が増え続ける点に留意）。フィードの肥大が気になったら古い `seq` を削除してよい（下流が既に取得済みの範囲のみ） |
 
