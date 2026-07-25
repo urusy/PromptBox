@@ -5,8 +5,9 @@ import { Star, Heart, Check } from 'lucide-react'
 import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
-import { imagesApi } from '@/api/images'
+import { imageDetailQueryOptions } from '@/api/images'
 import { getImageUrl, getThumbnailUrl } from '@/utils/imagePath'
+import { prefetchImage } from '@/utils/prefetch'
 
 interface ImageCardProps {
   image: ImageListItem
@@ -49,20 +50,13 @@ const ImageCard = memo(function ImageCard({ image, aspectRatio }: ImageCardProps
 
   // Prefetch image data and full image on hover (desktop only)
   const handleMouseEnter = useCallback(() => {
-    // Prefetch API data
+    // 遷移先 DetailPage と同一キーになるよう location.search からクエリを共通定義で組み立てる
     queryClient.prefetchQuery({
-      queryKey: ['image', image.id],
-      queryFn: () => imagesApi.get(image.id),
+      ...imageDetailQueryOptions(image.id, location.search),
       staleTime: 5 * 60 * 1000, // 5 minutes
     })
-
-    // Prefetch full image
-    const link = document.createElement('link')
-    link.rel = 'prefetch'
-    link.href = getImageUrl(image.storage_path)
-    link.as = 'image'
-    document.head.appendChild(link)
-  }, [image.id, image.storage_path, queryClient])
+    prefetchImage(getImageUrl(image.storage_path))
+  }, [image.id, image.storage_path, queryClient, location.search])
 
   return (
     <Link

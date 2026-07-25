@@ -21,6 +21,7 @@ export default function TagEditor({ tags, onChange }: TagEditorProps) {
     queryKey: ['tags', inputValue],
     queryFn: () => tagsApi.list(inputValue || undefined, inputValue ? 20 : 10),
     staleTime: inputValue ? 0 : 30000, // Don't cache search results
+    enabled: isAdding, // 入力UIを開くまでは取得しない
   })
 
   // Exclude already added tags

@@ -1,3 +1,4 @@
+import { queryOptions } from '@tanstack/react-query'
 import client from './client'
 import type {
   Image,
@@ -6,7 +7,7 @@ import type {
   ImageUpdate,
   PaginatedResponse,
 } from '@/types/image'
-import { toApiParams } from '@/utils/searchParams'
+import { parseSearchParams, toApiParams } from '@/utils/searchParams'
 
 export const imagesApi = {
   list: async (params: ImageSearchParams = {}): Promise<PaginatedResponse<ImageListItem>> => {
@@ -32,4 +33,17 @@ export const imagesApi = {
   restore: async (id: string): Promise<void> => {
     await client.post(`/images/${id}/restore`)
   },
+}
+
+/**
+ * 詳細画面用クエリの共通定義。DetailPage 本体と各所のプリフェッチが
+ * 同一のキー構造（['image', id, searchParams文字列]）を共有するために使う。
+ * locationSearch には location.search をそのまま渡す（先頭の ? は有無どちらでも可）。
+ */
+export function imageDetailQueryOptions(id: string, locationSearch: string) {
+  const searchParams = new URLSearchParams(locationSearch)
+  return queryOptions({
+    queryKey: ['image', id, searchParams.toString()] as const,
+    queryFn: () => imagesApi.get(id, parseSearchParams(searchParams)),
+  })
 }
