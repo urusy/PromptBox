@@ -50,6 +50,42 @@ pub struct SearchParams {
     pub sort_order: String,
 }
 
+impl Default for SearchParams {
+    /// No filters, page 1, newest first — the same defaults the list endpoint
+    /// applies when a query parameter is absent (see http::images::ListQuery).
+    fn default() -> Self {
+        Self {
+            source_tool: None,
+            model_type: None,
+            min_rating: None,
+            exact_rating: None,
+            max_rating: None,
+            is_favorite: None,
+            needs_improvement: None,
+            model_name: None,
+            sampler_name: None,
+            file_type: None,
+            tags: Vec::new(),
+            lora_name: None,
+            q: None,
+            is_xyz_grid: None,
+            is_upscaled: None,
+            orientation: None,
+            min_width: None,
+            min_height: None,
+            date_from: None,
+            seed: None,
+            seed_tolerance: None,
+            showcase_id: None,
+            include_deleted: false,
+            page: 1,
+            per_page: 24,
+            sort_by: "created_at".to_string(),
+            sort_order: "desc".to_string(),
+        }
+    }
+}
+
 /// Result of a paginated list query.
 pub struct ListResult {
     pub items: Vec<ImageRow>,
@@ -209,19 +245,27 @@ fn push_filters(qb: &mut QueryBuilder<Postgres>, p: &SearchParams) {
         qb.push(" AND loras @> ")
             .push_bind(serde_json::json!([{ "name": v }]));
     }
-    // Full-text search over positive_prompt. Mirrors image_service.py: spaces
-    // become AND operators and the result is fed to to_tsquery. The query text
-    // is a bound parameter (injection-safe); malformed tsquery syntax surfaces
-    // the same way it does in Python.
-    if let Some(q) = &p.q
-        && !q.is_empty()
-    {
-        let terms = q.replace(' ', " & ");
-        qb.push(
-            " AND to_tsvector('english', coalesce(positive_prompt, '')) @@ to_tsquery('english', ",
-        )
-        .push_bind(terms)
-        .push(")");
+    // Full-text search over positive_prompt, in two index-backed arms:
+    //
+    //   search_vector @@ websearch_to_tsquery('simple', q)
+    //     Token search over the generated column (see
+    //     migrations/20260725000001_fulltext_simple.sql). 'simple' does no
+    //     stemming because prompts are tag lists, not prose.
+    //     websearch_to_tsquery never raises on malformed input, so "!", "|" or
+    //     "(" no longer turn into a 500 — and "quoted phrases", -exclusion and
+    //     `or` come for free.
+    //
+    //   positive_prompt ILIKE %q%
+    //     Substring fallback. Japanese written without separators becomes a
+    //     single token, so "少女" would never match "美少女イラスト" through the
+    //     vector alone. Backed by the gin_trgm_ops index, so the OR is a bitmap
+    //     OR rather than a sequential scan.
+    if let Some(q) = p.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        qb.push(" AND (search_vector @@ websearch_to_tsquery('simple', ")
+            .push_bind(q.to_string())
+            .push(") OR positive_prompt ILIKE ")
+            .push_bind(format!("%{}%", escape_like(q)))
+            .push(" ESCAPE '\\')");
     }
     // XYZ grid flag stored as text in model_params.
     if let Some(b) = p.is_xyz_grid {
@@ -308,19 +352,29 @@ fn parse_date_from(s: &str) -> Option<DateTime<Utc>> {
     None
 }
 
+/// Sort columns accepted by `sort_by`. Anything else falls back to
+/// `created_at` — the HTTP layer reports that fallback as a warning (A3), so
+/// this list is the contract both sides read.
+pub const ALLOWED_SORT_COLUMNS: &[&str] = &[
+    "created_at",
+    "updated_at",
+    "rating",
+    "model_name",
+    "file_size_bytes",
+    "width",
+    "height",
+];
+
 /// Resolve the sort column (whitelisted) and direction. Mirrors
 /// _ALLOWED_SORT_COLUMNS in image_service.py. The column is a fixed literal
-/// (never user input), so pushing it as raw SQL is injection-safe.
+/// from `ALLOWED_SORT_COLUMNS` (never user input), so pushing it as raw SQL is
+/// injection-safe.
 fn sort_clause(p: &SearchParams) -> (&'static str, &'static str) {
-    let col = match p.sort_by.as_str() {
-        "updated_at" => "updated_at",
-        "rating" => "rating",
-        "model_name" => "model_name",
-        "file_size_bytes" => "file_size_bytes",
-        "width" => "width",
-        "height" => "height",
-        _ => "created_at",
-    };
+    let col = ALLOWED_SORT_COLUMNS
+        .iter()
+        .find(|c| **c == p.sort_by)
+        .copied()
+        .unwrap_or("created_at");
     let dir = if p.sort_order.eq_ignore_ascii_case("asc") {
         "ASC"
     } else {
