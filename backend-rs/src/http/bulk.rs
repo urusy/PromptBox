@@ -106,3 +106,27 @@ pub async fn batch_restore(
     }
     Ok(Json(MessageResponse::new(format!("Restored {count} images"))))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::validate_ids;
+    use crate::error::AppError;
+    use uuid::Uuid;
+
+    fn ids(n: usize) -> Vec<Uuid> {
+        (0..n).map(|_| Uuid::now_v7()).collect()
+    }
+
+    /// The 1..=500 window mirrors Field(min_length=1, max_length=500) in the
+    /// Python API; Falcon relies on it when chunking bulk imports.
+    #[test]
+    fn id_count_boundaries() {
+        assert!(matches!(validate_ids(&[]), Err(AppError::BadRequest(_))));
+        assert!(validate_ids(&ids(1)).is_ok());
+        assert!(validate_ids(&ids(500)).is_ok(), "500 is still accepted");
+        assert!(
+            matches!(validate_ids(&ids(501)), Err(AppError::BadRequest(_))),
+            "501 is rejected as a 400, not silently truncated"
+        );
+    }
+}

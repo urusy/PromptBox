@@ -2,12 +2,16 @@
 
 pub mod auth;
 pub mod bulk;
+pub mod changes;
 pub mod duplicates;
 pub mod export;
 pub mod gelbooru;
 pub mod health;
 pub mod images;
+pub mod jobs;
 pub mod loras;
+pub mod manifest;
+pub mod meta;
 pub mod models;
 pub mod presets;
 pub mod showcases;
@@ -15,18 +19,38 @@ pub mod smart_folders;
 pub mod stats;
 pub mod storage;
 pub mod tags;
+pub mod warnings;
 
 use std::sync::Arc;
+use std::time::Duration;
 
-use axum::http::{HeaderValue, Method};
+use axum::http::{HeaderValue, Method, StatusCode};
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 use object_store::ObjectStore;
 use sqlx::PgPool;
+use tower::limit::GlobalConcurrencyLimitLayer;
+use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
+use tower_governor::GovernorLayer;
 use tower_http::cors::{AllowHeaders, CorsLayer};
+use tower_http::limit::RequestBodyLimitLayer;
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
+
+/// Largest JSON request accepted. The biggest legitimate body is a bulk
+/// operation with 500 UUIDs plus tags — well under 100 KB.
+const MAX_JSON_BODY_BYTES: usize = 1024 * 1024;
+
+/// How long a JSON request may run before the client gets a 408. Object
+/// streaming is excluded (see `router`).
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Concurrent JSON requests in flight. Beyond this, requests queue rather than
+/// pile onto the 30-connection database pool.
+const MAX_CONCURRENT_JSON_REQUESTS: usize = 64;
 
 /// Shared application state, cloned into every handler via `State`.
 #[derive(Clone)]
@@ -34,6 +58,8 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub pool: PgPool,
     pub storage: Arc<dyn ObjectStore>,
+    /// Background job registry (concurrency permit + cancellation flags).
+    pub jobs: Arc<crate::job::Jobs>,
 }
 
 /// Build the HTTP handler tree.
@@ -45,7 +71,13 @@ pub fn router(state: AppState) -> Router {
         // existing monitoring keeps working after the cutover.
         .route("/health", get(health::health))
         .route("/health/db", get(health::health_db))
-        .route("/auth/login", post(auth::login))
+        // Service identity. /version is unauthenticated (compatibility check
+        // before login); /config requires a session.
+        .route("/version", get(meta::version))
+        .route("/config", get(meta::config))
+        // Route table for clients that mirror this router (Falcon). See
+        // manifest.rs — a test keeps it in sync with the calls below.
+        .route("/_manifest", get(manifest::manifest))
         .route("/auth/logout", post(auth::logout))
         .route("/auth/me", get(auth::me))
         .route("/images", get(images::list_images))
@@ -75,6 +107,10 @@ pub fn router(state: AppState) -> Router {
                 .delete(smart_folders::delete_folder),
         )
         .route("/tags", get(tags::list_tags))
+        .route("/changes", get(changes::list_changes))
+        .route("/jobs", get(jobs::list_jobs).post(jobs::create_job))
+        .route("/jobs/{id}", get(jobs::get_job))
+        .route("/jobs/{id}/cancel", post(jobs::cancel_job))
         .route("/bulk/update", post(bulk::batch_update))
         .route("/bulk/delete", post(bulk::batch_delete))
         .route("/bulk/restore", post(bulk::batch_restore))
@@ -127,15 +163,47 @@ pub fn router(state: AppState) -> Router {
         .route("/loras/{lora_name}/civitai", get(loras::get_lora_civitai))
         .route("/gelbooru/tags", get(gelbooru::search_tags));
 
-    Router::new()
+    // Login is the one endpoint an anonymous caller can hammer, so it gets its
+    // own bucket: ~10 attempts up front, then one every 2 seconds per client.
+    // SmartIpKeyExtractor reads X-Forwarded-For / X-Real-IP (set by nginx and
+    // by Cloudflare for tunnelled traffic) before falling back to the peer
+    // address, which main.rs supplies via ConnectInfo.
+    let login_rate_limit = GovernorConfigBuilder::default()
+        .per_second(2)
+        .burst_size(10)
+        .key_extractor(SmartIpKeyExtractor)
+        .finish()
+        .expect("valid login rate-limit config");
+    let api = api.merge(
+        Router::new()
+            .route("/auth/login", post(auth::login))
+            .layer(GovernorLayer::new(login_rate_limit)),
+    );
+
+    // JSON endpoints: bounded body, bounded time, bounded concurrency.
+    let json_routes = Router::new()
         .route("/", get(health::root))
         .route("/health", get(health::health))
         .route("/health/db", get(health::health_db))
         .nest("/api", api)
-        // Originals and thumbnails, streamed from object storage. In production
-        // nginx proxies /storage/ here; also used directly by the Falcon
-        // DownloadImage integration (GET baseURL + storage path).
-        .route("/storage/{*path}", get(storage::serve))
+        .layer(RequestBodyLimitLayer::new(MAX_JSON_BODY_BYTES))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            REQUEST_TIMEOUT,
+        ))
+        .layer(GlobalConcurrencyLimitLayer::new(MAX_CONCURRENT_JSON_REQUESTS));
+
+    // Originals and thumbnails, streamed from object storage. In production
+    // nginx proxies /storage/ here; also used directly by the Falcon
+    // DownloadImage integration (GET baseURL + storage path).
+    //
+    // Deliberately outside the layers above: a 10 MB original on a slow client
+    // would trip the request timeout, and image-heavy pages open far more
+    // concurrent requests than the API limit allows.
+    let storage_routes = Router::new().route("/storage/{*path}", get(storage::serve));
+
+    json_routes
+        .merge(storage_routes)
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state)
@@ -180,10 +248,12 @@ mod tests {
             .expect("lazy pool construction");
         let config = Config::for_test();
         let storage = crate::storage::build(&config).expect("fs store");
+        let jobs = crate::job::Jobs::new(pool.clone());
         let state = AppState {
             config: Arc::new(config),
             pool,
             storage,
+            jobs,
         };
         let _ = router(state);
     }

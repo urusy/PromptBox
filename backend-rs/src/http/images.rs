@@ -1,10 +1,12 @@
 //! Image read endpoints.
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query, RawQuery, State};
+use axum::http::HeaderMap;
 use axum::Json;
 use uuid::Uuid;
 
 use super::auth::CurrentUser;
+use super::warnings::{self, Warnings};
 use super::AppState;
 use crate::dto::common::MessageResponse;
 use crate::dto::image::{ImageDetail, ImageListItem, ImageListResponse, ImageUpdate, Pagination};
@@ -74,6 +76,48 @@ pub struct ListQuery {
     // Falcon aliases.
     pub sort: Option<String>,
     pub order: Option<String>,
+
+    /// Reject the request (400) instead of silently ignoring anything the
+    /// server did not understand. Intended for client CI/staging (docs/13 A3).
+    pub strict: Option<bool>,
+}
+
+impl ListQuery {
+    /// Every parameter this endpoint understands. **Keep in sync with the
+    /// struct above** — an entry missing here makes a valid parameter look like
+    /// a typo; an extra entry hides a real one.
+    pub const KNOWN_PARAMS: &'static [&'static str] = &[
+        "page",
+        "per_page",
+        "source_tool",
+        "model_type",
+        "min_rating",
+        "exact_rating",
+        "max_rating",
+        "is_favorite",
+        "needs_improvement",
+        "model_name",
+        "sampler_name",
+        "file_type",
+        "tags",
+        "lora_name",
+        "q",
+        "is_xyz_grid",
+        "is_upscaled",
+        "orientation",
+        "min_width",
+        "min_height",
+        "date_from",
+        "seed",
+        "seed_tolerance",
+        "showcase_id",
+        "include_deleted",
+        "sort_by",
+        "sort_order",
+        "sort",
+        "order",
+        "strict",
+    ];
 }
 
 impl ListQuery {
@@ -116,14 +160,54 @@ impl ListQuery {
     }
 }
 
+/// Collect everything about this request that will not be honoured literally:
+/// unknown parameters, out-of-range page/per_page, an unsupported sort column.
+fn collect_warnings(raw_query: Option<&str>, q: &ListQuery, page: i64, per_page: i64) -> Warnings {
+    let mut warnings = Warnings::default();
+
+    for key in warnings::unknown_params(raw_query, ListQuery::KNOWN_PARAMS) {
+        warnings.unknown_param(&key, ListQuery::KNOWN_PARAMS);
+    }
+    if q.page != page {
+        warnings.clamped("page", q.page, page);
+    }
+    if q.per_page != per_page {
+        warnings.clamped("per_page", q.per_page, per_page);
+    }
+    // sort/order are Falcon's aliases for the same thing.
+    if let Some(requested) = q.sort_by.as_deref().or(q.sort.as_deref())
+        && !image::ALLOWED_SORT_COLUMNS.contains(&requested)
+    {
+        warnings.fallback(
+            "sort_by",
+            requested,
+            "created_at",
+            image::ALLOWED_SORT_COLUMNS,
+        );
+    }
+
+    warnings
+}
+
 /// GET /api/images
 pub async fn list_images(
     _user: CurrentUser,
     State(state): State<AppState>,
+    RawQuery(raw_query): RawQuery,
     Query(q): Query<ListQuery>,
-) -> Result<Json<ImageListResponse>, AppError> {
+) -> Result<(HeaderMap, Json<ImageListResponse>), AppError> {
     let page = q.page.max(1);
     let per_page = q.per_page.clamp(1, 120);
+
+    let warnings = collect_warnings(raw_query.as_deref(), &q, page, per_page);
+    if q.strict.unwrap_or(false) && !warnings.is_empty() {
+        return Err(AppError::BadRequest(format!(
+            "strict mode: {}",
+            warnings.summary()
+        )));
+    }
+    let headers = warnings.headers();
+
     let params = q.into_params(page, per_page);
 
     let result = image::list(&state.pool, &params).await?;
@@ -137,21 +221,25 @@ pub async fn list_images(
         .map(|r| r.into_list_item())
         .collect();
 
-    Ok(Json(ImageListResponse {
-        items,
-        total,
-        page,
-        per_page,
-        total_pages,
-        pagination: Pagination {
+    Ok((
+        headers,
+        Json(ImageListResponse {
+            items,
+            total,
             page,
             per_page,
-            total_items: total,
             total_pages,
-            has_next: page < total_pages,
-            has_prev: page > 1,
-        },
-    }))
+            pagination: Pagination {
+                page,
+                per_page,
+                total_items: total,
+                total_pages,
+                has_next: page < total_pages,
+                has_prev: page > 1,
+            },
+            warnings: warnings.into_vec(),
+        }),
+    ))
 }
 
 /// GET /api/images/{id}

@@ -16,6 +16,12 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs \
 COPY src ./src
 # sqlx::migrate! embeds these at compile time.
 COPY migrations ./migrations
+COPY build.rs ./build.rs
+# Commit of the source being built, surfaced by GET /api/version. The build
+# context has no .git, so it must be passed in:
+#   docker compose build --build-arg GIT_SHA=$(git rev-parse --short HEAD)
+ARG GIT_SHA=""
+ENV GIT_SHA=$GIT_SHA
 # Bust the cached dummy binary, then build the real one.
 RUN touch src/main.rs && cargo build --release
 

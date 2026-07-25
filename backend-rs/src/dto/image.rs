@@ -69,6 +69,12 @@ pub struct ImageListResponse {
 
     // Nested object (Falcon).
     pub pagination: Pagination,
+
+    /// Anything about the request that was not honoured literally: unknown
+    /// parameters, clamped values, unsupported sort columns (docs/13 A3).
+    /// Omitted entirely when empty, so existing clients see no change.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<crate::http::warnings::Warning>,
 }
 
 /// Full single-image response. Superset of the current ImageResponse and
@@ -154,7 +160,9 @@ where
 /// optional; an absent field is left unchanged. Non-nullable columns
 /// (rating/is_favorite/needs_improvement/user_tags) treat `None` as "absent".
 /// `user_memo` is nullable and uses `double_option` so it can be cleared.
-#[derive(Debug, serde::Deserialize)]
+/// `Default` (all fields absent) is what "PATCH nothing" means, and it keeps
+/// callers — including tests — from having to spell out every field.
+#[derive(Debug, Default, serde::Deserialize)]
 pub struct ImageUpdate {
     pub rating: Option<i32>,
     pub is_favorite: Option<bool>,

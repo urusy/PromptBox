@@ -23,6 +23,10 @@ services:
     build:
       context: ./backend-rs
       dockerfile: Dockerfile
+      args:
+        # GET /api/version で返すビルド元コミット。未設定なら "unknown"。
+        # 例: GIT_SHA=$(git rev-parse --short HEAD) docker compose build backend-rs
+        GIT_SHA: ${GIT_SHA:-}
     ports:
       - "${BACKEND_RS_PORT:-8001}:8000"
     volumes:
@@ -121,9 +125,13 @@ services:
   # ===========================================
   db:
     image: postgres:16-alpine
+    # スキーマは backend-rs の sqlx マイグレーション（backend-rs/migrations/）が
+    # 起動時に適用する。docker-entrypoint-initdb.d は使わない（二重定義の温床）。
+    ports:
+      # ホストから統合テスト（cargo test）を流すために公開する。
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}

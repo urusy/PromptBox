@@ -274,16 +274,29 @@ mod tests {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .connect_lazy("postgres://user:pass@localhost/db")
             .expect("lazy pool");
+        let jobs = crate::job::Jobs::new(pool.clone());
         let state = AppState {
             config: Arc::new(config),
             pool,
             storage,
+            jobs,
         };
 
         let mut req = axum::http::Request::builder()
             .method("POST")
             .uri("/api/auth/login")
-            .header("content-type", "application/json");
+            .header("content-type", "application/json")
+            // The login rate limiter keys on the client address. In production
+            // that comes from nginx's header or, failing that, from ConnectInfo
+            // (main.rs); `oneshot` provides neither, so state it explicitly.
+            // A distinct address per test keeps the buckets independent.
+            .header(
+                "x-forwarded-for",
+                match forwarded_proto {
+                    Some(_) => "198.51.100.1",
+                    None => "198.51.100.2",
+                },
+            );
         if let Some(proto) = forwarded_proto {
             req = req.header("x-forwarded-proto", proto);
         }

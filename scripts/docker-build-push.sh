@@ -120,10 +120,12 @@ build_image() {
     local name=$1
     local image=$2
     local context=$3
+    shift 3
+    local extra_args=("$@")
     local log_file="${LOG_DIR}/${name}.log"
 
     echo -e "${BLUE}[Building] ${name}...${NC}"
-    if docker build --platform "${PLATFORM}" -t "${image}" "${context}" > "${log_file}" 2>&1; then
+    if docker build --platform "${PLATFORM}" "${extra_args[@]}" -t "${image}" "${context}" > "${log_file}" 2>&1; then
         echo -e "${GREEN}✓ ${name} built${NC}"
         return 0
     else
@@ -162,7 +164,10 @@ if [ "$BUILD_FRONTEND" = true ]; then
 fi
 
 if [ "$BUILD_BACKEND_RS" = true ]; then
-    build_image "backend-rs" "${DOCKER_USER}/promptbox-backend-rs:${IMAGE_TAG}" "${PROJECT_ROOT}/backend-rs" &
+    # GET /api/version がビルド元コミットを返せるように渡す（.git はビルドコンテキスト外）
+    GIT_SHA=$(git -C "${PROJECT_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    build_image "backend-rs" "${DOCKER_USER}/promptbox-backend-rs:${IMAGE_TAG}" "${PROJECT_ROOT}/backend-rs" \
+        --build-arg "GIT_SHA=${GIT_SHA}" &
     BUILD_PIDS+=($!)
     BUILD_NAMES+=("backend-rs")
     BUILD_IMAGES+=("${DOCKER_USER}/promptbox-backend-rs:${IMAGE_TAG}")

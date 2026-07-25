@@ -10,6 +10,12 @@ mod novelai;
 
 use std::collections::HashMap;
 
+/// Parser generation. Bump this whenever a change to any parser can produce a
+/// different `ParsedMetadata` for the same input (new ComfyUI node support,
+/// changed normalisation, …). It is reported by `GET /api/version` and is the
+/// hook the re-parse work in docs/13 B3/B4 will use to find stale rows.
+pub const VERSION: i32 = 1;
+
 use serde_json::{json, Value};
 
 /// Generating tool, serialized to the `source_tool` column.

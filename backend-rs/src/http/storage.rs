@@ -97,10 +97,12 @@ mod tests {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .connect_lazy("postgres://user:pass@localhost/db")
             .expect("lazy pool");
+        let jobs = crate::job::Jobs::new(pool.clone());
         let state = AppState {
             config: Arc::new(config),
             pool,
             storage,
+            jobs,
         };
         Router::new()
             .route("/storage/{*path}", get(serve))
