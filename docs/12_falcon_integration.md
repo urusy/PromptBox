@@ -167,4 +167,13 @@ bulk-import で全量移行し、パーサー・ワーカー・CivitAI・統計�
 
 1. **案A / B / C の選択**（推奨は C）
 2. C の場合: フェーズ1の取込ポリシー（全量ミラー or 高評価のみ選抜アーカイブ）
-3. Svelte フロント再構築を続けるか、Falcon UI に寄せるか（フェーズ2 の分岐。急がない）
+3. ~~Svelte フロント再構築を続けるか、Falcon UI に寄せるか~~（フェーズ2 の分岐）
+   → **2026-07-25 追記: 決着済み。Falcon の Plan 224（commit `d7d221f`）で PromptBox のフロント機能 11 ルート
+   （一覧 / 詳細 / 編集 / 一括 / ゴミ箱 / Showcase / スマートフォルダ / 統計 / カタログ / 重複 / Gelbooru タグ /
+   クイック評価）が Falcon 側へ全移植された。すなわち C-2「UI を Falcon に寄せ、PromptBox を headless 運用」は
+   意思決定を待たずに事実上実行済み。**
+   これを前提とした backend-rs の機能ロードマップ → `docs/13_backend_roadmap.md`
+
+**残る判断（1・2 に加えて）**: 評価（rating / user_tags / memo）のマスタをどちらに置くか（§8 の最終項目）。
+PromptBox がマスタなら変更フィード + 同期状態の記録で一方向同期、Falcon がマスタなら PromptBox 側の
+更新系 API は縮小する。**この決定で連携部分の設計が半分変わる**（詳細 → `docs/13_backend_roadmap.md` §6）。
