@@ -2,8 +2,8 @@
 //!
 //! Mirrors endpoints/smart_folders.py. Like search presets but with an `icon`
 //! column and a get-by-id endpoint. NOTE: `smart_folders` has no updated_at
-//! trigger (see db/init/03_smart_folders.sql), so updates set `updated_at`
-//! explicitly.
+//! trigger (see migrations/20260711000000_initial_schema.sql), so updates set
+//! `updated_at` explicitly.
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;

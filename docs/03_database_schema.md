@@ -378,7 +378,8 @@ ORDER BY deleted_at DESC;
 
 ## 初期化SQL
 
-`db/init/01_init.sql` として配置し、docker-compose起動時に自動実行。
+`backend-rs/migrations/20260711000000_initial_schema.sql` として配置し、backend-rs 起動時に
+sqlx マイグレーションとして自動適用される（旧 `db/init/01_init.sql` は 2026-07-25 に廃止）。
 
 ```sql
 -- 拡張機能

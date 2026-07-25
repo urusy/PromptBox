@@ -94,9 +94,9 @@ services:
   # ===========================================
   db:
     image: postgres:16-alpine
+    # スキーマは backend-rs の sqlx マイグレーションが起動時に適用する
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -285,7 +285,11 @@ docker-compose.ymlのfrontendサービスに以下を追加:
 
 ## DB初期化スクリプト
 
-### db/init/01_init.sql
+スキーマは `backend-rs/migrations/` が単一の真実。backend-rs が起動時に
+`sqlx::migrate!` で適用するため、空の DB でも自動で構築される。
+以下は `20260711000000_initial_schema.sql` の抜粋。
+
+### backend-rs/migrations/20260711000000_initial_schema.sql
 
 ```sql
 -- 拡張機能

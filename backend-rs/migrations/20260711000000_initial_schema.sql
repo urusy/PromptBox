@@ -1,3 +1,18 @@
+-- Initial schema (promoted from the retired db/init/*.sql snapshot).
+--
+-- This file is the single source of truth for a fresh database: running
+-- `sqlx migrate run` against an empty database must reproduce exactly what
+-- production has. It is a verbatim consolidation of the former
+-- db/init/{01_init,02_search_presets,03_smart_folders}.sql, which was verified
+-- (2026-07-25) to match the live `images` schema column-for-column and
+-- index-for-index.
+--
+-- Databases created BEFORE this migration existed (production and any dev
+-- volume) already contain these objects. They must have this version recorded
+-- in `_sqlx_migrations` manually so it is never re-run — see
+-- docs/runbooks/schema-baseline-migration.md. Running it against a populated
+-- database would fail on `CREATE TABLE images`.
+
 -- 拡張機能
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
@@ -122,3 +137,36 @@ COMMENT ON COLUMN showcase_images.sort_order IS '表示順序';
 
 CREATE INDEX idx_showcase_images_showcase ON showcase_images(showcase_id, sort_order);
 CREATE INDEX idx_showcase_images_image ON showcase_images(image_id);
+
+-- search_presetsテーブル
+CREATE TABLE search_presets (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE search_presets IS '検索条件プリセット';
+COMMENT ON COLUMN search_presets.id IS 'UUID v7（時系列ソート可能）';
+COMMENT ON COLUMN search_presets.name IS 'プリセット名';
+COMMENT ON COLUMN search_presets.filters IS '検索条件（JSONB）';
+
+CREATE INDEX idx_search_presets_created_at ON search_presets(created_at DESC);
+
+CREATE TRIGGER trigger_search_presets_updated_at
+    BEFORE UPDATE ON search_presets
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- smart_foldersテーブル（保存された検索条件フォルダ）
+CREATE TABLE smart_folders (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    icon VARCHAR(50),
+    filters JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_smart_folders_created_at ON smart_folders(created_at DESC);

@@ -124,9 +124,10 @@ services:
   # ===========================================
   db:
     image: postgres:16-alpine
+    # スキーマは backend-rs の sqlx マイグレーション（backend-rs/migrations/）が
+    # 起動時に適用する。docker-entrypoint-initdb.d は使わない（二重定義の温床）。
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}

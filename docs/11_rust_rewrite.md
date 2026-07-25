@@ -7,7 +7,7 @@ FastAPI バックエンドを Rust + axum へ移植する **strangler-fig** リ�
 - **AIメタデータ管理に特化**した高速・低メモリのバックエンドへ刷新する。
 - **段階移行（strangler-fig）**: 既存の FastAPI バックエンドと同じ DB・`import/`・`storage/` を共有し、別ポート（既定 `8001`）で並走させる。エンドポイント単位で前段（nginx 等）の振り分けを切り替え、最終的に Rust 版へ寄せる。
 - **設定・認証の互換**: `backend-rs` の `Config` は Python の `Settings` をフィールド単位でミラーしており、**同じ `.env` がそのまま使える**。JWT は同一 `SECRET_KEY`・HS256 のため、Python が発行したセッション Cookie は Rust 側でもそのまま有効（カットオーバー時に再ログイン不要）。
-- **DB はスキーマ非破壊**: 既存の `comfyui_gallery`（`images` / `showcases` / `showcase_images` / `search_presets` / `smart_folders`）をそのまま読む。`backend-rs` はマイグレーションを持たず、スキーマ管理は引き続き Python(Alembic) / `db/init` 側が担う。
+- **DB はスキーマ非破壊**: 既存の `comfyui_gallery`（`images` / `showcases` / `showcase_images` / `search_presets` / `smart_folders`）をそのまま読む。~~`backend-rs` はマイグレーションを持たず、スキーマ管理は引き続き Python(Alembic) / `db/init` 側が担う。~~ → **2026-07-25 更新: スキーマ管理は `backend-rs/migrations/` に一本化した**（Python backend と `db/init/` は廃止。docs/13 の B1、手順は `docs/runbooks/schema-baseline-migration.md`）。
 
 ## アーキテクチャ
 
