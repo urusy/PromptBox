@@ -118,8 +118,8 @@
 - [ ] 画像のクラウドバックアップ連携（Google Drive、Cloudflare R2等）
   - **実装方針**: OAuth認証でクラウドストレージAPI連携、選択画像をアップロード
   - **修正ファイル**:
-    - `backend/app/services/cloud_backup_service.py` (新規): クラウドAPI連携
-    - `backend/app/api/endpoints/backup.py` (新規): バックアップAPI
+    - `backend-rs/src/backup/mod.rs` (新規): クラウドAPI連携
+    - `backend-rs/src/http/backup.rs` (新規): バックアップAPI
     - `frontend/src/pages/SettingsPage.tsx`: クラウド連携設定UI
     - `frontend/src/components/gallery/SelectionToolbar.tsx`: バックアップボタン追加
   - **処理内容**:

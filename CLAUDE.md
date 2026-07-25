@@ -23,17 +23,19 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 
 ## 技術スタック
 
-### バックエンド
+### バックエンド（`backend-rs`）
 
-- Python 3.11+
-- FastAPI
-- SQLAlchemy 2.0（非同期）
-- asyncpg
-- Pillow（画像処理）
-- watchdog（フォルダ監視）
-- uuid-utils（UUID v7）
-- bcrypt
-- cachetools（インメモリキャッシュ）
+- Rust（edition 2024）
+- axum 0.8 + tower / tower-http（ミドルウェア）
+- sqlx 0.8（PostgreSQL・マイグレーション・統合テスト）
+- tokio（非同期ランタイム・ジョブ実行）
+- image / png / webp / kamadak-exif（画像処理・メタデータ）
+- notify（フォルダ監視）
+- object_store（MinIO / S3 互換ストレージ）
+- uuid v7 / bcrypt / jsonwebtoken
+- 自前の TTL キャッシュ（`src/cache.rs`）
+
+> Python(FastAPI) 版は 2026-07-25 に撤去済み。設計ドキュメントの Python 記述は歴史的経緯として残る。
 
 ### フロントエンド
 
@@ -55,23 +57,26 @@ ComfyUIやStable Diffusionで生成した画像を管理するウェブアプリ
 
 ## コーディング規約
 
-### Python（バックエンド）
+### Rust（バックエンド）
 
-- 型ヒントを必ず使用
-- async/awaitを使用した非同期処理
-- Pydanticでリクエスト/レスポンスのバリデーション
-- ログはloguru推奨
-- フォーマッタ: black
-- リンター: ruff
+- エラーは `AppError` に集約し、`?` で伝播する（ハンドラで `unwrap`/`expect` を使わない）
+- SQL の値は必ず `push_bind` / `$1` でバインドする（文字列連結は SQL インジェクション）
+- リクエスト/レスポンスの型は `src/dto/` に置き、serde で定義する
+- ログは `tracing`（構造化フィールドで出す。`tracing::info!(count = n, "...")`）
+- リンター: `cargo clippy --all-targets -- -D warnings`（フォーマッタは既存差分のため未適用）
 
-```python
-# 良い例
-async def get_image(image_id: UUID) -> ImageResponse:
-    ...
+```rust
+// 良い例（コンパイル時DB接続が要る query_as! マクロは使わない。ビルドコンテナにDBが無いため）
+pub async fn get_image(pool: &PgPool, id: Uuid) -> Result<Option<ImageRow>, sqlx::Error> {
+    sqlx::query_as::<_, ImageRow>("SELECT * FROM images WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
 
-# 悪い例
-def get_image(image_id):
-    ...
+// 悪い例（文字列連結・panic）
+let sql = format!("SELECT ... WHERE id = '{id}'");
+let row = sqlx::query(&sql).fetch_one(pool).await.unwrap();
 ```
 
 ### TypeScript（フロントエンド）
@@ -126,20 +131,23 @@ prompt-box/
 ├── CLAUDE.md                 # このファイル
 ├── docs/                     # 設計ドキュメント
 │
-├── backend/
-│   ├── app/
-│   │   ├── main.py          # エントリーポイント
-│   │   ├── config.py        # 設定
-│   │   ├── database.py      # DB接続
-│   │   ├── api/             # APIエンドポイント
-│   │   ├── services/        # ビジネスロジック
-│   │   ├── repositories/    # データアクセス
-│   │   ├── models/          # SQLAlchemyモデル
-│   │   ├── schemas/         # Pydanticスキーマ
-│   │   ├── parsers/         # メタデータパーサー
-│   │   ├── workers/         # バックグラウンド処理
-│   │   └── utils/           # ユーティリティ
-│   └── tests/
+├── backend-rs/
+│   ├── build.rs             # GIT_SHA / ビルド時刻の埋め込み
+│   ├── migrations/          # sqlx マイグレーション（スキーマの唯一の真実）
+│   ├── src/
+│   │   ├── main.rs          # エントリーポイント（薄い）
+│   │   ├── lib.rs           # ライブラリクレート promptbox
+│   │   ├── config.rs        # 設定
+│   │   ├── db.rs            # 接続プール
+│   │   ├── http/            # ルータ・ハンドラ（ミドルウェアもここ）
+│   │   ├── dto/             # リクエスト/レスポンス型
+│   │   ├── image/           # 検索・更新・近傍などのSQLロジック
+│   │   ├── parser/          # メタデータパーサー
+│   │   ├── worker/          # 取り込みワーカー
+│   │   ├── job/             # 非同期ジョブ基盤
+│   │   ├── change/          # 変更フィード
+│   │   └── storage.rs       # MinIO/S3 アクセス
+│   └── tests/               # #[sqlx::test] による統合テスト
 │
 ├── frontend/
 │   └── src/
@@ -151,11 +159,8 @@ prompt-box/
 │       ├── types/           # 型定義
 │       └── utils/           # ユーティリティ
 │
-├── db/
-│   └── init/                # DB初期化SQL
-│
 ├── import/                  # 画像取り込みフォルダ
-└── storage/                 # 画像ストレージ
+└── minio-data/              # MinIO 専有（ホストから直接触らない）
 ```
 
 ## 実装状況
@@ -163,11 +168,11 @@ prompt-box/
 ### 完了済み
 
 - Docker環境構築
-- バックエンド基盤（FastAPI + DB接続）
-- DBスキーマ
+- バックエンド基盤（Rust/axum + sqlx。Python/FastAPI 版から全面移行し 2026-07-25 に撤去）
+- DBスキーマ（sqlx マイグレーションに一本化）
 - 認証機能（Cookie セッション）
 - メタデータパーサー（ComfyUI / A1111 / Forge / NovelAI）
-- 画像取り込みワーカー（watchdog + 定期スキャン）
+- 画像取り込みワーカー（notify + 定期スキャン）
 - 画像API（CRUD + 一括操作）
 - フロントエンド（React + TailwindCSS）
 - 一覧画面（グリッド表示、ページネーション、仮想スクロール）
@@ -197,29 +202,30 @@ prompt-box/
 
 ### UUID v7の使用
 
-```python
-from uuid_utils import uuid7
+```rust
+use uuid::Uuid;
 
-image_id = uuid7()
+let image_id = Uuid::now_v7();
 ```
 
-### 非同期DB操作
+### 動的な検索クエリ
 
-```python
-from sqlalchemy.ext.asyncio import AsyncSession
-
-async def get_image(db: AsyncSession, image_id: UUID) -> Image | None:
-    result = await db.execute(select(Image).where(Image.id == image_id))
-    return result.scalar_one_or_none()
+```rust
+// 条件が可変なクエリは QueryBuilder。値は必ず push_bind でバインドする
+let mut qb = QueryBuilder::<Postgres>::new("SELECT * FROM images WHERE deleted_at IS NULL");
+if let Some(v) = &p.model_name {
+    qb.push(" AND model_name = ").push_bind(v);
+}
+let items = qb.build_query_as::<ImageRow>().fetch_all(pool).await?;
 ```
 
 ### メタデータパース
 
-```python
-from app.parsers.factory import MetadataParserFactory
+```rust
+use promptbox::parser;
 
-factory = MetadataParserFactory()
-metadata = factory.parse(png_info)
+// png_info: HashMap<String, String>（PNG テキストチャンク）
+let metadata = parser::parse(&png_info);
 ```
 
 ### レスポンシブ対応
@@ -243,11 +249,11 @@ padding-bottom: env(safe-area-inset-bottom);
 
 ### キャッシュ（バックエンド）
 
-```python
-from cachetools import TTLCache
+```rust
+use promptbox::cache::TtlCache;
 
-# タグ・統計データ用のインメモリキャッシュ
-cache = TTLCache(maxsize=100, ttl=300)  # 5分
+// タグ・統計データ用のインメモリキャッシュ（src/cache.rs）
+let cache: TtlCache<Value> = TtlCache::new(Duration::from_secs(300), 100); // 5分
 ```
 
 ### Code Splitting（フロントエンド）
@@ -316,8 +322,13 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 
 ### DBマイグレーションエラー
 
+マイグレーションは backend-rs の起動時に `sqlx::migrate!` が自動適用する。手動実行は不要。
+適用状況の確認と、既存DBへベースラインを記録する手順は
+`docs/runbooks/schema-baseline-migration.md` を参照（**適用済みファイルの編集は厳禁**）。
+
 ```bash
-docker compose exec backend alembic upgrade head
+docker compose exec -T db sh -c \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version, description FROM _sqlx_migrations ORDER BY version;"'
 ```
 
 ### フロントエンドビルドエラー
@@ -328,5 +339,6 @@ docker compose exec frontend npm install
 
 ### 画像が表示されない
 
-- storageディレクトリのパーミッション確認
-- Nginxの設定確認（/storage/のalias）
+- 画像は MinIO（オブジェクトストレージ）にあり、backend-rs の `/storage/{path}` が配信する
+- MinIO コンテナの起動と `minio-init`（バケット作成）の完了を確認
+- Nginxの設定確認（/storage/ を backend-rs へプロキシしているか）

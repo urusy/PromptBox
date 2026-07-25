@@ -9,16 +9,14 @@ prompt-box/
 ├── .env                      # 環境変数（gitignore）
 ├── README.md
 │
-├── backend/
+├── backend-rs/
 │   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── pyproject.toml
-│   ├── alembic.ini
-│   ├── alembic/
-│   │   ├── env.py
-│   │   └── versions/
-│   └── app/
-│       └── ...
+│   ├── Cargo.toml
+│   ├── build.rs
+│   ├── migrations/          # sqlx マイグレーション（スキーマの唯一の真実）
+│   ├── src/
+│   │   └── ...
+│   └── tests/               # #[sqlx::test] 統合テスト
 │
 ├── frontend/
 │   ├── Dockerfile
@@ -30,13 +28,9 @@ prompt-box/
 │   └── src/
 │       └── ...
 │
-├── db/
-│   └── init/
-│       └── 01_init.sql       # DB初期化スクリプト
-│
 ├── import/                   # 画像取り込みフォルダ（ホストマウント）
 │
-└── storage/                  # 画像ストレージ（ホストマウント）
+└── minio-data/               # MinIO 専有（ホストから直接操作しない）
 ```
 
 ---
@@ -57,34 +51,42 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
-      - backend
+      - backend-rs
     restart: unless-stopped
     networks:
       - app-network
 
   # ===========================================
-  # Backend (FastAPI)
+  # Backend (Rust / axum)
+  # 取り込みワーカーを内包し、画像は MinIO に保存する。
+  # 起動時に sqlx マイグレーションを適用する。
   # ===========================================
-  backend:
+  backend-rs:
     build:
-      context: ./backend
+      context: ./backend-rs
       dockerfile: Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-}            # GET /api/version が返すビルド元コミット
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_RS_PORT:-8001}:8000"
     volumes:
-      - ./import:/app/import:ro          # 取り込みフォルダ（読み取り専用）
-      - ./storage:/app/storage           # 画像ストレージ
+      - ./import:/app/import             # 取り込みフォルダ
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - SECRET_KEY=${SECRET_KEY}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-}   # 未設定なら X-Forwarded-Proto で自動判定
       - IMPORT_PATH=/app/import
-      - STORAGE_PATH=/app/storage
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-s3}
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=${S3_BUCKET:-promptbox}
       - CORS_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
     depends_on:
       db:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - app-network
@@ -246,7 +248,7 @@ server {
 
     # API プロキシ
     location /api/ {
-        proxy_pass http://backend:8000/api/;
+        proxy_pass http://backend-rs:8000/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -412,10 +414,10 @@ docker compose down -v
 version: '3.8'
 
 services:
-  backend:
-    volumes:
-      - ./backend/app:/app/app:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+  # Rust はコンパイル言語のためホットリロードはしない。
+  # ソース変更時は `docker compose up -d --build backend-rs` で作り直すか、
+  # ホストで `cargo run`（DB/MinIO だけ compose で起動）する方が速い。
+  backend-rs:
     environment:
       - DEBUG=1
 
