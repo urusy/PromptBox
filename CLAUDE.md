@@ -270,7 +270,19 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 
 ## テスト方針
 
-- バックエンド: pytest + pytest-asyncio
+- バックエンド（`backend-rs` / Rust）: `cargo test`
+  - ユニットテスト: 各モジュールの `#[cfg(test)] mod tests`（パーサ・純粋関数・バリデーション）
+  - 統合テスト: `backend-rs/tests/` に `#[sqlx::test(migrations = "./migrations")]` で書く。
+    テストごとに使い捨ての DB が自動作成され、`backend-rs/migrations/` が適用される。
+    実行にはホストから DB に届く `DATABASE_URL` が必要:
+
+    ```bash
+    docker compose up -d db   # ${DB_PORT:-5433} で公開される
+    export DATABASE_URL="postgres://<DB_USER>:<DB_PASSWORD>@localhost:5433/<DB_NAME>"
+    cd backend-rs && cargo test
+    ```
+
+    SQL を含むロジック（検索フィルタ・prev/next・一括操作）は必ずここで検証する。
 - フロントエンド: Vitest + React Testing Library
 - E2E: 不要（1ユーザーアプリのため）
 

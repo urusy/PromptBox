@@ -155,10 +155,10 @@ impl Config {
     }
 }
 
-#[cfg(test)]
 impl Config {
     /// Minimal configuration for tests that build app components without
-    /// touching the database or authenticating.
+    /// touching the database or authenticating. Not `#[cfg(test)]` because the
+    /// integration tests in `tests/` are a separate crate and need it too.
     pub fn for_test() -> Self {
         Config {
             database_url: "postgres://user:pass@localhost/db".to_string(),
