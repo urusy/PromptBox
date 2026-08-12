@@ -1024,3 +1024,76 @@ async fn count_and_page_queries_agree(pool: PgPool) {
     let result = image::list(&pool, &p).await.expect("list");
     assert_eq!(result.total as usize, result.items.len());
 }
+
+// ---------------------------------------------------------------------------
+// tie-break（Plan 327 / Falcon Issue #381）
+// ---------------------------------------------------------------------------
+
+/// created_at が同値の行はソートキーだけでは順序が SQL 上未定義になる。
+/// 一覧は `ORDER BY <col> <dir>, id <dir>` の tie-break で決定的に並び、
+/// OFFSET ページングがページ間の重複・欠落を起こさないこと。
+/// （tie-break が無いと Postgres は LIMIT 48 / OFFSET 48 LIMIT 48 で別々の
+/// top-N heapsort を走らせ、静的データでもページが大きく重複する——実測 40/48）
+#[sqlx::test(migrations = "./migrations")]
+async fn tied_sort_keys_order_deterministically_and_pages_stay_disjoint(pool: PgPool) {
+    // 同一 created_at の行を 7 件。id は Uuid::now_v7()（挿入順に昇順）。
+    let tied = utc(2026, 3, 1, 0, 0, 0);
+    let mut inserted: Vec<Uuid> = Vec::new();
+    for _ in 0..7 {
+        inserted.push(
+            insert_image(
+                &pool,
+                NewImage {
+                    created_at: tied,
+                    ..Default::default()
+                },
+            )
+            .await,
+        );
+    }
+
+    // 既定（created_at DESC）ではタイは id DESC で並ぶ
+    let mut expected_desc = inserted.clone();
+    expected_desc.sort();
+    expected_desc.reverse();
+    let all_desc = ids(&pool, &SearchParams::default()).await;
+    assert_eq!(all_desc, expected_desc, "ties must fall back to id DESC");
+
+    // 昇順ならタイは id ASC
+    let mut expected_asc = inserted.clone();
+    expected_asc.sort();
+    let all_asc = ids(
+        &pool,
+        &SearchParams {
+            sort_order: "asc".to_string(),
+            ..Default::default()
+        },
+    )
+    .await;
+    assert_eq!(
+        all_asc, expected_asc,
+        "ascending ties must fall back to id ASC"
+    );
+
+    // per_page=3 の 3 ページで重複なし・全件をちょうど 1 回ずつ被覆
+    let mut seen: Vec<Uuid> = Vec::new();
+    for page in 1..=3 {
+        let page_ids = ids(
+            &pool,
+            &SearchParams {
+                page,
+                per_page: 3,
+                ..Default::default()
+            },
+        )
+        .await;
+        for id in &page_ids {
+            assert!(!seen.contains(id), "page {page} repeats id {id}");
+        }
+        seen.extend(page_ids);
+    }
+    seen.sort();
+    let mut want = inserted.clone();
+    want.sort();
+    assert_eq!(seen, want, "pages must cover every row exactly once");
+}

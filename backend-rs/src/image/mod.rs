@@ -392,7 +392,17 @@ pub async fn list(pool: &PgPool, p: &SearchParams) -> Result<ListResult, sqlx::E
     let mut qb = QueryBuilder::<Postgres>::new("SELECT * FROM images WHERE 1=1");
     push_filters(&mut qb, p);
     let (col, dir) = sort_clause(p);
-    qb.push(" ORDER BY ").push(col).push(" ").push(dir);
+    // Tie-break on id: sort keys (created_at etc.) are heavily tied in bulk
+    // imports, and without a total order Postgres returns ties in an
+    // unspecified order that differs between LIMIT/OFFSET shapes — adjacent
+    // pages overlapped by 40/48 rows in measurement. Matches the (col, id)
+    // ordering the prev/next neighbour queries already use.
+    qb.push(" ORDER BY ")
+        .push(col)
+        .push(" ")
+        .push(dir)
+        .push(", id ")
+        .push(dir);
     let offset = (p.page - 1) * p.per_page;
     qb.push(" OFFSET ")
         .push_bind(offset)
