@@ -15,7 +15,7 @@
 use axum::Json;
 use serde::Serialize;
 
-use super::images::ListQuery;
+use super::images::{GridMembersQuery, ListQuery};
 
 /// One route, as the API contract sees it.
 #[derive(Debug, Serialize)]
@@ -70,6 +70,12 @@ pub const ROUTES: &[RouteSpec] = &[
         // GET accepts the listing parameters too (they define prev/next
         // context); DELETE accepts ?permanent=true.
         query: ListQuery::KNOWN_PARAMS,
+    },
+    RouteSpec {
+        path: "/api/images/{id}/grid-members",
+        methods: GET,
+        auth: true,
+        query: GridMembersQuery::KNOWN_PARAMS,
     },
     RouteSpec { path: "/api/images/{id}/restore", methods: POST, auth: true, query: NONE },
     RouteSpec {

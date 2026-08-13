@@ -1,5 +1,6 @@
 //! Image data access (store): single fetch and dynamic paginated search.
 
+pub mod grid;
 pub mod model;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};

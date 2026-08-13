@@ -3,15 +3,19 @@
 use axum::extract::{Path, Query, RawQuery, State};
 use axum::http::HeaderMap;
 use axum::Json;
+use chrono::Duration;
 use uuid::Uuid;
 
 use super::auth::CurrentUser;
 use super::warnings::{self, Warnings};
 use super::AppState;
 use crate::dto::common::MessageResponse;
+use crate::dto::grid::{
+    GridAxes, GridAxis, GridAxisValues, GridMember, GridMembersResponse, GridPosition,
+};
 use crate::dto::image::{ImageDetail, ImageListItem, ImageListResponse, ImageUpdate, Pagination};
 use crate::error::AppError;
-use crate::image::{self, SearchParams};
+use crate::image::{self, grid, SearchParams};
 use crate::storage;
 
 fn default_page() -> i64 {
@@ -262,6 +266,178 @@ pub async fn get_image(
         prev.map(|u| u.to_string()),
         next.map(|u| u.to_string()),
     )))
+}
+
+/// Default matching window. Wide enough that a grid which took an hour to
+/// render still reaches its first cells; narrow enough that yesterday's run with
+/// the same settings does not bleed in.
+const DEFAULT_GRID_WINDOW_HOURS: i64 = 24;
+const MAX_GRID_WINDOW_HOURS: i64 = 24 * 30;
+
+/// Query for the grid members endpoint.
+#[derive(Debug, serde::Deserialize)]
+pub struct GridMembersQuery {
+    /// How far back from the grid to look for cells.
+    pub window_hours: Option<i64>,
+    /// Reject (400) instead of reporting `warnings[]` (docs/13 A3).
+    pub strict: Option<bool>,
+}
+
+impl GridMembersQuery {
+    /// **Keep in sync with the struct above** (see `ListQuery::KNOWN_PARAMS`).
+    pub const KNOWN_PARAMS: &'static [&'static str] = &["window_hours", "strict"];
+}
+
+/// Convert the matcher's axes into the response shape (x/y/z slots).
+fn axes_dto(axes: &[grid::Axis]) -> GridAxes {
+    let mut dto = GridAxes::default();
+    for axis in axes {
+        let slot = Some(GridAxis {
+            axis_type: axis.axis_type.clone(),
+            values: axis.values.clone(),
+            column: axis.column.map(|c| c.as_str()),
+        });
+        match axis.name {
+            "x" => dto.x = slot,
+            "y" => dto.y = slot,
+            _ => dto.z = slot,
+        }
+    }
+    dto
+}
+
+/// GET /api/images/{id}/grid-members
+///
+/// The images an XYZ grid was assembled from. Neither A1111 nor the grid file
+/// records that link, so membership is **inferred** — see `image::grid` — and
+/// the response says how confident the answer is.
+pub async fn grid_members(
+    _user: CurrentUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    RawQuery(raw_query): RawQuery,
+    Query(q): Query<GridMembersQuery>,
+) -> Result<(HeaderMap, Json<GridMembersResponse>), AppError> {
+    let row = image::get_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Image not found".to_string()))?;
+    if !grid::is_grid(&row.model_params) {
+        return Err(AppError::BadRequest(
+            "image is not a grid; this endpoint applies to XYZ grid images only".to_string(),
+        ));
+    }
+
+    let mut warnings = Warnings::default();
+    for key in warnings::unknown_params(raw_query.as_deref(), GridMembersQuery::KNOWN_PARAMS) {
+        warnings.unknown_param(&key, GridMembersQuery::KNOWN_PARAMS);
+    }
+    let requested = q.window_hours.unwrap_or(DEFAULT_GRID_WINDOW_HOURS);
+    let window_hours = requested.clamp(1, MAX_GRID_WINDOW_HOURS);
+    if requested != window_hours {
+        warnings.clamped("window_hours", requested, window_hours);
+    }
+
+    let axes = grid::axes_of(&row.model_params);
+    for axis in &axes {
+        if axis.column.is_none() {
+            warnings.note(
+                "unsupported_axis_type",
+                &format!("xyz_{}_type", axis.name),
+                format!(
+                    "axis type {:?} is not one this matcher understands; members were narrowed \
+                     by the remaining parameters only",
+                    axis.axis_type
+                ),
+            );
+        }
+    }
+    if axes.is_empty() {
+        warnings.note(
+            "no_axis_metadata",
+            "model_params",
+            "this grid records no X/Y/Z axis metadata, so its member images cannot be identified"
+                .to_string(),
+        );
+    }
+
+    // With no axes there is nothing to match on — every image in the window
+    // would qualify, which is worse than admitting the answer is unknown.
+    let rows = if axes.is_empty() {
+        Vec::new()
+    } else {
+        grid::find_members(&state.pool, &row, &axes, Duration::hours(window_hours)).await?
+    };
+
+    let mut placed: Vec<_> = rows
+        .into_iter()
+        .map(|r| (grid::place(&r, &axes), r))
+        .collect();
+    // Reading order of the montage: pages (z), then rows (y), then columns (x).
+    placed.sort_by_key(|(p, _)| (p.index[2], p.index[1], p.index[0]));
+
+    let matched = placed.len();
+    if matched as i64 >= grid::MAX_MEMBERS {
+        warnings.note(
+            "truncated",
+            "members",
+            format!("stopped after {} candidates; widen nothing, narrow the window instead", grid::MAX_MEMBERS),
+        );
+    }
+
+    if q.strict.unwrap_or(false) && !warnings.is_empty() {
+        return Err(AppError::BadRequest(format!(
+            "strict mode: {}",
+            warnings.summary()
+        )));
+    }
+    let headers = warnings.headers();
+
+    let expected_cells = grid::expected_cells(&axes);
+    let confidence = if axes.is_empty() {
+        "none"
+    } else if axes.iter().all(|a| a.column.is_none()) {
+        "heuristic"
+    } else if expected_cells == Some(matched) {
+        "exact"
+    } else {
+        "partial"
+    };
+
+    let axes_response = if axes.is_empty() {
+        None
+    } else {
+        Some(axes_dto(&axes))
+    };
+
+    let members = placed
+        .into_iter()
+        .map(|(placement, row)| {
+            let [x, y, z] = placement.values;
+            GridMember {
+                image: row.into_list_item(),
+                position: GridPosition {
+                    x: placement.index[0],
+                    y: placement.index[1],
+                    z: placement.index[2],
+                },
+                axis_values: GridAxisValues { x, y, z },
+            }
+        })
+        .collect();
+
+    Ok((
+        headers,
+        Json(GridMembersResponse {
+            grid: row.into_list_item(),
+            axes: axes_response,
+            members,
+            expected_cells,
+            matched,
+            confidence,
+            window_hours,
+            warnings: warnings.into_vec(),
+        }),
+    ))
 }
 
 /// PATCH /api/images/{id}

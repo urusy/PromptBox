@@ -87,6 +87,7 @@ pub fn router(state: AppState) -> Router {
                 .patch(images::update_image)
                 .delete(images::delete_image),
         )
+        .route("/images/{id}/grid-members", get(images::grid_members))
         .route("/images/{id}/restore", post(images::restore_image))
         .route(
             "/search-presets",

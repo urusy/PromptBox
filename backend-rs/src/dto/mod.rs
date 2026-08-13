@@ -9,6 +9,7 @@ pub mod common;
 pub mod duplicate;
 pub mod export;
 pub mod gelbooru;
+pub mod grid;
 pub mod image;
 pub mod meta;
 pub mod preset;

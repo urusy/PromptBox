@@ -81,6 +81,9 @@ pub struct NewImage {
     pub sampler_name: Option<String>,
     pub scheduler: Option<String>,
     pub steps: Option<i32>,
+    /// NUMERIC(5,2) in Postgres; bound as float8 and cast, so the tests do not
+    /// need a rust_decimal dependency of their own.
+    pub cfg_scale: Option<f64>,
     pub seed: Option<i64>,
     pub loras: Value,
     pub model_params: Value,
@@ -109,6 +112,7 @@ impl Default for NewImage {
             sampler_name: None,
             scheduler: None,
             steps: None,
+            cfg_scale: None,
             seed: None,
             loras: json!([]),
             model_params: json!({}),
@@ -141,11 +145,13 @@ pub async fn insert_image(pool: &PgPool, img: NewImage) -> Uuid {
             id, source_tool, model_type, has_metadata, original_filename,
             storage_path, thumbnail_path, file_hash, width, height,
             file_size_bytes, positive_prompt, negative_prompt, model_name,
-            sampler_name, scheduler, steps, seed, loras, model_params, rating,
-            is_favorite, needs_improvement, user_tags, created_at, deleted_at
+            sampler_name, scheduler, steps, cfg_scale, seed, loras,
+            model_params, rating, is_favorite, needs_improvement, user_tags,
+            created_at, deleted_at
          ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-            $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+            $16, $17, $18::float8::numeric, $19, $20, $21, $22, $23, $24, $25,
+            $26, $27
          )",
     )
     .bind(img.id)
@@ -165,6 +171,7 @@ pub async fn insert_image(pool: &PgPool, img: NewImage) -> Uuid {
     .bind(&img.sampler_name)
     .bind(&img.scheduler)
     .bind(img.steps)
+    .bind(img.cfg_scale)
     .bind(img.seed)
     .bind(&img.loras)
     .bind(&img.model_params)

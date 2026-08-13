@@ -72,6 +72,19 @@ impl Warnings {
         });
     }
 
+    /// Anything else the caller should know about how the answer was produced —
+    /// an axis type the matcher does not understand, a result set cut short.
+    /// `param` names what the note is about (a query parameter, or a field of
+    /// the resource).
+    pub fn note(&mut self, code: &'static str, param: &str, message: String) {
+        self.0.push(Warning {
+            code,
+            param: param.to_string(),
+            message,
+            hint: None,
+        });
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
