@@ -11,6 +11,7 @@ import {
   BarChart3,
   Album,
   Box,
+  LayoutGrid,
   Layers,
   Sparkles,
   Tag,
@@ -35,6 +36,7 @@ export default function MainLayout() {
 
   const navItems = [
     { to: '/', icon: Image, label: 'Gallery', color: '' },
+    { to: '/grids', icon: LayoutGrid, label: 'Grids', color: 'text-purple-400' },
     { to: '/swipe', icon: Sparkles, label: 'Quick Rate', color: 'text-yellow-400' },
     { to: '/trash', icon: Trash2, label: 'Trash', color: '' },
     { to: '/duplicates', icon: Copy, label: 'Duplicates', color: '' },

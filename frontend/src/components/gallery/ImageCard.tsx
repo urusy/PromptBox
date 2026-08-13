@@ -16,9 +16,18 @@ interface ImageCardProps {
    * 切り抜きを回避する。未指定時は従来通り正方形(aspect-square)。
    */
   aspectRatio?: number
+  /**
+   * 遷移先のベースパス。グリッド専用一覧（/grids）からはグリッド詳細へ飛ばす。
+   * 未指定時は通常の詳細画面（/image）。
+   */
+  linkBase?: string
 }
 
-const ImageCard = memo(function ImageCard({ image, aspectRatio }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({
+  image,
+  aspectRatio,
+  linkBase = '/image',
+}: ImageCardProps) {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
@@ -60,7 +69,7 @@ const ImageCard = memo(function ImageCard({ image, aspectRatio }: ImageCardProps
 
   return (
     <Link
-      to={isSelectionMode ? '#' : `/image/${image.id}${location.search}`}
+      to={isSelectionMode ? '#' : `${linkBase}/${image.id}${location.search}`}
       onClick={handleClick}
       onMouseDown={handleLongPress}
       onMouseEnter={handleMouseEnter}

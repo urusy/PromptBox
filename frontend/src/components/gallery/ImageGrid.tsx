@@ -13,6 +13,11 @@ interface ImageGridProps {
   images: ImageListItem[]
   size?: GridSize
   layout?: GalleryLayout
+  /**
+   * カードの遷移先ベースパス。グリッド専用一覧（/grids）から使うときは
+   * グリッド詳細へ飛ばすため '/grids' を渡す。
+   */
+  linkBase?: string
 }
 
 // Gap between items (gap-3 = 12px)
@@ -35,6 +40,12 @@ const TARGET_HEIGHT: Record<GridSize, number> = {
 // Threshold for enabling virtual scrolling (square layout only)
 const VIRTUAL_SCROLL_THRESHOLD = 100
 
+interface SubGridProps {
+  images: ImageListItem[]
+  size: GridSize
+  linkBase?: string
+}
+
 function EmptyState() {
   return (
     <div className="text-center text-gray-400 py-16">
@@ -44,26 +55,31 @@ function EmptyState() {
   )
 }
 
-export default function ImageGrid({ images, size = 'medium', layout = 'square' }: ImageGridProps) {
+export default function ImageGrid({
+  images,
+  size = 'medium',
+  layout = 'square',
+  linkBase,
+}: ImageGridProps) {
   if (images.length === 0) {
     return <EmptyState />
   }
 
   if (layout === 'waterfall') {
-    return <WaterfallGrid images={images} size={size} />
+    return <WaterfallGrid images={images} size={size} linkBase={linkBase} />
   }
 
   if (layout === 'justified') {
-    return <JustifiedGrid images={images} size={size} />
+    return <JustifiedGrid images={images} size={size} linkBase={linkBase} />
   }
 
-  return <SquareGrid images={images} size={size} />
+  return <SquareGrid images={images} size={size} linkBase={linkBase} />
 }
 
 /**
  * 正方形グリッド（従来実装）。小規模は通常グリッド、100件以上で行仮想スクロール。
  */
-function SquareGrid({ images, size }: { images: ImageListItem[]; size: GridSize }) {
+function SquareGrid({ images, size, linkBase }: SubGridProps) {
   const parentRef = useRef<HTMLDivElement>(null)
   const columnCount = useColumnCount(size)
   const rowCount = Math.ceil(images.length / columnCount)
@@ -96,7 +112,7 @@ function SquareGrid({ images, size }: { images: ImageListItem[]; size: GridSize 
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
       >
         {images.map((image) => (
-          <ImageCard key={image.id} image={image} />
+          <ImageCard key={image.id} image={image} linkBase={linkBase} />
         ))}
       </div>
     )
@@ -126,7 +142,7 @@ function SquareGrid({ images, size }: { images: ImageListItem[]; size: GridSize 
               }}
             >
               {rowImages.map((image) => (
-                <ImageCard key={image.id} image={image} />
+                <ImageCard key={image.id} image={image} linkBase={linkBase} />
               ))}
             </div>
           )
@@ -140,7 +156,7 @@ function SquareGrid({ images, size }: { images: ImageListItem[]; size: GridSize 
  * Waterfall（Pinterest 風 Masonry）。列幅固定・最短列へ順次配置。
  * アスペクト比を保持し、切り抜きなし。
  */
-function WaterfallGrid({ images, size }: { images: ImageListItem[]; size: GridSize }) {
+function WaterfallGrid({ images, size, linkBase }: SubGridProps) {
   const columnCount = useColumnCount(size)
   const columns = distributeWaterfall(images, columnCount)
 
@@ -149,7 +165,12 @@ function WaterfallGrid({ images, size }: { images: ImageListItem[]; size: GridSi
       {columns.map((column, i) => (
         <div key={i} className="flex flex-col gap-3 flex-1 min-w-0">
           {column.map((image) => (
-            <ImageCard key={image.id} image={image} aspectRatio={getAspectRatio(image)} />
+            <ImageCard
+              key={image.id}
+              image={image}
+              aspectRatio={getAspectRatio(image)}
+              linkBase={linkBase}
+            />
           ))}
         </div>
       ))}
@@ -161,7 +182,7 @@ function WaterfallGrid({ images, size }: { images: ImageListItem[]; size: GridSi
  * Justified rows（Google Photos 風）。各行を横幅いっぱいに揃え、
  * アスペクト比を保持したまま切り抜きなしで表示。
  */
-function JustifiedGrid({ images, size }: { images: ImageListItem[]; size: GridSize }) {
+function JustifiedGrid({ images, size, linkBase }: SubGridProps) {
   const [ref, width] = useContainerWidth<HTMLDivElement>()
   const rows = width > 0 ? computeJustifiedRows(images, width, TARGET_HEIGHT[size], ROW_GAP) : []
 
@@ -171,7 +192,7 @@ function JustifiedGrid({ images, size }: { images: ImageListItem[]; size: GridSi
         <div key={i} className="flex gap-3" style={{ height: row.rowHeight }}>
           {row.items.map(({ image, width: itemWidth }) => (
             <div key={image.id} style={{ width: itemWidth }} className="shrink-0">
-              <ImageCard image={image} aspectRatio={getAspectRatio(image)} />
+              <ImageCard image={image} aspectRatio={getAspectRatio(image)} linkBase={linkBase} />
             </div>
           ))}
         </div>
