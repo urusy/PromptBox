@@ -42,8 +42,22 @@ pub struct Config {
 
     // Import worker (mirror the Python backend's import_* settings).
     // Filename substrings excluded from import (lowercased); matches are moved
-    // to `import/<import_skipped_dir>/` instead of processed.
+    // to `import/<import_skipped_dir>/` instead of processed. Empty by default:
+    // grids used to be excluded here, but they are now imported and tagged
+    // instead (see `import_grid_patterns`).
     pub import_skip_patterns: Vec<String>,
+    // Filename substrings (lowercased) that mark an image as a grid even when
+    // its metadata carries no `Script: X/Y/Z plot` — PNG info disabled, or the
+    // file re-saved by another tool. Matches set `model_params.is_xyz_grid`;
+    // the image is still imported normally.
+    pub import_grid_patterns: Vec<String>,
+    // Above this pixel count the in-memory decode is skipped in favour of the
+    // streaming (scanline) thumbnailer. A full RGBA decode costs ~4 bytes per
+    // pixel, so 150MP is already ~600MB against a 1GB container limit.
+    pub import_full_decode_max_pixels: u64,
+    // Hard ceiling on pixel count. Streaming makes memory a non-issue, so this
+    // only stops decoder bombs and corrupt headers from burning CPU forever.
+    pub import_max_pixels: u64,
     // After this many *content* failures a file is quarantined to
     // `import/<import_failed_dir>/`. Transient errors (DB/IO) are not counted.
     pub import_max_attempts: u32,
@@ -94,10 +108,17 @@ impl Config {
             s3_bucket: get("S3_BUCKET", "promptbox"),
             s3_access_key: get("S3_ACCESS_KEY", ""),
             s3_secret_key: get("S3_SECRET_KEY", ""),
-            import_skip_patterns: split_csv(&get("IMPORT_SKIP_PATTERNS", "xyz_grid"))
+            import_skip_patterns: split_csv(&get("IMPORT_SKIP_PATTERNS", ""))
                 .into_iter()
                 .map(|s| s.to_lowercase())
                 .collect(),
+            import_grid_patterns: split_csv(&get("IMPORT_GRID_PATTERNS", "xyz_grid,grid-"))
+                .into_iter()
+                .map(|s| s.to_lowercase())
+                .collect(),
+            import_full_decode_max_pixels: get_int("IMPORT_FULL_DECODE_MAX_PIXELS", 150_000_000)
+                .max(1) as u64,
+            import_max_pixels: get_int("IMPORT_MAX_PIXELS", 2_000_000_000).max(1) as u64,
             import_max_attempts: get_int("IMPORT_MAX_ATTEMPTS", 5).max(1) as u32,
             import_failed_dir: get("IMPORT_FAILED_DIR", "failed"),
             import_skipped_dir: get("IMPORT_SKIPPED_DIR", "skipped"),
@@ -174,7 +195,10 @@ impl Config {
             s3_bucket: String::new(),
             s3_access_key: String::new(),
             s3_secret_key: String::new(),
-            import_skip_patterns: vec!["xyz_grid".to_string()],
+            import_skip_patterns: Vec::new(),
+            import_grid_patterns: vec!["xyz_grid".to_string(), "grid-".to_string()],
+            import_full_decode_max_pixels: 150_000_000,
+            import_max_pixels: 2_000_000_000,
             import_max_attempts: 5,
             import_failed_dir: "failed".to_string(),
             import_skipped_dir: "skipped".to_string(),
@@ -249,4 +273,26 @@ fn split_csv(v: &str) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .map(String::from)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn split_csv_drops_empty_entries() {
+        // An empty IMPORT_SKIP_PATTERNS must mean "exclude nothing", not a
+        // single empty pattern that would match every filename.
+        assert!(split_csv("").is_empty());
+        assert!(split_csv(" , ,").is_empty());
+        assert_eq!(split_csv("xyz_grid, grid-"), vec!["xyz_grid", "grid-"]);
+    }
+
+    #[test]
+    fn test_config_defaults_import_grids_instead_of_skipping_them() {
+        let cfg = Config::for_test();
+        assert!(cfg.import_skip_patterns.is_empty());
+        assert!(cfg.import_grid_patterns.contains(&"xyz_grid".to_string()));
+        assert!(cfg.import_full_decode_max_pixels < cfg.import_max_pixels);
+    }
 }

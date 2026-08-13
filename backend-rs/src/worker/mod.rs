@@ -14,10 +14,12 @@ use std::time::Duration;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use object_store::ObjectStore;
+use object_store::WriteMultipart;
 use object_store::path::Path as ObjectPath;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use sqlx::PgPool;
+use tokio::io::AsyncReadExt;
 use tokio::sync::{Mutex, mpsc};
 use uuid::Uuid;
 
@@ -29,6 +31,10 @@ const SUPPORTED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp"];
 const PERIODIC_SCAN_INTERVAL: Duration = Duration::from_secs(30);
 const STABLE_POLL: Duration = Duration::from_millis(500);
 const STABLE_TIMEOUT: Duration = Duration::from_secs(30);
+/// How much of an oversized original is read (and buffered) per upload part.
+const UPLOAD_CHUNK_BYTES: usize = 8 * 1024 * 1024;
+/// Upload parts allowed in flight at once while streaming an original.
+const UPLOAD_MAX_CONCURRENCY: usize = 4;
 
 #[derive(Clone)]
 struct Worker {
@@ -135,16 +141,14 @@ impl Worker {
         }
     }
 
-    /// (C) True if the filename matches an excluded pattern (e.g. "xyz_grid").
+    /// (C) True if the filename matches an excluded pattern. Empty by default:
+    /// grids used to be excluded here and are now imported and tagged instead
+    /// (see `import_grid_patterns`).
     fn should_skip(&self, path: &Path) -> bool {
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             return false;
         };
-        let name = name.to_lowercase();
-        self.config
-            .import_skip_patterns
-            .iter()
-            .any(|p| name.contains(p))
+        matches_pattern(name, &self.config.import_skip_patterns)
     }
 
     /// Move a file out of the import folder into `import/<subdir>/` so it is no
@@ -265,45 +269,55 @@ impl Worker {
         }
 
         let (width, height) = run_blocking(&owned, media::image_dimensions).await?;
+        let pixels = width as u64 * height as u64;
+        if pixels > self.config.import_max_pixels {
+            return Err(media::MediaError::TooManyPixels {
+                width,
+                height,
+                pixels,
+                limit: self.config.import_max_pixels,
+            }
+            .into());
+        }
 
         let meta = tokio::fs::metadata(path).await?;
         let file_size = meta.len() as i64;
         let created_at = file_created_at(&meta);
-
-        let png_info = {
-            let p = owned.clone();
-            tokio::task::spawn_blocking(move || media::read_image_info(&p)).await?
-        };
-        let parsed = parser::parse(&png_info);
 
         let filename = path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("image")
             .to_string();
+
+        let png_info = {
+            let p = owned.clone();
+            tokio::task::spawn_blocking(move || media::read_image_info(&p)).await?
+        };
+        let mut parsed = parser::parse(&png_info);
+        // A1111 records `Script: X/Y/Z plot` in the parameters, but only when
+        // PNG info is enabled and nothing re-saved the file since. The filename
+        // is the fallback — and the only signal a grid with no metadata has.
+        if matches_pattern(&filename, &self.config.import_grid_patterns) {
+            parsed
+                .model_params
+                .entry("is_xyz_grid")
+                .or_insert(serde_json::Value::Bool(true));
+        }
+
         let storage_rel = media::storage_path(&hash, &filename);
         let thumb_rel = media::thumbnail_path(&hash);
-
-        // Read the original once and encode the thumbnail in memory. Decoding
-        // happens before any upload, so bad content still fails Permanent-ly
-        // without leaving partial objects behind.
-        let bytes = tokio::fs::read(path).await?;
-        let (bytes, thumb) = {
-            let size = self.config.thumbnail_size;
-            let quality = self.config.thumbnail_quality;
-            tokio::task::spawn_blocking(move || {
-                let thumb = media::create_thumbnail_bytes(&bytes, size, quality)?;
-                Ok::<_, anyhow::Error>((bytes, thumb))
-            })
-            .await??
-        };
 
         // Upload both objects before the DB row so a listed image always has
         // its files. Keys are content-addressed → retried puts are idempotent.
         let storage_key = ObjectPath::parse(&storage_rel)?;
         let thumb_key = ObjectPath::parse(&thumb_rel)?;
-        self.storage.put(&storage_key, bytes.into()).await?;
-        self.storage.put(&thumb_key, thumb.into()).await?;
+        if pixels > self.config.import_full_decode_max_pixels {
+            self.store_streaming(path, &storage_key, &thumb_key, width, height)
+                .await?;
+        } else {
+            self.store_decoded(path, &storage_key, &thumb_key).await?;
+        }
 
         self.insert_image(
             &parsed,
@@ -322,6 +336,79 @@ impl Worker {
         tokio::fs::remove_file(path).await?;
 
         tracing::info!(file = %filename, "imported");
+        Ok(())
+    }
+
+    /// Normal path: read the original once and decode it in memory for the
+    /// thumbnail. Decoding happens before any upload, so bad content still fails
+    /// Permanent-ly without leaving partial objects behind.
+    async fn store_decoded(
+        &self,
+        path: &Path,
+        storage_key: &ObjectPath,
+        thumb_key: &ObjectPath,
+    ) -> Result<()> {
+        let bytes = tokio::fs::read(path).await?;
+        let (bytes, thumb) = {
+            let size = self.config.thumbnail_size;
+            let quality = self.config.thumbnail_quality;
+            tokio::task::spawn_blocking(move || {
+                let thumb = media::create_thumbnail_bytes(&bytes, size, quality)?;
+                Ok::<_, anyhow::Error>((bytes, thumb))
+            })
+            .await??
+        };
+        self.storage.put(storage_key, bytes.into()).await?;
+        self.storage.put(thumb_key, thumb.into()).await?;
+        Ok(())
+    }
+
+    /// Oversized path (grids): a full decode would need ~4 bytes per pixel, so
+    /// the thumbnail is box-filtered from streamed PNG scanlines and the
+    /// original is uploaded in parts. Neither step holds the whole image.
+    async fn store_streaming(
+        &self,
+        path: &Path,
+        storage_key: &ObjectPath,
+        thumb_key: &ObjectPath,
+        width: u32,
+        height: u32,
+    ) -> Result<()> {
+        tracing::info!(
+            path = %path.display(),
+            width,
+            height,
+            "image too large to decode in memory; importing by streaming"
+        );
+        let size = self.config.thumbnail_size;
+        let quality = self.config.thumbnail_quality;
+        let thumb = run_blocking(path, move |p| {
+            media::create_thumbnail_streaming_png(p, size, quality)
+        })
+        .await?;
+        self.put_file_multipart(storage_key, path).await?;
+        self.storage.put(thumb_key, thumb.into()).await?;
+        Ok(())
+    }
+
+    /// Upload a file to object storage in parts, so a multi-hundred-megabyte
+    /// original never has to sit in memory as one buffer.
+    async fn put_file_multipart(&self, key: &ObjectPath, path: &Path) -> Result<()> {
+        let upload = self.storage.put_multipart(key).await?;
+        let mut writer = WriteMultipart::new(upload);
+        let mut file = tokio::fs::File::open(path).await?;
+        let mut buf = vec![0u8; UPLOAD_CHUNK_BYTES];
+        loop {
+            let n = file.read(&mut buf).await?;
+            if n == 0 {
+                break;
+            }
+            // Bound how many parts are in flight, so a fast disk cannot queue
+            // the entire file into memory ahead of a slow upload.
+            writer.wait_for_capacity(UPLOAD_MAX_CONCURRENCY).await?;
+            writer.write(&buf[..n]);
+        }
+        writer.finish().await?;
         Ok(())
     }
 
@@ -429,6 +516,11 @@ impl Worker {
 /// - Anything else is retried up to `import_max_attempts` → Countable.
 fn classify_failure(err: &anyhow::Error) -> FailureKind {
     for cause in err.chain() {
+        // Over the pixel ceiling, or too large to decode and not streamable —
+        // retrying cannot change either verdict.
+        if cause.downcast_ref::<media::MediaError>().is_some() {
+            return FailureKind::Permanent;
+        }
         if let Some(img_err) = cause.downcast_ref::<image::ImageError>() {
             return match img_err {
                 image::ImageError::IoError(_) => FailureKind::Transient,
@@ -443,6 +535,17 @@ fn classify_failure(err: &anyhow::Error) -> FailureKind {
         }
     }
     FailureKind::Countable
+}
+
+/// Case-insensitive substring match of a filename against configured patterns.
+/// Shared by the import exclusion list (`IMPORT_SKIP_PATTERNS`) and the grid
+/// tagging list (`IMPORT_GRID_PATTERNS`).
+fn matches_pattern(filename: &str, patterns: &[String]) -> bool {
+    if patterns.is_empty() {
+        return false;
+    }
+    let name = filename.to_lowercase();
+    patterns.iter().any(|p| name.contains(p))
 }
 
 /// Run a blocking media operation on a cloned path off the async runtime.
@@ -493,4 +596,30 @@ fn setup_notify(
     })?;
     watcher.watch(dir, RecursiveMode::NonRecursive)?;
     Ok(watcher)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pattern_matching_is_case_insensitive_and_substring_based() {
+        let patterns = vec!["xyz_grid".to_string(), "grid-".to_string()];
+        // A1111 XYZ plots and batch grids, in the shapes they are saved as.
+        assert!(matches_pattern("xyz_grid-0001-1234567890.png", &patterns));
+        assert!(matches_pattern("XYZ_GRID-0001.PNG", &patterns));
+        assert!(matches_pattern("grid-0000.png", &patterns));
+        assert!(matches_pattern("00042-grid-0000.png", &patterns));
+
+        assert!(!matches_pattern("00042-portrait.png", &patterns));
+        // "grid" on its own is not "grid-": a prompt that mentions a grid must
+        // not turn the image into one.
+        assert!(!matches_pattern("a_photo_of_a_grid.png", &patterns));
+    }
+
+    #[test]
+    fn empty_pattern_list_never_matches() {
+        assert!(!matches_pattern("xyz_grid-0001.png", &[]));
+        assert!(!matches_pattern("anything.png", &[]));
+    }
 }
