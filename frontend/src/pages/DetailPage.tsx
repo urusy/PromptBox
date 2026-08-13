@@ -17,18 +17,34 @@ import {
   Dices,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { imagesApi } from '@/api/images'
-import { getImageUrl } from '@/utils/imagePath'
+import { imagesApi, imageDetailQueryOptions } from '@/api/images'
+import { getImageUrl, getThumbnailUrl } from '@/utils/imagePath'
 import { showcasesApi } from '@/api/showcases'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { usePrefetchAdjacentImages } from '@/hooks/usePrefetchAdjacentImages'
 import type { ImageUpdate } from '@/types/image'
 import type { Showcase } from '@/types/showcase'
-import { parseSearchParams } from '@/utils/searchParams'
 import StarRating from '@/components/common/StarRating'
 import TagEditor from '@/components/detail/TagEditor'
 import MemoEditor from '@/components/detail/MemoEditor'
+import ProgressiveImage from '@/components/detail/ProgressiveImage'
 
-export default function DetailPage() {
+interface DetailPageProps {
+  /**
+   * prev/next の遷移先ベースパス。グリッド専用詳細（/grids/:id）から使うときは
+   * 前後移動もグリッド同士に留めるため '/grids' を渡す。
+   */
+  basePath?: string
+  /**
+   * 「戻る」と削除後の遷移先。グリッド詳細からは /grids へ戻す。
+   */
+  listPath?: string
+}
+
+export default function DetailPage({
+  basePath = '/image',
+  listPath = '/',
+}: DetailPageProps) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
@@ -39,8 +55,6 @@ export default function DetailPage() {
   const [showShowcaseMenu, setShowShowcaseMenu] = useState(false)
   const showcaseMenuRef = useRef<HTMLDivElement>(null)
 
-  // Parse search params from URL to pass to API
-  const searchParams = parseSearchParams(urlSearchParams)
   const showcaseId = urlSearchParams.get('showcase_id')
 
   const {
@@ -48,10 +62,12 @@ export default function DetailPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['image', id, urlSearchParams.toString()],
-    queryFn: () => imagesApi.get(id!, searchParams),
+    ...imageDetailQueryOptions(id!, location.search),
     enabled: !!id,
   })
+
+  // prev/next のメタデータと画像本体を先読み
+  usePrefetchAdjacentImages(image, location.search)
 
   // Showcase queries and mutations
   const { data: showcases = [] } = useQuery({
@@ -104,9 +120,9 @@ export default function DetailPage() {
   // Navigate to prev/next image while preserving search params
   const navigateToImage = useCallback(
     (imageId: string) => {
-      navigate(`/image/${imageId}${location.search}`)
+      navigate(`${basePath}/${imageId}${location.search}`)
     },
-    [navigate, location.search]
+    [navigate, location.search, basePath]
   )
 
   const updateMutation = useMutation({
@@ -189,7 +205,7 @@ export default function DetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['images'] })
       toast.success('Image moved to trash')
-      navigate('/')
+      navigate(listPath)
     },
   })
 
@@ -310,8 +326,10 @@ export default function DetailPage() {
             onClick={() => {
               if (showcaseId) {
                 navigate(`/showcase/${showcaseId}`)
-              } else {
+              } else if (listPath === '/') {
                 navigate(`/${location.search}`)
+              } else {
+                navigate(`${listPath}${location.search}`)
               }
             }}
             className="flex items-center gap-2 text-gray-400 hover:text-white"
@@ -353,9 +371,13 @@ export default function DetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <img
+          <ProgressiveImage
+            key={image.id}
             src={getImageUrl(image.storage_path)}
+            placeholderSrc={getThumbnailUrl(image.thumbnail_path)}
             alt={image.model_name || 'Generated image'}
+            width={image.width}
+            height={image.height}
             className="w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setIsLightboxOpen(true)}
             title="Click to enlarge"
@@ -722,6 +744,7 @@ export default function DetailPage() {
             <img
               src={getImageUrl(image.storage_path)}
               alt={image.model_name || 'Generated image'}
+              decoding="async"
               className="max-w-[95vw] max-h-[95vh] object-contain"
               onClick={(e) => e.stopPropagation()}
             />

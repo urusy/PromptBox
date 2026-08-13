@@ -12,12 +12,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     proxy: {
+      // すべて backend-rs (axum) へ
       '/api': {
-        target: process.env.VITE_API_TARGET || 'http://localhost:8000',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8001',
         changeOrigin: true,
       },
       '/storage': {
-        target: process.env.VITE_API_TARGET || 'http://localhost:8000',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8001',
         changeOrigin: true,
       },
     },

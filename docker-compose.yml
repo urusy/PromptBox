@@ -8,40 +8,95 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:80"
-    volumes:
-      - ./storage:/app/storage:ro
     depends_on:
-      - backend
+      - backend-rs
     restart: unless-stopped
     networks:
       - app-network
 
   # ===========================================
-  # Backend (FastAPI)
+  # Backend (Rust / axum)
+  # Owns the import worker and stores images in MinIO (object storage).
+  # Applies sqlx migrations at startup.
   # ===========================================
-  backend:
+  backend-rs:
     build:
-      context: ./backend
+      context: ./backend-rs
       dockerfile: Dockerfile
+      args:
+        # GET /api/version で返すビルド元コミット。未設定なら "unknown"。
+        # 例: GIT_SHA=$(git rev-parse --short HEAD) docker compose build backend-rs
+        GIT_SHA: ${GIT_SHA:-}
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_RS_PORT:-8001}:8000"
     volumes:
       - ./import:/app/import
-      - ./storage:/app/storage
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - SECRET_KEY=${SECRET_KEY}
+      # 未設定なら X-Forwarded-Proto から自動判定（HTTPS のみ Secure を付与）
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-}
       - IMPORT_PATH=/app/import
+      # fs バックエンド（STORAGE_BACKEND=fs）へ切り戻す場合に使用
       - STORAGE_PATH=/app/storage
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-s3}
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=${S3_BUCKET:-promptbox}
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-3000}}
       - DEBUG=${DEBUG:-true}
       - GELBOORU_API_KEY=${GELBOORU_API_KEY:-}
       - GELBOORU_USER_ID=${GELBOORU_USER_ID:-}
+      - WATCHER_ENABLED=${RS_WATCHER_ENABLED:-true}
+      # 既定は空。グリッドは除外せず取り込み、下の GRID_PATTERNS で印を付ける
+      - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-}
+      # メタデータに X/Y/Z plot が無くてもファイル名でグリッドと判定する
+      - IMPORT_GRID_PATTERNS=${IMPORT_GRID_PATTERNS:-xyz_grid,^grid-}
+      # これを超える画素数はメモリ展開せずストリーミングでサムネイル生成
+      - IMPORT_FULL_DECODE_MAX_PIXELS=${IMPORT_FULL_DECODE_MAX_PIXELS:-150000000}
+      - IMPORT_MAX_PIXELS=${IMPORT_MAX_PIXELS:-2000000000}
+      - IMPORT_MAX_ATTEMPTS=${IMPORT_MAX_ATTEMPTS:-5}
     depends_on:
       db:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    networks:
+      - app-network
+
+  # ===========================================
+  # Object storage (MinIO) — originals + thumbnails
+  # ./minio-data は MinIO コンテナ専有。ホスト側（File Station 等）から
+  # 中身を直接操作しないこと（xl.meta 構造が壊れる）。
+  # ===========================================
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ./minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     deploy:
       resources:
@@ -49,8 +104,25 @@ services:
           cpus: '2'
           memory: 1G
         reservations:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - app-network
+
+  # One-shot: バケット作成（存在すれば何もしない）
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}
+      && mc mb --ignore-existing local/$${S3_BUCKET}"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET:-promptbox}
+    restart: "no"
     networks:
       - app-network
 
@@ -59,9 +131,13 @@ services:
   # ===========================================
   db:
     image: postgres:16-alpine
+    # スキーマは backend-rs の sqlx マイグレーション（backend-rs/migrations/）が
+    # 起動時に適用する。docker-entrypoint-initdb.d は使わない（二重定義の温床）。
+    ports:
+      # ホストから統合テスト（cargo test）を流すために公開する。
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}

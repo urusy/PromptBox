@@ -33,14 +33,14 @@ reviews:
 
   # Path-specific instructions
   path_instructions:
-    - path: "backend/**/*.py"
+    - path: "backend-rs/**/*.rs"
       instructions: |
-        Pythonコードレビューのポイント：
-        - 型ヒントが適切に使用されているか
-        - async/awaitが正しく使用されているか
-        - Pydanticスキーマでバリデーションが適切か
-        - SQLインジェクション等のセキュリティリスクがないか
-        - 例外処理が適切か
+        Rust(axum)コードレビューのポイント：
+        - unwrap/expect がリクエスト経路に混ざっていないか（AppError で返すこと）
+        - SQL は QueryBuilder の push_bind でバインドしているか（文字列連結でないか）
+        - async 内でブロッキング処理をしていないか（spawn_blocking の要否）
+        - 公開APIの変更が dto と docs/04・13 の契約と整合しているか
+        - SQL を含むロジックに backend-rs/tests/ の統合テストがあるか
 
     - path: "frontend/**/*.{ts,tsx}"
       instructions: |

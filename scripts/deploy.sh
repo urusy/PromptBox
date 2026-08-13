@@ -20,7 +20,7 @@ fi
 PLATFORM="${PLATFORM:-${DEFAULT_PLATFORM}}"
 
 FRONTEND_BASE="${DOCKER_USER}/promptbox-frontend"
-BACKEND_BASE="${DOCKER_USER}/promptbox-backend"
+BACKEND_RS_BASE="${DOCKER_USER}/promptbox-backend-rs"
 
 # プロジェクトルートに移動
 cd "$(dirname "$0")/.."
@@ -32,7 +32,7 @@ echo ""
 echo "Platform:      ${PLATFORM}"
 echo "Version tag:   ${VERSION_TAG}"
 echo "Frontend:      ${FRONTEND_BASE}:${VERSION_TAG} (+ :latest)"
-echo "Backend:       ${BACKEND_BASE}:${VERSION_TAG} (+ :latest)"
+echo "Backend (rs):  ${BACKEND_RS_BASE}:${VERSION_TAG} (+ :latest)"
 echo ""
 
 # buildx builder 確認（存在しなければ作成）
@@ -53,15 +53,15 @@ docker buildx build --platform "${PLATFORM}" \
 echo "Frontend pushed successfully."
 echo ""
 
-# バックエンドのビルド＆プッシュ
+# バックエンド(Rust/axum)のビルド＆プッシュ
 echo "-----------------------------------------"
-echo "[2/2] Building & pushing backend..."
+echo "[2/2] Building & pushing backend (Rust/axum)..."
 echo "-----------------------------------------"
 docker buildx build --platform "${PLATFORM}" \
-    -t "${BACKEND_BASE}:${VERSION_TAG}" \
-    -t "${BACKEND_BASE}:latest" \
-    --push ./backend
-echo "Backend pushed successfully."
+    -t "${BACKEND_RS_BASE}:${VERSION_TAG}" \
+    -t "${BACKEND_RS_BASE}:latest" \
+    --push ./backend-rs
+echo "Backend (rs) pushed successfully."
 echo ""
 
 echo "========================================="
@@ -70,4 +70,4 @@ echo "========================================="
 echo ""
 echo "本番で特定版に固定するには docker-compose.prod.yml の image タグを書き換え:"
 echo "  image: ${FRONTEND_BASE}:${VERSION_TAG}"
-echo "  image: ${BACKEND_BASE}:${VERSION_TAG}"
+echo "  image: ${BACKEND_RS_BASE}:${VERSION_TAG}"

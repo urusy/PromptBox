@@ -21,6 +21,8 @@ const LorasPage = lazy(() => import('@/pages/LorasPage'))
 const LoraDetailPage = lazy(() => import('@/pages/LoraDetailPage'))
 const SwipePage = lazy(() => import('@/pages/SwipePage'))
 const GelbooruTagsPage = lazy(() => import('@/pages/GelbooruTagsPage'))
+const GridsPage = lazy(() => import('@/pages/GridsPage'))
+const GridDetailPage = lazy(() => import('@/pages/GridDetailPage'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -52,6 +54,23 @@ function App() {
         >
           <Route index element={<GalleryPage />} />
           <Route path="image/:id" element={<DetailPage />} />
+          {/* グリッド画像は通常のギャラリーには出さず、この専用画面で扱う */}
+          <Route
+            path="grids"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <GridsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="grids/:id"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <GridDetailPage />
+              </Suspense>
+            }
+          />
           <Route
             path="trash"
             element={

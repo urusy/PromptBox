@@ -5,14 +5,29 @@ import { Star, Heart, Check } from 'lucide-react'
 import clsx from 'clsx'
 import type { ImageListItem } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'
-import { imagesApi } from '@/api/images'
+import { imageDetailQueryOptions } from '@/api/images'
 import { getImageUrl, getThumbnailUrl } from '@/utils/imagePath'
+import { prefetchImage } from '@/utils/prefetch'
 
 interface ImageCardProps {
   image: ImageListItem
+  /**
+   * アスペクト比（幅/高さ）。指定時はサムネイル枠を正方形ではなく元画像比率で描画し、
+   * 切り抜きを回避する。未指定時は従来通り正方形(aspect-square)。
+   */
+  aspectRatio?: number
+  /**
+   * 遷移先のベースパス。グリッド専用一覧（/grids）からはグリッド詳細へ飛ばす。
+   * 未指定時は通常の詳細画面（/image）。
+   */
+  linkBase?: string
 }
 
-const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({
+  image,
+  aspectRatio,
+  linkBase = '/image',
+}: ImageCardProps) {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { selectedIds, isSelectionMode, toggleSelection, setSelectionMode } = useSelectionStore()
@@ -44,35 +59,31 @@ const ImageCard = memo(function ImageCard({ image }: ImageCardProps) {
 
   // Prefetch image data and full image on hover (desktop only)
   const handleMouseEnter = useCallback(() => {
-    // Prefetch API data
+    // 遷移先 DetailPage と同一キーになるよう location.search からクエリを共通定義で組み立てる
     queryClient.prefetchQuery({
-      queryKey: ['image', image.id],
-      queryFn: () => imagesApi.get(image.id),
+      ...imageDetailQueryOptions(image.id, location.search),
       staleTime: 5 * 60 * 1000, // 5 minutes
     })
-
-    // Prefetch full image
-    const link = document.createElement('link')
-    link.rel = 'prefetch'
-    link.href = getImageUrl(image.storage_path)
-    link.as = 'image'
-    document.head.appendChild(link)
-  }, [image.id, image.storage_path, queryClient])
+    prefetchImage(getImageUrl(image.storage_path))
+  }, [image.id, image.storage_path, queryClient, location.search])
 
   return (
     <Link
-      to={isSelectionMode ? '#' : `/image/${image.id}${location.search}`}
+      to={isSelectionMode ? '#' : `${linkBase}/${image.id}${location.search}`}
       onClick={handleClick}
       onMouseDown={handleLongPress}
       onMouseEnter={handleMouseEnter}
       className={clsx(
-        'group relative bg-gray-800 rounded-lg overflow-hidden transition-all',
+        'group relative block w-full bg-gray-800 rounded-lg overflow-hidden transition-all',
         isSelected
           ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
           : 'hover:ring-2 hover:ring-blue-500/50'
       )}
     >
-      <div className="aspect-square">
+      <div
+        className={clsx(!aspectRatio && 'aspect-square')}
+        style={aspectRatio ? { aspectRatio } : undefined}
+      >
         <img
           src={getThumbnailUrl(image.thumbnail_path)}
           alt={image.model_name || 'Generated image'}

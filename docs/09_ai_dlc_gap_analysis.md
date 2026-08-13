@@ -1,5 +1,10 @@
 # AI-DLC ギャップ分析レポート
 
+> ⚠️ **これは作成時点（Python/FastAPI 時代）のスナップショットである。**
+> バックエンドは Rust(axum) に移行し、2026-07-25 に `backend/` は撤去された。
+> 本文中の `backend/**`（pytest / ruff / mypy 等）はもう存在しない。現行のテスト方針は
+> `CLAUDE.md` の「テスト方針」、CI は `.github/workflows/ci.yml` を参照すること。
+
 ## AI-DLCとは
 
 **AI-DLC（AI-Driven Development Life Cycle）** は、AWSが2025年7月に発表した次世代ソフトウェア開発方法論です。従来のSDLC（Software Development Life Cycle）をAIを中心に据えて再構築し、開発速度と品質を大幅に向上させることを目的としています。

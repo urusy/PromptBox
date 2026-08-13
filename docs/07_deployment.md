@@ -26,16 +26,21 @@ docker buildx build --platform linux/amd64 \
   -t urusy7/promptbox-frontend:latest --push ./frontend
 
 # バックエンドのビルド＆プッシュ
+# GIT_SHA は GET /api/version が返すビルド元コミット（ビルドコンテキストに .git が無いため明示的に渡す）
 docker buildx build --platform linux/amd64 \
-  -t urusy7/promptbox-backend:latest --push ./backend
+  --build-arg GIT_SHA=$(git rev-parse --short HEAD) \
+  -t urusy7/promptbox-backend-rs:latest --push ./backend-rs
 ```
 
 ### 一括実行
 
 ```bash
 docker buildx build --platform linux/amd64 -t urusy7/promptbox-frontend:latest --push ./frontend && \
-docker buildx build --platform linux/amd64 -t urusy7/promptbox-backend:latest --push ./backend
+docker buildx build --platform linux/amd64 --build-arg GIT_SHA=$(git rev-parse --short HEAD) \
+  -t urusy7/promptbox-backend-rs:latest --push ./backend-rs
 ```
+
+> `scripts/docker-build-push.sh` を使えば GIT_SHA の受け渡しを含めて自動化される。
 
 ---
 
@@ -131,8 +136,9 @@ sudo docker compose -f docker-compose.yaml ps
 sudo docker compose -f docker-compose.yaml logs -f
 
 # 個別コンテナ
-sudo docker compose -f docker-compose.yaml logs backend
+sudo docker compose -f docker-compose.yaml logs backend-rs
 sudo docker compose -f docker-compose.yaml logs frontend
+sudo docker compose -f docker-compose.yaml logs minio
 ```
 
 ### DB接続確認

@@ -2,9 +2,24 @@
 
 ## 未着手
 
-（なし）
+- [ ] Falcon統合（案C）の方針確定と未確認事項の解消
+  - **前提**: 検討結果は `docs/12_falcon_integration.md` 参照（推奨: 案C 役割分担による段階的統合）
+  - **残作業**:
+    - 案A/B/Cの最終判断、取込ポリシー（全量ミラー or 選抜アーカイブ）の決定
+    - Falcon bulk-import の created_at 引き継ぎ確認
+    - smart_folder_conditions のAIメタ系field対応確認
+    - 本番NASでのコンテナネットワーク疎通確認
+    - 評価二重管理ポリシーの決定
+  - **工数目安**: 小（確認・判断のみ）
 
 ## AI提案機能(未精査)
+
+> **2026-07-25: 精査済み。** 以下の各項目は `docs/13_backend_roadmap.md` の D1〜D16 として
+> バックエンド API 設計に具体化した（ワークフロー保存→D6、A/B比較→D11、シード変種→D12、
+> パラメータ最適化→D1〜D4、実験タイムライン→D9、スタイルプリセット→D10、
+> モデル互換性DB→D2 に吸収、ComfyUI 直接送信→D8、クラウドバックアップ→D16）。
+> 同ドキュメントには基盤・運用 / 検索 / Falcon 連携も含めた優先度案（P0〜P2）がある。
+> 以下の記述は着想の原文として残す。
 
 ### ワークフロー・プロンプト管理
 
@@ -103,8 +118,8 @@
 - [ ] 画像のクラウドバックアップ連携（Google Drive、Cloudflare R2等）
   - **実装方針**: OAuth認証でクラウドストレージAPI連携、選択画像をアップロード
   - **修正ファイル**:
-    - `backend/app/services/cloud_backup_service.py` (新規): クラウドAPI連携
-    - `backend/app/api/endpoints/backup.py` (新規): バックアップAPI
+    - `backend-rs/src/backup/mod.rs` (新規): クラウドAPI連携
+    - `backend-rs/src/http/backup.rs` (新規): バックアップAPI
     - `frontend/src/pages/SettingsPage.tsx`: クラウド連携設定UI
     - `frontend/src/components/gallery/SelectionToolbar.tsx`: バックアップボタン追加
   - **処理内容**:
@@ -130,6 +145,11 @@
 
 ### 最近の更新
 
+- [x] Falcon（../Falcon）との統合とデータ移行の検討
+  - 検討結果を `docs/12_falcon_integration.md` に纏めた（2026-07-06）
+  - 両システムのスキーマ・ストレージ・連携資産を調査し、案A（吸収）/案B（併存）/案C（段階的統合）を比較
+  - 推奨は案C: PromptBoxを取り込み・メタデータエンジン、FalconをアーカイブDAMとする役割分担
+  - 鍵となる発見: FalconはAIメタデータパーサー非保持（吸収コスト大）、一方でbulk-import連携は実装済み（移行リスク小）
 - [x] 画像取り込み時にファイルの作成日を生成日として使用
   - ファイルの作成日時（birthtime）を`created_at`に設定
   - birthtimeが利用不可の場合は更新日時（mtime）にフォールバック

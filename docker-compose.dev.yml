@@ -1,12 +1,5 @@
 # 開発用設定（本番のportsを上書きするため、frontendを完全に再定義）
 services:
-  backend:
-    volumes:
-      - ./backend/app:/app/app:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    environment:
-      - DEBUG=1
-
   frontend:
     build:
       context: ./frontend
@@ -18,9 +11,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_TARGET=http://backend:8000
+      - VITE_API_TARGET=http://backend-rs:8000
     command: npm run dev -- --host 0.0.0.0
     depends_on:
-      - backend
+      - backend-rs
     networks:
       - app-network

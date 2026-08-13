@@ -20,42 +20,17 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
-  # Python - Ruff linter and formatter
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+  # Backend (Rust) - Clippy
+  # 型検査・テストは CI（cargo clippy / cargo test）が本番のゲート。
+  # ここは commit 前の速い足切りに留める。
+  - repo: local
     hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-        files: ^backend/
-      - id: ruff-format
-        files: ^backend/
-
-  # Python - Black formatter (backup for compatibility)
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        files: ^backend/
-        language_version: python3.11
-
-  # Python - MyPy type checker
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
-        files: ^backend/app/
-        args: [--ignore-missing-imports]
-        additional_dependencies:
-          - types-cachetools
-          - pydantic
-
-  # Python - Security checks
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.8
-    hooks:
-      - id: bandit
-        files: ^backend/app/
-        args: [-ll, -ii, --skip, B101]
+      - id: clippy
+        name: clippy
+        entry: bash -c 'cd backend-rs && cargo clippy --all-targets -- -D warnings'
+        language: system
+        files: ^backend-rs/.*\.rs$
+        pass_filenames: false
 
   # Frontend - Prettier formatter
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -102,4 +77,4 @@ repos:
 ci:
   autofix_commit_msg: "style: auto-fix by pre-commit hooks"
   autoupdate_commit_msg: "chore: update pre-commit hooks"
-  skip: [eslint, mypy]  # Skip hooks that require project setup
+  skip: [eslint, clippy]  # Skip hooks that require project setup

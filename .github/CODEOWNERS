@@ -5,7 +5,7 @@
 * @urusy
 
 # バックエンド
-/backend/ @urusy
+/backend-rs/ @urusy
 
 # フロントエンド
 /frontend/ @urusy

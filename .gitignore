@@ -51,6 +51,7 @@ frontend/build/
 # Storage (runtime data)
 storage/
 import/
+minio-data/
 
 # Logs
 *.log

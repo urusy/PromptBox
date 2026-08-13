@@ -1,21 +1,25 @@
 # 技術スタック・アーキテクチャ設計
 
+> ⚠️ **2026-07-25 更新**: バックエンドは Rust(axum) に移行済みで、**Python(FastAPI) 実装は撤去された**。
+> 本ドキュメントの「バックエンドアーキテクチャ」以降の Python 前提の記述は当時の設計として残しているが、
+> 現行の構成は `docs/11_rust_rewrite.md`（アーキテクチャ）と `docs/13_backend_roadmap.md`（今後の計画）を参照すること。
+
 ## 技術スタック
 
-### バックエンド
+### バックエンド（現行）
 
 | 技術 | バージョン | 用途 |
 |------|-----------|------|
-| Python | 3.11+ | ランタイム |
-| FastAPI | 最新 | Webフレームワーク |
-| SQLAlchemy | 2.0+ | ORM（非同期対応） |
-| asyncpg | 最新 | PostgreSQL非同期ドライバ |
-| Pillow | 最新 | 画像処理、サムネイル生成 |
-| watchdog | 最新 | フォルダ監視 |
-| uuid-utils | 最新 | UUID v7生成 |
-| bcrypt | 最新 | パスワードハッシュ |
-| python-multipart | 最新 | ファイルアップロード |
-| aiofiles | 最新 | 非同期ファイル操作 |
+| Rust | edition 2024 | ランタイム |
+| axum | 0.8 | Webフレームワーク |
+| sqlx | 0.8 | PostgreSQL アクセス・マイグレーション・統合テスト |
+| tokio | 1.x | 非同期ランタイム・ジョブ実行 |
+| image / png / webp | 最新 | 画像処理、サムネイル生成 |
+| kamadak-exif | 最新 | EXIF 読み取り |
+| notify | 8.x | フォルダ監視 |
+| object_store | 0.12 | MinIO / S3 互換ストレージ |
+| uuid | 1.x (v7) | UUID v7生成 |
+| bcrypt / jsonwebtoken | 最新 | パスワードハッシュ・セッション |
 
 ### フロントエンド
 
