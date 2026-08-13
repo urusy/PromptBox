@@ -1,7 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckSquare, Grid3X3, Grid2X2, LayoutGrid, Play, Square, Rows3, Columns3 } from 'lucide-react'
+import {
+  CheckSquare,
+  Grid3X3,
+  Grid2X2,
+  LayoutGrid,
+  Play,
+  Square,
+  Rows3,
+  Columns3,
+} from 'lucide-react'
 import { imagesApi } from '@/api/images'
 import type { ImageSearchParams } from '@/types/image'
 import { useSelectionStore } from '@/stores/selectionStore'

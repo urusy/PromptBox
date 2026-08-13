@@ -108,7 +108,9 @@ export default function MainLayout() {
                   title={username || undefined}
                 >
                   <User size={16} className="lg:w-[18px] lg:h-[18px]" />
-                  <span className="hidden xl:inline text-sm text-gray-300 max-w-[80px] truncate">{username}</span>
+                  <span className="hidden xl:inline text-sm text-gray-300 max-w-[80px] truncate">
+                    {username}
+                  </span>
                   <ChevronDown
                     size={14}
                     className={`hidden xl:inline text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}

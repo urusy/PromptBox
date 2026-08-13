@@ -135,126 +135,126 @@ export default function ShowcaseDetailPage() {
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate('/showcases')}
-          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-          title="戻る"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{showcase.name}</h1>
-          {showcase.description && (
-            <p className="text-gray-400 text-sm mt-1">{showcase.description}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-sm">{showcase.image_count} 枚</span>
-          {showcase.images.length > 0 && (
-            <>
-              <button
-                onClick={() => setSlideshowStartIndex(0)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 rounded-lg text-sm hover:bg-green-700 transition-colors"
-                title="スライドショー"
-              >
-                <Play size={16} />
-                <span className="hidden sm:inline">スライドショー</span>
-              </button>
-              <button
-                onClick={toggleSortMode}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                  isSortMode
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                title="並び替え"
-              >
-                <ArrowUpDown size={16} />
-                <span className="hidden sm:inline">{isSortMode ? '完了' : '並び替え'}</span>
-              </button>
-            </>
-          )}
-          <button
-            onClick={toggleSelectMode}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              isSelectMode
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            title="戻る"
           >
-            {isSelectMode ? 'キャンセル' : '選択'}
+            <ArrowLeft size={20} />
           </button>
-        </div>
-      </div>
-
-      {/* Selection toolbar */}
-      {isSelectMode && selectedImages.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 shadow-xl flex items-center gap-4 z-40">
-          <span className="text-sm">{selectedImages.size} 枚選択中</span>
-          <button
-            onClick={handleRemoveSelected}
-            disabled={removeImagesMutation.isPending}
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
-          >
-            <X size={16} />
-            Showcaseから削除
-          </button>
-        </div>
-      )}
-
-      {/* Images grid */}
-      {showcase.images.length === 0 ? (
-        <div className="text-center py-16">
-          <ImageIcon size={64} className="mx-auto text-gray-600 mb-4" />
-          <p className="text-gray-400 mb-4">このShowcaseにはまだ画像がありません</p>
-          <p className="text-gray-500 text-sm">
-            ギャラリーで画像を選択し、「Showcaseに追加」から追加できます
-          </p>
-        </div>
-      ) : isSortMode ? (
-        <SortableImageGrid images={showcase.images} onReorder={handleReorder} />
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10 gap-2">
-          {showcase.images.map((image) => (
-            <div
-              key={image.id}
-              onClick={() => handleImageClick(image.id)}
-              className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden group ${
-                isSelectMode && selectedImages.has(image.id) ? 'ring-2 ring-blue-500' : ''
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{showcase.name}</h1>
+            {showcase.description && (
+              <p className="text-gray-400 text-sm mt-1">{showcase.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">{showcase.image_count} 枚</span>
+            {showcase.images.length > 0 && (
+              <>
+                <button
+                  onClick={() => setSlideshowStartIndex(0)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 rounded-lg text-sm hover:bg-green-700 transition-colors"
+                  title="スライドショー"
+                >
+                  <Play size={16} />
+                  <span className="hidden sm:inline">スライドショー</span>
+                </button>
+                <button
+                  onClick={toggleSortMode}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    isSortMode
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                  title="並び替え"
+                >
+                  <ArrowUpDown size={16} />
+                  <span className="hidden sm:inline">{isSortMode ? '完了' : '並び替え'}</span>
+                </button>
+              </>
+            )}
+            <button
+              onClick={toggleSelectMode}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                isSelectMode
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              <img
-                src={getThumbnailUrl(image.thumbnail_path)}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              {/* Selection indicator */}
-              {isSelectMode && (
-                <div
-                  className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    selectedImages.has(image.id)
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'border-white/70 bg-black/30'
-                  }`}
-                >
-                  {selectedImages.has(image.id) && (
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </div>
-              )}
-              {/* Hover overlay */}
-              {!isSelectMode && (
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-              )}
-            </div>
-          ))}
+              {isSelectMode ? 'キャンセル' : '選択'}
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* Selection toolbar */}
+        {isSelectMode && selectedImages.size > 0 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 shadow-xl flex items-center gap-4 z-40">
+            <span className="text-sm">{selectedImages.size} 枚選択中</span>
+            <button
+              onClick={handleRemoveSelected}
+              disabled={removeImagesMutation.isPending}
+              className="flex items-center gap-2 px-3 py-1.5 bg-red-600 rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
+            >
+              <X size={16} />
+              Showcaseから削除
+            </button>
+          </div>
+        )}
+
+        {/* Images grid */}
+        {showcase.images.length === 0 ? (
+          <div className="text-center py-16">
+            <ImageIcon size={64} className="mx-auto text-gray-600 mb-4" />
+            <p className="text-gray-400 mb-4">このShowcaseにはまだ画像がありません</p>
+            <p className="text-gray-500 text-sm">
+              ギャラリーで画像を選択し、「Showcaseに追加」から追加できます
+            </p>
+          </div>
+        ) : isSortMode ? (
+          <SortableImageGrid images={showcase.images} onReorder={handleReorder} />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10 gap-2">
+            {showcase.images.map((image) => (
+              <div
+                key={image.id}
+                onClick={() => handleImageClick(image.id)}
+                className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden group ${
+                  isSelectMode && selectedImages.has(image.id) ? 'ring-2 ring-blue-500' : ''
+                }`}
+              >
+                <img
+                  src={getThumbnailUrl(image.thumbnail_path)}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* Selection indicator */}
+                {isSelectMode && (
+                  <div
+                    className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      selectedImages.has(image.id)
+                        ? 'bg-blue-500 border-blue-500'
+                        : 'border-white/70 bg-black/30'
+                    }`}
+                  >
+                    {selectedImages.has(image.id) && (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                )}
+                {/* Hover overlay */}
+                {!isSelectMode && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Slideshow modal */}
         {slideshowStartIndex !== null && showcase.images.length > 0 && (

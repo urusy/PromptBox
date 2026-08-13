@@ -172,7 +172,9 @@ export default function GridMembers({ imageId }: GridMembersProps) {
                 {/* 構成画像は通常の詳細画面へ遷移する（グリッド詳細ではない）。 */}
                 <ImageCard
                   image={member}
-                  aspectRatio={member.width && member.height ? member.width / member.height : undefined}
+                  aspectRatio={
+                    member.width && member.height ? member.width / member.height : undefined
+                  }
                 />
                 {label && (
                   <p className="mt-1 text-xs text-gray-400 truncate" title={label}>

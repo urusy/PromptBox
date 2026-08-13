@@ -45,28 +45,30 @@ function formatFileSize(sizeKb: number | null): string {
 // Helper to convert HTML to plain text with preserved line breaks
 function htmlToText(html: string | null): string {
   if (!html) return ''
-  return html
-    // Convert block elements to line breaks
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    // Remove remaining HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Decode common HTML entities
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    // Clean up excessive whitespace while preserving intentional line breaks
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n /g, '\n')
-    .replace(/ \n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  return (
+    html
+      // Convert block elements to line breaks
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      // Remove remaining HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Decode common HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      // Clean up excessive whitespace while preserving intentional line breaks
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n /g, '\n')
+      .replace(/ \n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  )
 }
 
 export default function ModelDetailPage() {
@@ -307,7 +309,9 @@ export default function ModelDetailPage() {
                         {version.file_size_kb && (
                           <div>
                             <span className="text-gray-400">File Size:</span>{' '}
-                            <span className="font-medium">{formatFileSize(version.file_size_kb)}</span>
+                            <span className="font-medium">
+                              {formatFileSize(version.file_size_kb)}
+                            </span>
                           </div>
                         )}
                         {version.published_at && (
@@ -491,11 +495,15 @@ export default function ModelDetailPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gray-700/50 rounded-lg p-3">
                       <div className="text-gray-400 text-sm">Images</div>
-                      <div className="text-xl font-bold">{version.image_count.toLocaleString()}</div>
+                      <div className="text-xl font-bold">
+                        {version.image_count.toLocaleString()}
+                      </div>
                     </div>
                     <div className="bg-gray-700/50 rounded-lg p-3">
                       <div className="text-gray-400 text-sm">Rated</div>
-                      <div className="text-xl font-bold">{version.rated_count.toLocaleString()}</div>
+                      <div className="text-xl font-bold">
+                        {version.rated_count.toLocaleString()}
+                      </div>
                     </div>
                     <div className="bg-gray-700/50 rounded-lg p-3">
                       <div className="text-gray-400 text-sm">Avg Rating</div>
@@ -505,7 +513,9 @@ export default function ModelDetailPage() {
                     </div>
                     <div className="bg-gray-700/50 rounded-lg p-3">
                       <div className="text-gray-400 text-sm">High Rated</div>
-                      <div className="text-xl font-bold">{version.high_rated_count.toLocaleString()}</div>
+                      <div className="text-xl font-bold">
+                        {version.high_rated_count.toLocaleString()}
+                      </div>
                     </div>
                   </div>
 
@@ -528,7 +538,10 @@ export default function ModelDetailPage() {
                         />
                         <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                           {versionRatingData.map((entry) => (
-                            <Cell key={entry.rating} fill={RATING_COLORS[entry.rating] || '#6b7280'} />
+                            <Cell
+                              key={entry.rating}
+                              fill={RATING_COLORS[entry.rating] || '#6b7280'}
+                            />
                           ))}
                         </Bar>
                       </BarChart>

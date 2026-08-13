@@ -147,7 +147,9 @@ export default function GridsPage() {
                 <button
                   onClick={() => setGridSize('small')}
                   className={`p-1.5 rounded transition-colors ${
-                    gridSize === 'small' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                    gridSize === 'small'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                   title="Small thumbnails"
                 >
@@ -167,7 +169,9 @@ export default function GridsPage() {
                 <button
                   onClick={() => setGridSize('large')}
                   className={`p-1.5 rounded transition-colors ${
-                    gridSize === 'large' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                    gridSize === 'large'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                   title="Large thumbnails"
                 >

@@ -93,76 +93,76 @@ export default function DuplicatesPage() {
           >
             <RefreshCw size={18} />
             <span>Refresh</span>
-        </button>
-      </div>
-
-      {/* Summary Card */}
-      <div className="bg-gray-800 rounded-lg p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-gray-400 text-sm">Total Files</p>
-            <p className="text-3xl font-bold">{data?.count || 0}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-sm">Total Size</p>
-            <p className="text-3xl font-bold">{formatFileSize(data?.total_size_bytes || 0)}</p>
-          </div>
-          <div className="flex items-end">
-            {data && data.count > 0 && (
-              <button
-                onClick={handleDeleteAll}
-                disabled={deleteAllMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Trash2 size={18} />
-                <span>{deleteAllMutation.isPending ? 'Deleting...' : 'Delete All'}</span>
-              </button>
-            )}
-          </div>
+          </button>
         </div>
-      </div>
 
-      {/* Empty State */}
-      {(!data || data.count === 0) && (
-        <div className="text-center py-12 text-gray-500">
-          <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No duplicate files found</p>
-          <p className="text-sm mt-2">
-            Duplicate files will appear here when importing images that already exist in the
-            gallery.
-          </p>
-        </div>
-      )}
-
-      {/* File List */}
-      {data && data.count > 0 && (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left px-4 py-3 text-gray-400 font-medium">Filename</th>
-                <th className="text-right px-4 py-3 text-gray-400 font-medium w-24">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.files.map((filename) => (
-                <tr
-                  key={filename}
-                  className="border-b border-gray-700 last:border-0 hover:bg-gray-750"
+        {/* Summary Card */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p className="text-gray-400 text-sm">Total Files</p>
+              <p className="text-3xl font-bold">{data?.count || 0}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Total Size</p>
+              <p className="text-3xl font-bold">{formatFileSize(data?.total_size_bytes || 0)}</p>
+            </div>
+            <div className="flex items-end">
+              {data && data.count > 0 && (
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={deleteAllMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-sm">{filename}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDeleteFile(filename)}
-                      disabled={deleteFileMutation.isPending}
-                      className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
+                  <Trash2 size={18} />
+                  <span>{deleteAllMutation.isPending ? 'Deleting...' : 'Delete All'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State */}
+        {(!data || data.count === 0) && (
+          <div className="text-center py-12 text-gray-500">
+            <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
+            <p>No duplicate files found</p>
+            <p className="text-sm mt-2">
+              Duplicate files will appear here when importing images that already exist in the
+              gallery.
+            </p>
+          </div>
+        )}
+
+        {/* File List */}
+        {data && data.count > 0 && (
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left px-4 py-3 text-gray-400 font-medium">Filename</th>
+                  <th className="text-right px-4 py-3 text-gray-400 font-medium w-24">Action</th>
                 </tr>
-              ))}
+              </thead>
+              <tbody>
+                {data.files.map((filename) => (
+                  <tr
+                    key={filename}
+                    className="border-b border-gray-700 last:border-0 hover:bg-gray-750"
+                  >
+                    <td className="px-4 py-3 font-mono text-sm">{filename}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleDeleteFile(filename)}
+                        disabled={deleteFileMutation.isPending}
+                        className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

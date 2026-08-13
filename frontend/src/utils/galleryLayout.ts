@@ -90,8 +90,7 @@ export function computeJustifiedRows(
     rowAspectSum += aspect
 
     // 目標行高で並べたときの合計幅がコンテナ幅を超えたら行を確定
-    const projectedWidth =
-      rowAspectSum * targetRowHeight + gap * (rowImages.length - 1)
+    const projectedWidth = rowAspectSum * targetRowHeight + gap * (rowImages.length - 1)
     if (projectedWidth >= containerWidth) {
       flushRow(false)
     }

@@ -105,46 +105,46 @@ export default function TrashPage() {
             <span className="text-sm text-red-200">({data.items.length})</span>
           </button>
         </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 5xl:grid-cols-12 gap-4">
-        {data.items.map((image) => (
-          <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
-            <div className="aspect-square opacity-60">
-              <img
-                src={getThumbnailUrl(image.thumbnail_path)}
-                alt={image.model_name || 'Deleted image'}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 5xl:grid-cols-12 gap-4">
+          {data.items.map((image) => (
+            <div key={image.id} className="group relative bg-gray-800 rounded-lg overflow-hidden">
+              <div className="aspect-square opacity-60">
+                <img
+                  src={getThumbnailUrl(image.thumbnail_path)}
+                  alt={image.model_name || 'Deleted image'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                <button
+                  onClick={() => restoreMutation.mutate(image.id)}
+                  className="p-3 bg-green-600 rounded-full hover:bg-green-700"
+                  title="Restore"
+                >
+                  <RotateCcw size={20} />
+                </button>
+                <button
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: '完全に削除',
+                      message: 'この画像を完全に削除しますか？\nこの操作は取り消せません。',
+                      confirmLabel: '削除',
+                      cancelLabel: 'キャンセル',
+                      variant: 'danger',
+                    })
+                    if (confirmed) {
+                      deleteMutation.mutate(image.id)
+                    }
+                  }}
+                  className="p-3 bg-red-600 rounded-full hover:bg-red-700"
+                  title="Delete permanently"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
             </div>
-            <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-              <button
-                onClick={() => restoreMutation.mutate(image.id)}
-                className="p-3 bg-green-600 rounded-full hover:bg-green-700"
-                title="Restore"
-              >
-                <RotateCcw size={20} />
-              </button>
-              <button
-                onClick={async () => {
-                  const confirmed = await confirm({
-                    title: '完全に削除',
-                    message: 'この画像を完全に削除しますか？\nこの操作は取り消せません。',
-                    confirmLabel: '削除',
-                    cancelLabel: 'キャンセル',
-                    variant: 'danger',
-                  })
-                  if (confirmed) {
-                    deleteMutation.mutate(image.id)
-                  }
-                }}
-                className="p-3 bg-red-600 rounded-full hover:bg-red-700"
-                title="Delete permanently"
-              >
-                <Trash2 size={20} />
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
         </div>
       </div>
     </>

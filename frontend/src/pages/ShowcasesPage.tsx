@@ -325,92 +325,92 @@ export default function ShowcasesPage() {
           <h1 className="text-2xl font-bold">Showcases</h1>
           <button
             onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={18} />
-          <span className="hidden sm:inline">新規作成</span>
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center text-gray-400 py-8">Loading...</div>
-      ) : showcases.length === 0 ? (
-        <div className="text-center py-16">
-          <Album size={64} className="mx-auto text-gray-600 mb-4" />
-          <p className="text-gray-400 mb-4">Showcaseがありません</p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            最初のShowcaseを作成
+            <Plus size={18} />
+            <span className="hidden sm:inline">新規作成</span>
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-4">
-          {showcases.map((showcase) => {
-            const IconComp = getIconComponent(showcase.icon)
-            return (
-              <div
-                key={showcase.id}
-                onClick={() => handleShowcaseClick(showcase)}
-                className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors group border border-gray-700 hover:border-gray-600"
-              >
-                {/* Cover image or placeholder */}
-                <div className="aspect-video bg-gray-700 relative">
-                  {showcase.cover_thumbnail_path ? (
-                    <img
-                      src={getThumbnailUrl(showcase.cover_thumbnail_path)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon size={48} className="text-gray-600" />
-                    </div>
-                  )}
-                  {/* Image count badge */}
-                  <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-sm">
-                    {showcase.image_count} 枚
-                  </div>
-                </div>
 
-                {/* Info */}
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-purple-600/20 rounded-lg text-purple-400 shrink-0">
-                      <IconComp size={20} />
+        {isLoading ? (
+          <div className="text-center text-gray-400 py-8">Loading...</div>
+        ) : showcases.length === 0 ? (
+          <div className="text-center py-16">
+            <Album size={64} className="mx-auto text-gray-600 mb-4" />
+            <p className="text-gray-400 mb-4">Showcaseがありません</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              最初のShowcaseを作成
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-4">
+            {showcases.map((showcase) => {
+              const IconComp = getIconComponent(showcase.icon)
+              return (
+                <div
+                  key={showcase.id}
+                  onClick={() => handleShowcaseClick(showcase)}
+                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors group border border-gray-700 hover:border-gray-600"
+                >
+                  {/* Cover image or placeholder */}
+                  <div className="aspect-video bg-gray-700 relative">
+                    {showcase.cover_thumbnail_path ? (
+                      <img
+                        src={getThumbnailUrl(showcase.cover_thumbnail_path)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={48} className="text-gray-600" />
+                      </div>
+                    )}
+                    {/* Image count badge */}
+                    <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-sm">
+                      {showcase.image_count} 枚
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-white truncate">{showcase.name}</h3>
-                      {showcase.description && (
-                        <p className="text-sm text-gray-400 mt-1 line-clamp-2">
-                          {showcase.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button
-                        onClick={(e) => handleEdit(e, showcase)}
-                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-                        title="編集"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, showcase)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded"
-                        title="削除"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-purple-600/20 rounded-lg text-purple-400 shrink-0">
+                        <IconComp size={20} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-white truncate">{showcase.name}</h3>
+                        {showcase.description && (
+                          <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                            {showcase.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          onClick={(e) => handleEdit(e, showcase)}
+                          className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                          title="編集"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => handleDelete(e, showcase)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded"
+                          title="削除"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
 
         {/* Create/Edit Modal */}
         {(showModal || editingShowcaseId) && (

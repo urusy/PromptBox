@@ -395,10 +395,7 @@ export default function GelbooruTagsPage() {
                     onDragEnd={handleDragEnd}
                     onDragCancel={() => setActiveId(null)}
                   >
-                    <SortableContext
-                      items={selectedTags}
-                      strategy={verticalListSortingStrategy}
-                    >
+                    <SortableContext items={selectedTags} strategy={verticalListSortingStrategy}>
                       <div className="flex flex-wrap gap-2">
                         {selectedTags.map((tag, index) => (
                           <SortableTagChip

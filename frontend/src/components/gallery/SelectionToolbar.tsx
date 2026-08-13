@@ -283,284 +283,284 @@ export default function SelectionToolbar({
     <>
       {ConfirmDialogComponent}
       <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0 sm:pb-6">
-      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-x-auto scrollbar-hide">
-        <button
-          onClick={handleSelectAll}
-          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors whitespace-nowrap shrink-0"
-          title={allSelected ? 'Deselect all' : 'Select all'}
-        >
-          {allSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-          <span>{selectedCount}</span>
-        </button>
-
-        <div className="w-px h-6 bg-gray-700 shrink-0" />
-
-        {/* Rating */}
-        <div className={`flex items-center gap-0.5 sm:gap-1 shrink-0 ${disabledClass}`}>
-          {[1, 2, 3, 4, 5].map((rating) => (
-            <button
-              key={rating}
-              onClick={() => hasSelection && handleSetRating(rating)}
-              disabled={!hasSelection}
-              className="p-1 text-gray-500 hover:text-yellow-400 transition-colors disabled:hover:text-gray-500"
-              title={`★${rating}: ${RATING_LABELS[rating]}`}
-            >
-              <Star size={18} />
-            </button>
-          ))}
-        </div>
-
-        <div className="w-px h-6 bg-gray-700 shrink-0" />
-
-        {/* Favorite */}
-        <button
-          onClick={() => hasSelection && handleToggleFavorite(true)}
-          disabled={!hasSelection}
-          className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
-          title="Add to favorites"
-        >
-          <Heart size={18} />
-        </button>
-
-        {/* Showcase */}
-        <div className="relative shrink-0" ref={showcaseMenuRef}>
+        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-x-auto scrollbar-hide">
           <button
-            onClick={() => hasSelection && setShowShowcaseMenu(!showShowcaseMenu)}
-            disabled={!hasSelection}
-            className={`p-1.5 sm:p-2 text-gray-500 hover:text-purple-400 transition-colors disabled:hover:text-gray-500 ${disabledClass}`}
-            title="Add to showcase"
+            onClick={handleSelectAll}
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors whitespace-nowrap shrink-0"
+            title={allSelected ? 'Deselect all' : 'Select all'}
           >
-            <Album size={18} />
+            {allSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+            <span>{selectedCount}</span>
           </button>
-          {showShowcaseMenu && hasSelection && (
-            <div className="absolute bottom-full left-0 mb-2 w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
-              <div className="p-2 border-b border-gray-700">
-                <span className="text-xs text-gray-400">Showcaseに追加</span>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {showcases.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">Showcaseがありません</div>
-                ) : (
-                  showcases.map((showcase) => {
-                    const existingCount = existingCountMap.get(showcase.id) || 0
-                    const allAlreadyAdded = existingCount >= selectedIds.size
-                    const someAlreadyAdded = existingCount > 0 && existingCount < selectedIds.size
 
-                    return (
+          <div className="w-px h-6 bg-gray-700 shrink-0" />
+
+          {/* Rating */}
+          <div className={`flex items-center gap-0.5 sm:gap-1 shrink-0 ${disabledClass}`}>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                onClick={() => hasSelection && handleSetRating(rating)}
+                disabled={!hasSelection}
+                className="p-1 text-gray-500 hover:text-yellow-400 transition-colors disabled:hover:text-gray-500"
+                title={`★${rating}: ${RATING_LABELS[rating]}`}
+              >
+                <Star size={18} />
+              </button>
+            ))}
+          </div>
+
+          <div className="w-px h-6 bg-gray-700 shrink-0" />
+
+          {/* Favorite */}
+          <button
+            onClick={() => hasSelection && handleToggleFavorite(true)}
+            disabled={!hasSelection}
+            className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
+            title="Add to favorites"
+          >
+            <Heart size={18} />
+          </button>
+
+          {/* Showcase */}
+          <div className="relative shrink-0" ref={showcaseMenuRef}>
+            <button
+              onClick={() => hasSelection && setShowShowcaseMenu(!showShowcaseMenu)}
+              disabled={!hasSelection}
+              className={`p-1.5 sm:p-2 text-gray-500 hover:text-purple-400 transition-colors disabled:hover:text-gray-500 ${disabledClass}`}
+              title="Add to showcase"
+            >
+              <Album size={18} />
+            </button>
+            {showShowcaseMenu && hasSelection && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
+                <div className="p-2 border-b border-gray-700">
+                  <span className="text-xs text-gray-400">Showcaseに追加</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {showcases.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Showcaseがありません</div>
+                  ) : (
+                    showcases.map((showcase) => {
+                      const existingCount = existingCountMap.get(showcase.id) || 0
+                      const allAlreadyAdded = existingCount >= selectedIds.size
+                      const someAlreadyAdded = existingCount > 0 && existingCount < selectedIds.size
+
+                      return (
+                        <button
+                          key={showcase.id}
+                          onClick={() => !allAlreadyAdded && handleAddToShowcase(showcase.id)}
+                          disabled={addToShowcaseMutation.isPending || allAlreadyAdded}
+                          className={`w-full px-3 py-2 text-sm text-left flex items-center gap-2 ${
+                            allAlreadyAdded
+                              ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
+                              : 'text-gray-300 hover:bg-gray-700 disabled:opacity-50'
+                          }`}
+                        >
+                          <Album
+                            size={14}
+                            className={allAlreadyAdded ? 'text-gray-500' : 'text-purple-400'}
+                          />
+                          <span className="truncate">{showcase.name}</span>
+                          <span className="text-xs ml-auto shrink-0 flex items-center gap-1">
+                            {allAlreadyAdded ? (
+                              <span className="text-green-500">追加済み</span>
+                            ) : someAlreadyAdded ? (
+                              <span className="text-yellow-500">{existingCount}枚追加済み</span>
+                            ) : (
+                              <span className="text-gray-500">{showcase.image_count}枚</span>
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+                <div className="border-t border-gray-700 p-2">
+                  {showNewShowcaseInput ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newShowcaseName}
+                        onChange={(e) => setNewShowcaseName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCreateShowcase()
+                          if (e.key === 'Escape') {
+                            setShowNewShowcaseInput(false)
+                            setNewShowcaseName('')
+                          }
+                        }}
+                        placeholder="名前"
+                        className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        autoFocus
+                      />
                       <button
-                        key={showcase.id}
-                        onClick={() => !allAlreadyAdded && handleAddToShowcase(showcase.id)}
-                        disabled={addToShowcaseMutation.isPending || allAlreadyAdded}
-                        className={`w-full px-3 py-2 text-sm text-left flex items-center gap-2 ${
-                          allAlreadyAdded
-                            ? 'text-gray-500 cursor-not-allowed bg-gray-700/50'
-                            : 'text-gray-300 hover:bg-gray-700 disabled:opacity-50'
+                        onClick={handleCreateShowcase}
+                        disabled={createShowcaseMutation.isPending}
+                        className="px-2 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        作成
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowNewShowcaseInput(true)}
+                      className="w-full px-3 py-1.5 text-sm text-purple-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                    >
+                      <Plus size={14} />
+                      新規Showcase作成
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          {showTagInput ? (
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <input
+                ref={tagInputRef}
+                type="text"
+                value={tagInput}
+                onChange={(e) => {
+                  setTagInput(e.target.value)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  // Delay to allow click on suggestions
+                  setTimeout(() => setShowSuggestions(false), 150)
+                }}
+                onKeyDown={handleTagKeyDown}
+                placeholder="Tag"
+                className="w-28 sm:w-32 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {/* Tag suggestions dropdown - rendered via Portal */}
+              {showSuggestions &&
+                filteredSuggestions.length > 0 &&
+                dropdownPosition &&
+                createPortal(
+                  <div
+                    ref={suggestionsRef}
+                    style={{
+                      position: 'fixed',
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      transform: 'translateY(-100%)',
+                    }}
+                    className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
+                  >
+                    <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
+                      {tagInput ? '検索結果' : '最近使用したタグ'}
+                    </div>
+                    {filteredSuggestions.map((tag, index) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleAddTag(tag)
+                        }}
+                        className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
+                          index === selectedIndex
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
                         }`}
                       >
-                        <Album
-                          size={14}
-                          className={allAlreadyAdded ? 'text-gray-500' : 'text-purple-400'}
-                        />
-                        <span className="truncate">{showcase.name}</span>
-                        <span className="text-xs ml-auto shrink-0 flex items-center gap-1">
-                          {allAlreadyAdded ? (
-                            <span className="text-green-500">追加済み</span>
-                          ) : someAlreadyAdded ? (
-                            <span className="text-yellow-500">{existingCount}枚追加済み</span>
-                          ) : (
-                            <span className="text-gray-500">{showcase.image_count}枚</span>
-                          )}
-                        </span>
+                        {tag}
                       </button>
-                    )
-                  })
+                    ))}
+                  </div>,
+                  document.body
                 )}
-              </div>
-              <div className="border-t border-gray-700 p-2">
-                {showNewShowcaseInput ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newShowcaseName}
-                      onChange={(e) => setNewShowcaseName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCreateShowcase()
-                        if (e.key === 'Escape') {
-                          setShowNewShowcaseInput(false)
-                          setNewShowcaseName('')
-                        }
-                      }}
-                      placeholder="名前"
-                      className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleCreateShowcase}
-                      disabled={createShowcaseMutation.isPending}
-                      className="px-2 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:opacity-50"
-                    >
-                      作成
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowNewShowcaseInput(true)}
-                    className="w-full px-3 py-1.5 text-sm text-purple-400 hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <Plus size={14} />
-                    新規Showcase作成
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={() => handleAddTag()}
+                disabled={!hasSelection}
+                className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setShowTagInput(false)
+                  setShowSuggestions(false)
+                }}
+                className="p-1 text-gray-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Tags */}
-        {showTagInput ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <input
-              ref={tagInputRef}
-              type="text"
-              value={tagInput}
-              onChange={(e) => {
-                setTagInput(e.target.value)
-                setShowSuggestions(true)
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => {
-                // Delay to allow click on suggestions
-                setTimeout(() => setShowSuggestions(false), 150)
-              }}
-              onKeyDown={handleTagKeyDown}
-              placeholder="Tag"
-              className="w-28 sm:w-32 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            {/* Tag suggestions dropdown - rendered via Portal */}
-            {showSuggestions &&
-              filteredSuggestions.length > 0 &&
-              dropdownPosition &&
-              createPortal(
-                <div
-                  ref={suggestionsRef}
-                  style={{
-                    position: 'fixed',
-                    top: dropdownPosition.top,
-                    left: dropdownPosition.left,
-                    transform: 'translateY(-100%)',
-                  }}
-                  className="w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-[100] max-h-48 overflow-y-auto"
-                >
-                  <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-700">
-                    {tagInput ? '検索結果' : '最近使用したタグ'}
-                  </div>
-                  {filteredSuggestions.map((tag, index) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        handleAddTag(tag)
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm transition-colors ${
-                        index === selectedIndex
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>,
-                document.body
-              )}
+          ) : (
             <button
-              onClick={() => handleAddTag()}
+              onClick={() => setShowTagInput(true)}
+              className={`p-1.5 sm:p-2 text-gray-500 hover:text-blue-400 transition-colors shrink-0 ${disabledClass}`}
               disabled={!hasSelection}
-              className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Add
+              <Tag size={18} />
             </button>
-            <button
-              onClick={() => {
-                setShowTagInput(false)
-                setShowSuggestions(false)
-              }}
-              className="p-1 text-gray-400 hover:text-white"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowTagInput(true)}
-            className={`p-1.5 sm:p-2 text-gray-500 hover:text-blue-400 transition-colors shrink-0 ${disabledClass}`}
-            disabled={!hasSelection}
-          >
-            <Tag size={18} />
-          </button>
-        )}
-
-        <div className="w-px h-6 bg-gray-700 shrink-0" />
-
-        {/* Delete */}
-        <button
-          onClick={() => hasSelection && handleDelete()}
-          disabled={!hasSelection}
-          className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
-          title="Move to trash"
-        >
-          <Trash2 size={18} />
-        </button>
-
-        <div className="w-px h-6 bg-gray-700 shrink-0" />
-
-        {/* Export */}
-        <div className={`relative group shrink-0 ${disabledClass}`}>
-          <button
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-green-400 transition-colors disabled:hover:text-gray-500"
-            title="Export"
-            disabled={!hasSelection}
-          >
-            <Download size={18} />
-          </button>
-          {hasSelection && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-              <div className="bg-gray-700 rounded-lg shadow-lg py-1 min-w-[100px]">
-                <button
-                  onClick={() => handleExport('json')}
-                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-                >
-                  JSON
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-                >
-                  CSV
-                </button>
-                <button
-                  onClick={() => handleExport('prompts')}
-                  className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
-                >
-                  Prompts
-                </button>
-              </div>
-            </div>
           )}
+
+          <div className="w-px h-6 bg-gray-700 shrink-0" />
+
+          {/* Delete */}
+          <button
+            onClick={() => hasSelection && handleDelete()}
+            disabled={!hasSelection}
+            className={`p-1.5 sm:p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0 disabled:hover:text-gray-500 ${disabledClass}`}
+            title="Move to trash"
+          >
+            <Trash2 size={18} />
+          </button>
+
+          <div className="w-px h-6 bg-gray-700 shrink-0" />
+
+          {/* Export */}
+          <div className={`relative group shrink-0 ${disabledClass}`}>
+            <button
+              className="p-1.5 sm:p-2 text-gray-500 hover:text-green-400 transition-colors disabled:hover:text-gray-500"
+              title="Export"
+              disabled={!hasSelection}
+            >
+              <Download size={18} />
+            </button>
+            {hasSelection && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+                <div className="bg-gray-700 rounded-lg shadow-lg py-1 min-w-[100px]">
+                  <button
+                    onClick={() => handleExport('json')}
+                    className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                  >
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv')}
+                    className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('prompts')}
+                    className="w-full px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 text-left"
+                  >
+                    Prompts
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="w-px h-6 bg-gray-700 shrink-0" />
+
+          {/* Exit selection mode */}
+          <button
+            onClick={onExitSelectionMode}
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-white transition-colors shrink-0"
+            title="Exit selection mode"
+          >
+            <X size={18} />
+          </button>
         </div>
-
-        <div className="w-px h-6 bg-gray-700 shrink-0" />
-
-        {/* Exit selection mode */}
-        <button
-          onClick={onExitSelectionMode}
-          className="p-1.5 sm:p-2 text-gray-500 hover:text-white transition-colors shrink-0"
-          title="Exit selection mode"
-        >
-          <X size={18} />
-        </button>
-      </div>
       </div>
     </>
   )

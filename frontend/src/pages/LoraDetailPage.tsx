@@ -44,28 +44,30 @@ function formatFileSize(sizeKb: number | null): string {
 // Helper to convert HTML to plain text with preserved line breaks
 function htmlToText(html: string | null): string {
   if (!html) return ''
-  return html
-    // Convert block elements to line breaks
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    // Remove remaining HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Decode common HTML entities
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    // Clean up excessive whitespace while preserving intentional line breaks
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n /g, '\n')
-    .replace(/ \n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  return (
+    html
+      // Convert block elements to line breaks
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      // Remove remaining HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Decode common HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      // Clean up excessive whitespace while preserving intentional line breaks
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n /g, '\n')
+      .replace(/ \n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  )
 }
 
 export default function LoraDetailPage() {
@@ -327,7 +329,9 @@ export default function LoraDetailPage() {
                     {/* Trigger Words */}
                     {selectedVersion.trigger_words.length > 0 && (
                       <div className="bg-gray-700/50 rounded-lg p-3">
-                        <div className="text-sm font-medium text-orange-400 mb-2">Trigger Words</div>
+                        <div className="text-sm font-medium text-orange-400 mb-2">
+                          Trigger Words
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {selectedVersion.trigger_words.map((word, idx) => (
                             <span

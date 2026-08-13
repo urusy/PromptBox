@@ -82,7 +82,10 @@ export default function ConfirmDialog({
 
   // Determine aria attributes based on whether title exists
   const ariaProps = title
-    ? { 'aria-labelledby': 'confirm-dialog-title', 'aria-describedby': 'confirm-dialog-description' }
+    ? {
+        'aria-labelledby': 'confirm-dialog-title',
+        'aria-describedby': 'confirm-dialog-description',
+      }
     : { 'aria-describedby': 'confirm-dialog-description' }
 
   return createPortal(
@@ -113,10 +116,7 @@ export default function ConfirmDialog({
             )}
             <div className="flex-1 min-w-0">
               {title && (
-                <h3
-                  id="confirm-dialog-title"
-                  className="text-lg font-semibold text-white mb-2"
-                >
+                <h3 id="confirm-dialog-title" className="text-lg font-semibold text-white mb-2">
                   {title}
                 </h3>
               )}

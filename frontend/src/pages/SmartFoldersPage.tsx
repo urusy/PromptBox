@@ -362,70 +362,70 @@ export default function SmartFoldersPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Smart Folders</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={18} />
-          <span className="hidden sm:inline">新規作成</span>
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center text-gray-400 py-8">Loading...</div>
-      ) : folders.length === 0 ? (
-        <div className="text-center py-16">
-          <FolderSearch size={64} className="mx-auto text-gray-600 mb-4" />
-          <p className="text-gray-400 mb-4">スマートフォルダがありません</p>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            最初のスマートフォルダを作成
+            <Plus size={18} />
+            <span className="hidden sm:inline">新規作成</span>
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-4">
-          {folders.map((folder) => {
-            const IconComp = getIconComponent(folder.icon)
-            return (
-              <div
-                key={folder.id}
-                onClick={() => handleFolderClick(folder)}
-                className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-750 transition-colors group border border-gray-700 hover:border-gray-600"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-blue-600/20 rounded-lg text-blue-400">
-                    <IconComp size={24} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-white truncate">{folder.name}</h3>
-                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">
-                      {getFilterDescription(folder.filters)}
-                    </p>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => handleEdit(e, folder)}
-                      className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-                      title="編集"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, folder)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded"
-                      title="削除"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+
+        {isLoading ? (
+          <div className="text-center text-gray-400 py-8">Loading...</div>
+        ) : folders.length === 0 ? (
+          <div className="text-center py-16">
+            <FolderSearch size={64} className="mx-auto text-gray-600 mb-4" />
+            <p className="text-gray-400 mb-4">スマートフォルダがありません</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              最初のスマートフォルダを作成
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-4">
+            {folders.map((folder) => {
+              const IconComp = getIconComponent(folder.icon)
+              return (
+                <div
+                  key={folder.id}
+                  onClick={() => handleFolderClick(folder)}
+                  className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-750 transition-colors group border border-gray-700 hover:border-gray-600"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-600/20 rounded-lg text-blue-400">
+                      <IconComp size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-white truncate">{folder.name}</h3>
+                      <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                        {getFilterDescription(folder.filters)}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => handleEdit(e, folder)}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                        title="編集"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, folder)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded"
+                        title="削除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
 
         {/* Create/Edit Modal */}
         {(showModal || editingFolder) && (

@@ -494,9 +494,7 @@ export default function StatsPage() {
                     const displayName = getBasename(item.model_name)
                     return {
                       name:
-                        displayName.length > 20
-                          ? displayName.slice(0, 20) + '...'
-                          : displayName,
+                        displayName.length > 20 ? displayName.slice(0, 20) + '...' : displayName,
                       fullName: displayName,
                       avg_rating: item.avg_rating || 0,
                       total: item.total,
