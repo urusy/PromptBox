@@ -48,10 +48,11 @@ yarn-error.log*
 frontend/dist/
 frontend/build/
 
-# Storage (runtime data)
-storage/
-import/
-minio-data/
+# Storage (runtime data) — ルート直下のみ。先頭に / が無いと
+# backend-rs/src/storage/ のようなソースまで巻き込む（実際に起きた）。
+/storage/
+/import/
+/minio-data/
 
 # Logs
 *.log
