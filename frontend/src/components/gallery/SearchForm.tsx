@@ -351,6 +351,9 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSearch({ ...localParams, page: 1 })
+    // 検索したら結果を見たいので、開いていたフィルターは畳む（issue #31）。
+    // Reset とプリセット選択では畳まない（続けて条件を組み直す動線のため）。
+    setIsExpanded(false)
   }
 
   const handleReset = () => {
