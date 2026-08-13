@@ -112,7 +112,7 @@ impl Config {
                 .into_iter()
                 .map(|s| s.to_lowercase())
                 .collect(),
-            import_grid_patterns: split_csv(&get("IMPORT_GRID_PATTERNS", "xyz_grid,grid-"))
+            import_grid_patterns: split_csv(&get("IMPORT_GRID_PATTERNS", "xyz_grid,^grid-"))
                 .into_iter()
                 .map(|s| s.to_lowercase())
                 .collect(),
@@ -196,7 +196,7 @@ impl Config {
             s3_access_key: String::new(),
             s3_secret_key: String::new(),
             import_skip_patterns: Vec::new(),
-            import_grid_patterns: vec!["xyz_grid".to_string(), "grid-".to_string()],
+            import_grid_patterns: vec!["xyz_grid".to_string(), "^grid-".to_string()],
             import_full_decode_max_pixels: 150_000_000,
             import_max_pixels: 2_000_000_000,
             import_max_attempts: 5,

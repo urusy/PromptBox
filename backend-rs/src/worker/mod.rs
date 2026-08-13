@@ -537,15 +537,25 @@ fn classify_failure(err: &anyhow::Error) -> FailureKind {
     FailureKind::Countable
 }
 
-/// Case-insensitive substring match of a filename against configured patterns.
-/// Shared by the import exclusion list (`IMPORT_SKIP_PATTERNS`) and the grid
-/// tagging list (`IMPORT_GRID_PATTERNS`).
+/// Case-insensitive match of a filename against configured patterns. Shared by
+/// the import exclusion list (`IMPORT_SKIP_PATTERNS`) and the grid tagging list
+/// (`IMPORT_GRID_PATTERNS`).
+///
+/// A pattern matches anywhere in the name, unless it starts with `^`, which
+/// anchors it to the beginning. The anchor exists because `grid-` as a loose
+/// substring also catches ordinary images that merely have it somewhere in
+/// their filename, while A1111's batch grids are always *named* `grid-0000.png`.
 fn matches_pattern(filename: &str, patterns: &[String]) -> bool {
     if patterns.is_empty() {
         return false;
     }
     let name = filename.to_lowercase();
-    patterns.iter().any(|p| name.contains(p))
+    patterns.iter().any(|p| match p.strip_prefix('^') {
+        Some(prefix) if !prefix.is_empty() => name.starts_with(prefix),
+        // A bare "^" would anchor an empty string and match every file.
+        Some(_) => false,
+        None => name.contains(p),
+    })
 }
 
 /// Run a blocking media operation on a cloned path off the async runtime.
@@ -602,19 +612,43 @@ fn setup_notify(
 mod tests {
     use super::*;
 
+    /// The shipped default: `xyz_grid` anywhere, `grid-` only at the start.
+    fn grid_patterns() -> Vec<String> {
+        vec!["xyz_grid".to_string(), "^grid-".to_string()]
+    }
+
     #[test]
-    fn pattern_matching_is_case_insensitive_and_substring_based() {
-        let patterns = vec!["xyz_grid".to_string(), "grid-".to_string()];
-        // A1111 XYZ plots and batch grids, in the shapes they are saved as.
+    fn unanchored_patterns_match_anywhere_and_ignore_case() {
+        let patterns = grid_patterns();
+        // A1111 XYZ plots, in the shape they are saved as.
         assert!(matches_pattern("xyz_grid-0001-1234567890.png", &patterns));
         assert!(matches_pattern("XYZ_GRID-0001.PNG", &patterns));
-        assert!(matches_pattern("grid-0000.png", &patterns));
-        assert!(matches_pattern("00042-grid-0000.png", &patterns));
+        // A subdirectory prefix must not hide the marker.
+        assert!(matches_pattern("2026-08-13_xyz_grid-0001.png", &patterns));
 
         assert!(!matches_pattern("00042-portrait.png", &patterns));
         // "grid" on its own is not "grid-": a prompt that mentions a grid must
         // not turn the image into one.
         assert!(!matches_pattern("a_photo_of_a_grid.png", &patterns));
+    }
+
+    /// `^grid-` exists because a loose `grid-` also swallows ordinary images
+    /// that happen to carry it mid-name. A1111's batch grids are always *named*
+    /// `grid-0000.png`, so anchoring keeps the catch and drops the collateral.
+    #[test]
+    fn anchored_patterns_only_match_at_the_start() {
+        let patterns = grid_patterns();
+        assert!(matches_pattern("grid-0000.png", &patterns));
+        assert!(matches_pattern("GRID-0000.PNG", &patterns));
+
+        assert!(!matches_pattern("00042-grid-0000.png", &patterns));
+        assert!(!matches_pattern("my_grid-test.png", &patterns));
+    }
+
+    #[test]
+    fn a_bare_anchor_matches_nothing() {
+        // "^" alone would anchor an empty prefix and swallow the whole library.
+        assert!(!matches_pattern("anything.png", &["^".to_string()]));
     }
 
     #[test]

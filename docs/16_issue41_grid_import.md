@@ -58,8 +58,11 @@
 パーサの `Script` 検出はメタデータが載っている場合しか効かない
 （PNG info 埋め込み無効・再保存だと `has_metadata=false`）。ファイル名でも補完タグ付けする:
 
-- `config.rs`: `import_grid_patterns: Vec<String>`、既定 `xyz_grid,grid-`
-  （A1111 のバッチグリッド `grid-0000.png` も対象。contains 一致なので過剰一致は env で調整可能）。
+- `config.rs`: `import_grid_patterns: Vec<String>`、既定 **`xyz_grid,^grid-`**。
+  パターンは既定で部分一致だが、**先頭に `^` を付けると先頭一致**になる
+  （2026-08-13 追記: `grid-` を部分一致にすると `my_grid-test.png` のような通常画像まで
+  グリッド扱いになる。A1111 のバッチグリッドは必ず `grid-0000.png` と**命名される**ため、
+  先頭一致で捕捉率を落とさずに巻き添えだけ消せる）。
 - `worker/mod.rs::import_image`: `parser::parse`（`worker/mod.rs:277`）の直後、
   ファイル名がパターンに一致し、かつ `parsed.model_params` に `is_xyz_grid` が無ければ
   `is_xyz_grid=true` を挿入。パーサが既に true にしていれば何もしない。
@@ -275,6 +278,25 @@ GET /api/images/{id}/grid-members?window_hours=24
      本番 NAS での `skipped/` 救済（§1-4 の手順、ユーザー作業）、
      CodeRabbit レビュー（`coderabbit` CLI が未インストールで実行不可）
 
+## 「取り込み対象に増えたのは本当のグリッドだけか」の検証（2026-08-13）
+
+| 論点 | 結論 | 根拠 |
+|---|---|---|
+| skip 解除で新たに取り込まれるもの | **ファイル名に `xyz_grid` を含むファイルのみ** | 旧 `IMPORT_SKIP_PATTERNS` の既定は `xyz_grid` 単独。構成画像（セル）は `00001-1234567.png` 形式で以前から取り込まれていた |
+| セル画像がパーサでグリッド誤判定されないか | **されない** | A1111 `scripts/xyz_grid.py` は `extra_generation_params['Script'] / 'X Values'` を **`process_images(pc)` の後**に代入し、`grid_infotext` の生成にのみ使う。セルの infotext には入らない（一次情報を取得して確認） |
+| パーサ判定は今回の追加か | **違う。2025-12-08 から存在**（`ca53fdb`、Python 時代） | 今回のフラグ増加はファイル名判定の分のみ |
+| 既存の取り込み済み画像への影響 | **Phase 1 では無し**（`is_xyz_grid` は取り込み時に確定） | Phase 4 で、既にフラグの付いた本物のグリッドが `/grids` へ移るのみ |
+| ファイル名判定の巻き添え | **あった → `^grid-` で解消**（§1-2） | `grid-` の部分一致が `my_grid-test.png` 等を拾っていた |
+
+本番 DB でも確認したい場合は、想定外のフラグが無いことを次のクエリで見られる（0 件なら
+ファイル名 `xyz_grid` 以外にフラグは付いていない）:
+
+```sql
+SELECT count(*) FROM images
+ WHERE model_params->>'is_xyz_grid' = 'true'
+   AND original_filename NOT ILIKE '%xyz_grid%';
+```
+
 ## スコープ外として残した点
 
 - **Quick Rate（`/swipe`）とゴミ箱（`/trash`）にはグリッドが出る。** 決定④は「通常の一覧表示」＝
@@ -284,6 +306,8 @@ GET /api/images/{id}/grid-members?window_hours=24
 ## 決定事項（2026-08-13 ユーザー判断・全確定）
 
 1. `grid-` を既定タグ付けパターンに**含める**（バッチグリッドもグリッド扱い）。
+   → 2026-08-13 追記: **先頭一致 `^grid-` に変更**（上記 §1-2）。捕捉対象は変わらず、
+   ファイル名の途中に `grid-` を含む通常画像の巻き添えだけを除いた。
 2. 巨大画像は上限引き上げではなく**ストリーミング縮小で対応**（§1-3）。
    PNG なら実質サイズ無制限、`IMPORT_MAX_PIXELS`（2GP）は異常ファイル用の安全弁に格下げ。
 

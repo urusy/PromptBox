@@ -51,7 +51,7 @@ services:
       # 既定は空。グリッドは除外せず取り込み、下の GRID_PATTERNS で印を付ける
       - IMPORT_SKIP_PATTERNS=${IMPORT_SKIP_PATTERNS:-}
       # メタデータに X/Y/Z plot が無くてもファイル名でグリッドと判定する
-      - IMPORT_GRID_PATTERNS=${IMPORT_GRID_PATTERNS:-xyz_grid,grid-}
+      - IMPORT_GRID_PATTERNS=${IMPORT_GRID_PATTERNS:-xyz_grid,^grid-}
       # これを超える画素数はメモリ展開せずストリーミングでサムネイル生成
       - IMPORT_FULL_DECODE_MAX_PIXELS=${IMPORT_FULL_DECODE_MAX_PIXELS:-150000000}
       - IMPORT_MAX_PIXELS=${IMPORT_MAX_PIXELS:-2000000000}
