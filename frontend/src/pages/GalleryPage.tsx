@@ -25,9 +25,13 @@ export default function GalleryPage() {
 
   const { isSelectionMode, setSelectionMode, clearSelection } = useSelectionStore()
 
+  // グリッド画像（XYZ プロット等）は専用画面 /grids でのみ扱う。URL や保存済み
+  // プリセットに is_xyz_grid が残っていても、ここでは必ず除外する。
+  const query: ImageSearchParams = { ...params, is_xyz_grid: false }
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['images', params],
-    queryFn: () => imagesApi.list(params),
+    queryKey: ['images', query],
+    queryFn: () => imagesApi.list(query),
   })
 
   // Sync params from URL when navigating back to gallery

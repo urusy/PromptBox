@@ -22,11 +22,7 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Rating' },
   { value: 'model_name', label: 'Model Name' },
 ]
-const GRID_FILTER_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'grid', label: 'Grid Only' },
-  { value: 'non-grid', label: 'Non-Grid Only' },
-]
+// グリッド画像は専用画面（/grids）でのみ扱うため、ここに絞り込みは置かない。
 const UPSCALE_FILTER_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'upscaled', label: 'Upscaled Only' },
@@ -136,7 +132,8 @@ const filtersMatch = (a: SearchFilters, b: SearchFilters): boolean => {
     'needs_improvement',
     'tags',
     'lora_name',
-    'is_xyz_grid',
+    // is_xyz_grid は比較しない: グリッドは /grids でしか表示しないので、
+    // 保存済みプリセットに残っていても選択状態の判定には影響させない。
     'is_upscaled',
     'orientation',
     'min_width',
@@ -396,7 +393,6 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
     localParams.min_rating ||
     localParams.exact_rating !== undefined ||
     localParams.is_favorite ||
-    localParams.is_xyz_grid !== undefined ||
     localParams.is_upscaled !== undefined ||
     localParams.orientation ||
     localParams.min_width ||
@@ -784,33 +780,6 @@ export default function SearchForm({ params, onSearch }: SearchFormProps) {
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {ORIENTATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Grid Filter</label>
-              <select
-                value={
-                  localParams.is_xyz_grid === true
-                    ? 'grid'
-                    : localParams.is_xyz_grid === false
-                      ? 'non-grid'
-                      : ''
-                }
-                onChange={(e) => {
-                  const val = e.target.value
-                  updateParam(
-                    'is_xyz_grid',
-                    val === 'grid' ? true : val === 'non-grid' ? false : undefined
-                  )
-                }}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {GRID_FILTER_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
